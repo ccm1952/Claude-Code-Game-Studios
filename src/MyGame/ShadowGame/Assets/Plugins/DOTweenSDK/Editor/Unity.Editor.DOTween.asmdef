@@ -1,0 +1,18 @@
+{
+    "name": "Unity.Editor.DOTween",
+    "rootNamespace": "",
+    "references": [
+        "GUID:015d1038a0fb4f7c985eb892dd6f60ec"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

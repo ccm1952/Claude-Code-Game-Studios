@@ -1,0 +1,28 @@
+{
+    "name": "TEngine.Editor",
+    "rootNamespace": "",
+    "references": [
+        "TEngine.Runtime",
+        "YooAsset",
+        "YooAsset.Editor",
+        "GameLogic",
+        "HybridCLR.Editor",
+        "Unity.TextMeshPro",
+        "GameProto",
+        "UniTask",
+        "Unity.Runtime.DOTween",
+        "YooAsset.MiniGame",
+        "YooAsset.RuntimeExtension"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

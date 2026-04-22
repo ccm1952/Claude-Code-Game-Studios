@@ -1,0 +1,29 @@
+{
+    "name": "GameLogic",
+    "rootNamespace": "GameLogic",
+    "references": [
+        "Unity.TextMeshPro",
+        "TEngine.Runtime",
+        "GameProto",
+        "UniTask",
+        "YooAsset",
+        "Unity.Runtime.DOTween",
+        "YooAsset.MiniGame",
+        "YooAsset.RuntimeExtension"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "com.unity.render-pipelines.universal",
+            "expression": "[14.0.0,15.0.0)",
+            "define": "ENABLE_URP"
+        }
+    ],
+    "noEngineReferences": false
+}

@@ -1,0 +1,21 @@
+{
+    "name": "GameProto",
+    "rootNamespace": "",
+    "references": [
+        "TEngine.Runtime",
+        "UniTask",
+        "Unity.Runtime.DOTween",
+        "YooAsset",
+        "YooAsset.MiniGame",
+        "YooAsset.RuntimeExtension"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
