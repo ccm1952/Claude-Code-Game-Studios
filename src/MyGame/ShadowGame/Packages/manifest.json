@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "com.aibridge.unity": "https://github.com/butterlatte-zhang/unity-ai-bridge.git?path=Packages/com.aibridge.unity#546583b861ec5cfda0bf186897dddd7b97858522",
     "com.boxqkrtm.ide.cursor": "https://github.com/boxqkrtm/com.unity.ide.cursor.git",
     "com.code-philosophy.hybridclr": "https://gitee.com/focus-creative-games/hybridclr_unity.git",
     "com.unity.ai.navigation": "1.1.6",

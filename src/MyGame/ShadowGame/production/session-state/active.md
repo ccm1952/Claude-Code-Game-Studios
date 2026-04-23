@@ -1,8 +1,8 @@
 # ShadowGame — Session State
 
-> Last updated: 2026-04-22 (session 9)
-> Phase: **Pre-production 准备 — Architecture v1.0 Draft 完成 / ADR 编写阶段** (workflow-catalog.yaml)
-> Next milestone: ADRs (11 P0 + 7 P1) → Gate Check → Pre-production
+> Last updated: 2026-04-22 (session 14)
+> Phase: **Pre-Production** — **Sprint 2 READY TO START**（Plan + QA Plan 完成，SP-011 Spike 前置待执行）
+> Next milestone: SP-011 Spike → Track A (Chapter State) → Track B (Scene Mgmt) → Track C (Object Int)
 
 ---
 
@@ -86,6 +86,18 @@
 - `docs/architecture/phase0-tr-baseline.md` — Phase 0 TR 基线（212 TRs + Engine Knowledge Gap Inventory）
 - `docs/architecture/architecture.md` — **Master Architecture Document v1.0 Draft**（Phase 1-7 全阶段）
 - `docs/architecture/tr-registry.yaml` — TR 注册表模板
+- **11 P0 ADRs**（全部 Status: Proposed）:
+  - `adr-001-tengine-framework.md` — TEngine 6.0 框架采用
+  - `adr-002-urp-shadow-rendering.md` — URP 影子渲染管线
+  - `adr-003-mobile-first-platform.md` — 移动端优先平台策略
+  - `adr-004-hybridclr-assembly.md` — HybridCLR 程序集边界
+  - `adr-005-yooasset-lifecycle.md` — YooAsset 资源加载生命周期
+  - `adr-006-gameevent-protocol.md` — GameEvent 通信协议
+  - `adr-007-luban-access.md` — Luban 配置表访问模式
+  - `adr-008-save-system.md` — 存档系统架构
+  - `adr-009-scene-lifecycle.md` — 场景生命周期与 Additive 策略
+  - `adr-010-input-abstraction.md` — 输入抽象（手势/阻断/过滤）
+  - `adr-011-uiwindow-management.md` — UIWindow 管理与层级策略
 
 ### 原始设计素材（只读参考）
 - `src/MyGame/Word/影子回忆解谜游戏_竞品调研.md` — 市场定位、差异化、Projected Dreams/Shadowmatic/In My Shadow 分析
@@ -128,9 +140,10 @@
    - 26 个 ADR 识别（11 P0 + 7 P1 + 8 P2）/ 10 个 Open Questions
    - 30 TR 代表性覆盖验证 / 7 个覆盖缺口已标注
 
-2. **Architecture Decision Records (ADRs)** ← **下一步**
-   - **P0 必须先写 (11)**：ADR-001 ~ ADR-011（Foundation + Core 层决策，Sprint 1 启动前完成）
-   - **P1 系统构建前写 (7)**：ADR-012 ~ ADR-018（Feature 层决策）
+2. ~~**P0 Architecture Decision Records (11)**~~ ✅ **已完成** — 全部 11 个 P0 ADR 已生成
+   - ADR-001 TEngine / ADR-002 URP / ADR-003 Mobile-First / ADR-004 HybridCLR / ADR-005 YooAsset
+   - ADR-006 GameEvent / ADR-007 Luban / ADR-008 Save / ADR-009 Scene / ADR-010 Input / ADR-011 UIWindow
+   - ~~**P1 待写 (7)**~~ ✅ ADR-012 ~ ADR-018（Feature 层决策，全部已生成）
    - **P2 可延后 (8)**：ADR-019 ~ ADR-026（Presentation 层 / 优化）
 
 3. **Object Interaction 原型 — 真机验证**（可并行）
@@ -141,15 +154,135 @@
 
 5. **iPhone 13 Mini 补充验证**（待设备可用时） — Medium 档 60fps 目标确认
 
-6. **Gate Check** — 全部 ADR 完成后执行 `/gate-check pre-production`
+6. ~~**Gate Check**~~ ✅ 已执行 — 判定 **CONCERNS**（5 项缺失工件，需补齐后重新通过）
+   - 详见 `docs/architecture/gate-check-pre-production-2026-04-22.md`
 
-7. 全部通过 → 进入 **Pre-production** 阶段（Sprint Planning / Story Creation）
+7. ~~**Gate 阻塞项修复**~~ ✅ **全部完成**
+   - [x] ~~P0: 运行 `/test-setup` 初始化测试框架 + CI/CD~~ ✅
+   - [x] ~~P0: 生成 `architecture-traceability.md` 可追溯性索引~~ ✅
+   - [x] ~~P1: 解决 Event ID 冲突（ADR-006 vs ADR-010/011）~~ ✅ 3 个冲突全部修复
+   - [x] ~~P1: 创建 `design/ux/interaction-patterns.md` + 核心屏幕 UX spec~~ ✅
+   - [x] ~~P2: 创建 `design/accessibility-requirements.md`~~ ✅
+   - **下一步 → 重新 Gate Check → 进入 Pre-production**
+
+8. ~~**Sprint 0 Spike**~~ ✅ **全部 10 个 findings 完成**
+   - 详见 `docs/architecture/findings/SP-001~SP-010`
+   - **10/10 全部定稿**；SP-007 (HybridCLR+AsyncGPU) 真机验证 ✅ PASS
+
+9. ~~**Control Manifest**~~ ✅ **已生成** — `docs/architecture/control-manifest.md` (576 行)
+   - 覆盖 18 ADR + 10 SP findings，按 Foundation/Core/Feature/Presentation 四层组织
+
+10. ~~**Epics**~~ ✅ **13 个 Epic 全部创建**
+    - 详见 `production/epics/index.md`
+    - Foundation (2) + Core (4) + Feature (5) + Presentation (2)
+
+11. ~~**Foundation + Core Stories**~~ ✅ **39 个 Story 已创建**
+    - input-system: 8 stories
+    - urp-shadow-rendering: 7 stories
+    - scene-management: 6 stories
+    - object-interaction: 7 stories
+    - chapter-state: 5 stories
+    - save-system: 6 stories
+
+12. ~~**Feature + Presentation Stories**~~ ✅ **52 个 Story 已创建**
+    - shadow-puzzle: 8 stories
+    - hint-system: 6 stories
+    - narrative-event: 8 stories
+    - audio-system: 7 stories
+    - ui-system: 10 stories
+    - tutorial-onboarding: 6 stories
+    - settings-accessibility: 7 stories
+
+13. ~~**Story 001 完成**~~ ✅ `input-system/story-001-gesture-state-machine` — **COMPLETE**
+    - Code Review: PASS（零 ADR 违规，GestureData 字段名已对齐 ADR-010）
+    - Tests: 8/8 PASS（Unity Test Runner EditMode）
+    - AC: 12/12 已验证（真机性能 DEFERRED 到集成阶段）
+
+14. ~~**Story 002 完成**~~ ✅ `input-system/story-002-dual-finger-gestures` — **COMPLETE**
+    - Tests: 9/9 PASS（总计 24/24 全绿）
+    - AC: 11/11 已验证
+
+15. ~~**Story 003 + 006 完成**~~ ✅ — **COMPLETE**
+    - S1-03: EventId（1000–1004）+ GestureDispatcher + 6 测试
+    - S1-06: InputConfigFromLuban（DPI+灵敏度+Luban 预留）+ 10 测试
+    - 40/40 全绿
+
+16. ~~**Story 004 + 005 完成**~~ ✅ — **COMPLETE**
+    - S1-04: InputBlocker（token 栈 + 泄漏检测 + ForcePopAll）+ 9 测试
+    - S1-05: InputFilter（单一激活白名单 + 深拷贝 + 覆盖语义）+ 10 测试
+    - 59/59 全绿
+    - **Input System epic 全部 6 个 Must Have stories 完成！**
+
+17. ~~**S1-07 + S1-09 + S1-11 完成**~~ ✅ — **COMPLETE**
+    - S1-07: ShadowRTConfig（三档质量参数 High/Medium/Low）+ 9 测试
+    - S1-09: SaveData schema（JSON + IChapterProgress + ISaveMigration）+ 9 测试
+    - S1-11: ChapterDataModel（ChapterStateManager + PuzzleStateEnum + IChapterProgress）+ 10 测试
+    - 87/87 全绿
+    - **Must Have 8/8 全部完成！Should Have 进行中**
+
+18. ~~**S1-10 完成**~~ ✅ — **COMPLETE**
+    - SaveManager（原子写入 + CRC32 + 备份 + SemaphoreSlim）+ Crc32 纯函数
+    - 13 测试（CRC32 7 + SaveManager 6）
+    - 100/100 全绿
+    - **Should Have 1/3 完成**
+
+19. ~~**S1-13 完成**~~ ✅ — **COMPLETE**
+    - LoadAsync（UniTask 异步 fallback chain）+ RegisterMigration 迁移链
+    - 3 新测试（迁移链 + 空文件降级）
+    - 103/103 全绿
+
+20. ~~**S1-08 完成**~~ ✅ — **COMPLETE**
+    - WallReceiver.shader（纯 HLSL Unlit，SRP Batcher 兼容，CBUFFER 声明）
+    - ShadowRenderingModule.cs（Init/Dispose 生命周期 + Glow/Style API）
+    - Frame Debugger 确认 SRP Batch ✅
+    - 10 测试，113/113 全绿
+    - Visual 完整验证（明暗比/GPU 时间）延后到 ShadowRT 集成阶段
+    - **Sprint 1 Must Have 8/8 全部完成！**
+
+21. ~~**S1-12 完成**~~ ✅ — **COMPLETE**
+    - ShadowRTReadback（AsyncGPUReadback 管线 + 隔帧控制 + 失败降级）
+    - EventId_Rendering（Evt_ShadowRT_Updated = 1100）+ ShadowRTData payload
+    - 9 测试，122/122 全绿
+    - **Sprint 1 全部 13/13 stories 完成！**
+
+22. ~~**Sprint 1 Retrospective**~~ ✅ — **COMPLETE**
+    - `production/sprints/sprint-1-retrospective.md`
+    - 承诺 11，实际 **13/13**（Must 8 + Should 3 + Nice 2），超额 +18%
+    - 122 EditMode 测试全绿，零 ADR 违规，零新增技术债务
+    - 5 条 Action Items for Sprint 2（Top: story 复杂度点数替代人日 / story 模板加枚举校验）
+
+23. ~~**Sprint 2 Plan**~~ ✅ — **CREATED**
+    - `production/sprints/sprint-2.md` + `production/sprint-status.yaml`
+    - 承诺 14 stories / 25 点（Must 10 + Should 4），Nice 3 / 7 点延伸
+    - **SP-011 YooAsset Additive Scene Spike 前置**（0.5 点，MEDIUM 风险预先消化）
+    - 临界路径：Chapter State 闭环 → Scene Mgmt 骨架 → Object Interaction 最小可交互
+    - 三轨并行：Chapter 6点 ‖ Scene 4.5点 ‖ ObjectInt 6点
+
+24. ~~**Sprint 2 QA Plan**~~ ✅ — **DRAFT**
+    - `production/qa/qa-plan-sprint-2-2026-04-22.md`
+    - 17 stories + SP-011 全覆盖：15 EditMode / 3 PlayMode / 4 manual evidence / 3 playtest
+    - 应用 Sprint 1 Retro Actions：
+      - #1 枚举/字段 grep 校验前置（story 实施前）
+      - #4 Visual stories 参数层抽测（S2-15 先测 SelectionFeedbackConfig）
+    - Luban 配置兜底策略（in-memory fixture）已就位
 
 ### 已完成 ✓
 - ~~Render Pipeline Converter~~ — UIRoot URP 兼容、材质转换、0 问题
 - ~~Vertical Slice 系统设计~~ — 4 份 VS GDD 全部完成
 - ~~GDD 全面审查~~ — 13 份 GDD 全量审查，26 项修复后 APPROVED
 - ~~Master Architecture~~ — v1.0 Draft，Phase 0-7 全阶段完成
+- ~~P0 ADRs (11)~~ — 全部 11 个 Foundation + Core 层 ADR 已生成（Status: Proposed）
+- ~~P1 ADRs (7)~~ — 全部 7 个 Feature 层 ADR 已生成（Status: Proposed）
+- ~~Architecture Review~~ — 判定 CONCERNS（212 TRs: 124 ✅ / 87 ⚠️ / 1 ❌ / 2 CRITICAL 冲突）
+- ~~Gate Check~~ — Technical Setup → Pre-Production 判定 CONCERNS（5 项缺失工件）
+- ~~Sprint 0 Spike Plan~~ — 10 个技术验证任务 / 28h / SP-001/002 已预解决
+- ~~Gate 阻塞项修复~~ — 测试框架 + Traceability Index + Event ID 冲突 × 3 + UX 交互规范 + 无障碍需求
+  - ~~Gate Check v2~~ — **PASS**，Technical Setup → Pre-Production 通过
+  - ~~Sprint 0 Spike~~ — 10 findings（SP-001~010），9 个已定稿，SP-007 待真机验证
+  - ~~Control Manifest~~ — 576 行程序员规则表，覆盖全部 18 ADR + 10 findings
+  - ~~Epics~~ — 13 个 Epic 文件 + index（Foundation 2 + Core 4 + Feature 5 + Presentation 2）
+  - ~~Foundation + Core Stories~~ — 39 个 Story 文件（含完整 AC、QA Test Cases、Implementation Notes）
+  - ~~Feature + Presentation Stories~~ — 52 个 Story 文件（全部 13 个 epic 合计 **91 Stories**）
 
 ---
 

@@ -1,0 +1,179 @@
+---
+description: ShadowGame (Unity/TEngine) 工程前置阅读与最佳实践强制协议。任何涉及 src/MyGame/ShadowGame/ 下脚本/场景/Prefab/Shader/材质/动画/ScriptableObject/asmdef 的读写操作均自动触发。
+globs:
+  - src/MyGame/ShadowGame/**/*.cs
+  - src/MyGame/ShadowGame/**/*.unity
+  - src/MyGame/ShadowGame/**/*.prefab
+  - src/MyGame/ShadowGame/**/*.shader
+  - src/MyGame/ShadowGame/**/*.shadergraph
+  - src/MyGame/ShadowGame/**/*.mat
+  - src/MyGame/ShadowGame/**/*.asset
+  - src/MyGame/ShadowGame/**/*.anim
+  - src/MyGame/ShadowGame/**/*.controller
+  - src/MyGame/ShadowGame/**/*.asmdef
+  - src/MyGame/ShadowGame/**/*.asmref
+  - src/MyGame/ShadowGame/**/*.uxml
+  - src/MyGame/ShadowGame/**/*.uss
+  - src/MyGame/ShadowGame/**/*.hlsl
+  - src/MyGame/ShadowGame/**/*.compute
+alwaysApply: false
+---
+
+<!-- 该文件由 Cursor 自动生成，用于强制 ShadowGame Unity/TEngine 工程的 AI 前置阅读协议 -->
+
+# ShadowGame (Unity/TEngine) AI 代理前置阅读协议（MUST）
+
+> **适用范围**：任何对 `src/MyGame/ShadowGame/` 下的代码 / 场景 / Prefab / Shader / 材质 / 动画 / ScriptableObject / asmdef / UI Toolkit 资源的**设计、修改、生成**操作。
+> **强制度**：MUST。未完成前置阅读不得产出代码 / 资产改动 / 手动操作步骤。
+> **权威来源**：`src/MyGame/ShadowGame/.claude/skills/tengine-dev/`（Skill 知识库） + `src/MyGame/ShadowGame/CLAUDE.md`（工程协议原文）。
+
+---
+
+## 第零步：判定任务等级（决定阅读深度与流程强度）
+
+| 等级 | 判断标准 | 阅读要求 | TodoWrite 要求 |
+|------|---------|---------|--------------|
+| **L1 简单** | typo 修正、单行注释、日志字符串修改、仅改变量命名 | 可跳过，但**回复开头必须声明**"L1 任务，跳过 SKILL.md" | 豁免 |
+| **L2 调用** | 调用已知 TEngine API、单一模块的局部修改 | 必读 L-0（SKILL.md 导航），按需追加 L-1 | **必须**：TodoWrite 首项 = 读 SKILL.md |
+| **L3 功能** | 新功能开发、跨文件修改、新增 UI/资源/事件逻辑 | L-0 + 相关 L-1 references | **必须**：TodoWrite 首项 = 读 SKILL.md + 相关 references |
+| **L4 架构** | 模块设计、系统重构、多模块协作、架构决策 | L-0 + 多份 L-1 + 调用 `wiki-query-agent` 做 L-2 | **必须**：并行列出所有阅读项 |
+
+> **判断原则**：宁可高估等级，不可低估——不确定时上调一级。
+
+---
+
+## 第一步：必读阅读清单
+
+### L-0 导航层（L2+ 所有任务必读）
+
+```
+src/MyGame/ShadowGame/.claude/skills/tengine-dev/SKILL.md
+```
+
+内含快速导航表，指引到具体 reference 文档。
+
+### L-1 场景层（按任务类型追加）
+
+位于 `src/MyGame/ShadowGame/.claude/skills/tengine-dev/references/`：
+
+| 任务场景 | 必读 reference |
+|---------|--------------|
+| 项目结构 / 启动流程 / 分层架构 | `architecture.md` |
+| 模块 API（Timer / Scene / Audio / Fsm / Resource）| `modules.md` |
+| UI 开发（UIWindow / UIWidget / 生命周期 / 弹窗队列）| `ui-development.md` |
+| UI Prefab 拼接（节点命名 / 工作流）| `ui-prefab-builder.md` |
+| 事件系统（int事件 / 接口事件 / AddUIEvent）| `event-system.md` |
+| 资源加载 / 释放（Sprite / GameObject / Asset / YooAsset）| `resource-management.md` |
+| 热更包 / Manifest / 缓存 | `hotpatch-management.md` |
+| 热更代码 / HybridCLR / GameApp 入口 / 程序集边界 | `hotfix-development.md` |
+| Luban 配置表生成 / 访问 | `luban-config.md` |
+| 代码规范 / 命名 / 设计模式 | `conventions.md` |
+| 排错 / 常见问题 | `troubleshooting.md` |
+| **unity-mcp 工具索引 / batch_execute / 目标定位** | `unity-mcp-guide.md` |
+| 场景 / GameObject / 组件操作 | `scene-gameobject.md` |
+| 脚本创建 / 精确编辑 / 资源文件管理 | `script-asset-workflow.md` |
+| 材质 / Shader / VFX / 动画控制器 | `material-shader-vfx.md` |
+| Editor 自动化 / PlayMode / 测试 / 日志 | `editor-automation.md` |
+
+### L-2 深度层（L3/L4 按需）
+
+通过 `wiki-query-agent` 子代理查询 `src/MyGame/ShadowGame/repowiki/zh/content/`，由子代理返回摘要——**禁止**将 wiki 原文大段复制进主上下文。
+
+---
+
+## 第二步：强制 TodoWrite 前置项（L2+）
+
+进入任务时，`TodoWrite` 的**第一项**必须是 TEngine 前置阅读 todo。措辞可灵活，但必须明确指向待读的文档。在该 todo 完成前，其他 todo 一律 `pending`。
+
+示例：
+
+```
+1. [in_progress] 读 .claude/skills/tengine-dev/SKILL.md + references/ui-development.md + references/resource-management.md
+2. [pending] 设计 UIWindow 子类 XxxWindow
+3. [pending] 实现 OnCreate / OnOpen / OnClose
+4. [pending] 编写 EditMode 测试
+```
+
+**L1 任务豁免 TodoWrite，但必须在回复首段声明等级。**
+
+---
+
+## 第三步：已读声明（L2+ 在产出代码/方案前必须出现）
+
+格式（在输出代码块或方案前紧挨着写）：
+
+```
+已读: SKILL.md + [references/xxx.md, references/yyy.md]
+会话缓存: [本会话已查过的主题，直接复用]
+未读: [references/zzz.md — 说明为何跳过]
+任务等级: L2 / L3 / L4
+```
+
+---
+
+## 第四步：输出代码 / 方案
+
+### 编码红线（来自 SKILL.md 核心原则）
+
+1. **异步优先**：IO 操作用 `UniTask`，禁止同步加载 / Coroutine
+2. **模块访问**：通过 `GameModule.XXX` 访问，而非 `ModuleSystem.GetModule<T>()`
+3. **资源必须释放**：`LoadAssetAsync` 对应 `UnloadAsset`，GameObject 用 `LoadGameObjectAsync`
+4. **热更边界**：`GameScripts/Main/` 不热更，`GameScripts/HotFix/` 全部热更；依赖方向 `GameLogic → TEngine.Runtime`（单向）
+5. **事件解耦**：模块间用 `GameEvent`，UI 内部用 `AddUIEvent`
+
+### Editor 操作优先级（涉及场景 / Prefab / 材质 / Shader / 动画时）
+
+- **禁止**输出"请在 Unity Editor 里手动执行 A / B / C"这类让用户手动操作的步骤。
+- **必须**先读 `references/unity-mcp-guide.md` 评估 `manage_scene` / `manage_gameobject` / `manage_prefabs` / `manage_components` / `manage_script` / `batch_execute` 等工具的自动化可能性。
+- 仅当 unity-mcp Bridge 不可用（MCP 状态错误 / 用户未开启）时，才降级为**明确标注原因**的手动操作指南。
+
+### wiki 规范与代码冲突时
+
+1. 优先信任代码中的实际 API
+2. 在输出中标注冲突点
+3. 建议用户触发 `/wiki:sync` 同步文档
+
+---
+
+## 违反处理（自检机制）
+
+出现以下任一情况即视为违反：
+
+- L2+ 任务未读 SKILL.md 就开始产出代码 / 改资产
+- 涉及 Editor 资产操作但未评估 unity-mcp 就输出手动步骤
+- L3 / L4 任务未调用 `wiki-query-agent` 就输出架构方案
+- L2+ 任务未在回复中给出「已读声明」
+
+### 处理流程（强制）
+
+1. **立即写入违反记录**：在工程根目录 `/.claude/memory/problem_YYYY-MM-DD_tengine-skill-violation.md`（可追加同日记录），格式参考现有 `problem_2026-04-22_tengine-skill-violation.md`：
+   - 问题现象
+   - 具体偏离（表格列出「实际做法 vs 应有做法」）
+   - 原因分析
+   - 解决方案
+2. **回滚当前产出**：撤回或暂停已写出的代码 / 资产改动
+3. **补齐阅读后重新产出**
+4. **同一会话内二次违反**：无条件中止任务，向用户明确报告「二次违反，请指示」
+
+---
+
+## 豁免场景（不触发本协议）
+
+- **L1 任务**：typo / 单行注释 / 日志字符串（但仍需声明等级）
+- **纯 docs / ADR / design / production 文档编写**（不涉及 ShadowGame 代码或资产）
+- **非 TEngine 的 .NET 标准库代码**：纯算法、CRC32、JSON 序列化、数据结构等（无 TEngine 依赖）
+- **纯 EditMode 单元测试且被测代码无 TEngine 依赖**
+
+> 豁免也须在回复首段简述理由，方便用户复核。
+
+---
+
+## 快速检查清单（每次任务自检）
+
+- [ ] 我判定了任务等级（L1 / L2 / L3 / L4）
+- [ ] L2+ 时，TodoWrite 首项是阅读 todo 且 `in_progress`
+- [ ] 我读了 SKILL.md，并按任务类型读了对应 references
+- [ ] L3 / L4 时，我调用了 wiki-query-agent（或明确说明为何不需要）
+- [ ] 涉及 Editor 资产时，我评估了 unity-mcp 自动化方案
+- [ ] 产出前给出了「已读声明」块
+- [ ] 产出遵守 5 条编码红线

@@ -182,8 +182,8 @@ Camera:
     height: 1
   near clip plane: 0.3
   far clip plane: 1000
-  field of view: 60
-  orthographic: 1
+  field of view: 55.4
+  orthographic: 0
   orthographic size: 5
   m_Depth: -1
   m_CullingMask:
@@ -209,7 +209,7 @@ Transform:
   m_GameObject: {fileID: 519420028}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -10}
+  m_LocalPosition: {x: 0, y: 1, z: -3}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -312,14 +312,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: UIRoot
       objectReference: {fileID: 0}
-    - target: {fileID: 2425705316310227430, guid: 4f5fbbbb040049d41a5f897d5a956bf6, type: 3}
-      propertyPath: m_AllowMSAA
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3318694846062371807, guid: 4f5fbbbb040049d41a5f897d5a956bf6, type: 3}
-      propertyPath: m_CameraType
-      value: 1
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -338,6 +330,18 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 7696541953913300371, guid: e38c712e7904fdf42bd0458b769718dd, type: 3}
+      propertyPath: activeWindow
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7696541955235861477, guid: e38c712e7904fdf42bd0458b769718dd, type: 3}
+      propertyPath: playMode
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 7696541955235861477, guid: e38c712e7904fdf42bd0458b769718dd, type: 3}
+      propertyPath: encryptionType
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 7696541955266276700, guid: e38c712e7904fdf42bd0458b769718dd, type: 3}
       propertyPath: m_RootOrder
       value: 1

@@ -216,6 +216,14 @@ Test requirements (from coding-standards.md):
 - No random seeds, no time-dependent assertions, no external I/O
 - Test the formula bounds from the GDD Formulas section
 
+**Unity asmdef rule for test assemblies:**
+When test files need to reference types from `GameLogic`, the test asmdef
+(`EditModeTests.asmdef` or `PlayModeTests.asmdef`) **must** include both
+`GameLogic` AND `TEngine.Runtime` in its `references` array. TEngine's Roslyn
+Source Generator (`EventInterfaceGenerator`) emits `GameEventHelper.g.cs` into
+every referencing assembly — without `TEngine.Runtime`, it produces CS0246.
+Always verify the test asmdef references before instructing the programmer agent.
+
 For **Visual/Feel** and **UI** stories: no automated test. Remind the agent to
 note in the implementation summary what manual evidence will be needed:
 "Evidence doc required at `production/qa/evidence/[slug]-evidence.md`."

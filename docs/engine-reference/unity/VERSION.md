@@ -40,7 +40,7 @@ on the 2022.3 LTS track for stability with TEngine / HybridCLR / YooAsset ecosys
 - **Async loading**: `YooAssets.LoadAssetAsync<T>()` → must call `handle.Release()` or `UnloadAsset`
 - **Module access**: `GameModule.Resource`, `GameModule.Audio`, etc. — NOT `ModuleSystem.GetModule<T>()`
 - **UI lifecycle**: `UIWindow.Create()` → `OnCreate` → `OnRefresh` → `OnClose` → `OnDestroy`
-- **Events**: `GameEvent.Send(eventId)` / `GameEvent.AddEventListener(eventId, handler)`
+- **Events** (ADR-027): 定义 `[EventInterface(EEventGroup.GroupLogic)] interface IXxxEvent { void OnXxx(Payload p); }`；Sender `GameEvent.Get<IXxxEvent>().OnXxx(p)`；Listener `GameEvent.AddEventListener<IXxxEvent_Event>(OnXxx)` / `GameEventMgr.AddEventListener<...>` / `UIWindow.AddUIEvent<...>`；**禁止**新增 `public const int Evt_Xxx`
 - **Async pattern**: `async UniTaskVoid` / `async UniTask` — never Coroutine
 
 ## Verified Sources

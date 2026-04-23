@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "unity-bridge": {
+      "command": "/opt/homebrew/bin/python3",
+      "args": [
+        "/Users/chen/Desktop/Dev/MyGameStudio/src/MyGame/ShadowGame/.claude/skills/unity-bridge/mcp_server.py"
+      ],
+      "cwd": "/Users/chen/Desktop/Dev/MyGameStudio/src/MyGame/ShadowGame"
+    }
+  }
+}

@@ -27,7 +27,7 @@
 
 - **Classes**: PascalCase (e.g. `ShadowPuzzleManager`, `LightSourceController`)
 - **Variables**: camelCase for private fields with `_` prefix (e.g. `_shadowTarget`); PascalCase for public properties
-- **Signals/Events**: PascalCase with `On` prefix for callbacks (e.g. `OnPuzzleSolved`); int constants for `GameEvent` (e.g. `EventId.ShadowMatched`)
+- **Signals/Events**: PascalCase with `On` prefix for callbacks (e.g. `OnPuzzleSolved`); GameEvent 使用 TEngine `[EventInterface]` C# 接口（ADR-027），接口命名 `I{Domain}Event`（业务）/ `I{PanelName}UI`（UI），方法命名 `On{Action}`；**禁止新增 `public const int Evt_Xxx` 事件 ID**
 - **Files**: PascalCase matching class name (e.g. `ShadowPuzzleManager.cs`)
 - **Scenes/Prefabs**: PascalCase (e.g. `MainScene.unity`, `ShadowObject.prefab`)
 - **Constants**: UPPER_SNAKE_CASE (e.g. `MAX_SHADOW_OBJECTS`)
@@ -55,6 +55,21 @@
 - `GameObject.Find` / `FindObjectOfType` at runtime (use references or DI)
 - Forgetting to call `UnloadAsset` after `LoadAssetAsync` (resource leak)
 
+## Assembly Definition (asmdef) Rules
+
+<!-- Critical lesson learned: TEngine uses a Roslyn Source Generator (EventInterfaceGenerator) -->
+<!-- that runs on ALL assemblies referencing GameLogic. If an asmdef references GameLogic but -->
+<!-- not TEngine.Runtime, the generated GameEventHelper.g.cs fails to resolve the TEngine namespace. -->
+
+- **Any asmdef that references `GameLogic` MUST also reference `TEngine.Runtime`**
+  - Reason: TEngine's Roslyn Source Generator (`EventInterfaceGenerator`) emits `GameEventHelper.g.cs` into every assembly that transitively touches GameLogic. Without `TEngine.Runtime`, the generated code fails: `CS0246: 'TEngine' could not be found`.
+  - This applies to: test asmdefs (`EditModeTests`, `PlayModeTests`), tool asmdefs, editor extensions — anything referencing `GameLogic`.
+- **Minimum references for a test asmdef referencing GameLogic**:
+  ```json
+  "references": ["GameLogic", "TEngine.Runtime"]
+  ```
+- **If adding a NEW asmdef** that references GameLogic, always check: does it compile with `GameEventHelper.g.cs`? If not, add `TEngine.Runtime`.
+
 ## Allowed Libraries / Addons
 
 <!-- Approved third-party dependencies -->
@@ -70,10 +85,26 @@
 ## Architecture Decisions Log
 
 <!-- Quick reference linking to full ADRs in docs/architecture/ -->
-- ADR-001: TEngine as core framework — modular architecture with HybridCLR hot-reload
-- ADR-002: URP rendering pipeline — mobile-first with shadow projection requirements
-- ADR-003: Mobile-first, PC-later platform strategy
-- [Use /architecture-decision to create formal ADR documents]
+- ADR-001: TEngine 6.0 Framework Adoption → `docs/architecture/adr-001-tengine-framework.md`
+- ADR-002: URP Rendering Pipeline for Shadow Projection → `docs/architecture/adr-002-urp-shadow-rendering.md`
+- ADR-003: Mobile-First Platform Strategy → `docs/architecture/adr-003-mobile-first-platform.md`
+- ADR-004: HybridCLR Assembly Boundary Rules → `docs/architecture/adr-004-hybridclr-assembly.md`
+- ADR-005: YooAsset Resource Loading & Lifecycle → `docs/architecture/adr-005-yooasset-lifecycle.md`
+- ~~ADR-006: GameEvent Communication Protocol~~ *superseded by ADR-027* → `docs/architecture/adr-006-gameevent-protocol.md`
+- ADR-007: Luban Config Table Access Pattern → `docs/architecture/adr-007-luban-access.md`
+- ADR-008: Save System Architecture → `docs/architecture/adr-008-save-system.md`
+- ADR-009: Scene Lifecycle & Additive Scene Strategy → `docs/architecture/adr-009-scene-lifecycle.md`
+- ADR-010: Input Abstraction (Gesture/Blocker/Filter) → `docs/architecture/adr-010-input-abstraction.md`
+- ADR-011: UIWindow Management & Layer Strategy → `docs/architecture/adr-011-uiwindow-management.md`
+- ADR-012: Shadow Match Algorithm → `docs/architecture/adr-012-shadow-match-algorithm.md`
+- ADR-013: Object Interaction State Machine → `docs/architecture/adr-013-object-interaction.md`
+- ADR-014: Puzzle State Machine & Absence Puzzle → `docs/architecture/adr-014-puzzle-state-machine.md`
+- ADR-015: Hint System Trigger Formula → `docs/architecture/adr-015-hint-system.md`
+- ADR-016: Narrative Sequence Engine → `docs/architecture/adr-016-narrative-sequence-engine.md`
+- ADR-017: Audio Mix Architecture → `docs/architecture/adr-017-audio-mix.md`
+- ADR-018: Performance Monitoring & Auto-Degradation → `docs/architecture/adr-018-performance-monitoring.md`
+- ADR-019 ~ ADR-026: Presentation Layer (P2, 可延后)
+- **ADR-027: GameEvent Interface Protocol (supersedes ADR-006 §1/§2)** → `docs/architecture/adr-027-gameevent-interface-protocol.md`
 
 ## Engine Specialists
 

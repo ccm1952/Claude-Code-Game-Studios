@@ -29,8 +29,9 @@ MonoBehaviour:
   AssemblyTextAssetPath: AssetRaw/DLL
   UpdateStyle: 1
   UpdateNotice: 1
-  ResDownLoadPath: http://127.0.0.1:8081
-  FallbackResDownLoadPath: http://127.0.0.1:8082
+  ResDownLoadPath: http://192.168.66.40:8000/Test/928/1.0.0
+  FallbackResDownLoadPath: http://192.168.66.40:8000/Test/928/1.0.0
   LoadResWayWebGL: 0
   isAutoAssetCopeToBuildAddress: 0
   BuildAddress: ../../Builds/Unity_Data/StreamingAssets
+  ReplaceAssetPathWithAddress: 0

@@ -30,7 +30,7 @@
 #   Superseded entries:     Grep pattern="status: superseded"
 
 version: 1
-last_updated: ""
+last_updated: "2026-04-23"
 
 # ─── STATE OWNERSHIP ─────────────────────────────────────────────────────────
 # Who is the authoritative owner of each piece of shared game state.
@@ -71,7 +71,98 @@ state_ownership: []
 #
 # pattern options: signal | direct_call | event_bus | shared_resource | rpc | none
 
-interfaces: []
+interfaces:
+  - contract: gesture_dispatch
+    status: active
+    pattern: event_bus
+    producer: input-service
+    consumers:
+      - object-interaction-system
+      - tutorial-system
+      - light-source-controller
+    adr: docs/architecture/adr-027-gameevent-interface-protocol.md
+    signal_signature: |
+      [EventInterface(EEventGroup.GroupLogic)]
+      interface IGestureEvent {
+          void OnTap(GestureData data);
+          void OnDrag(GestureData data);
+          void OnRotate(GestureData data);
+          void OnPinch(GestureData data);
+          void OnLightDrag(GestureData data);
+      }
+    referenced_by:
+      - docs/architecture/adr-010-input-abstraction.md
+      - docs/architecture/adr-013-object-interaction.md
+      - docs/architecture/adr-027-gameevent-interface-protocol.md
+    added: 2026-04-23
+    revised: ""
+
+  - contract: settings_changed
+    status: active
+    pattern: event_bus
+    producer: settings-service
+    consumers:
+      - input-config-from-luban
+      - audio-service
+      - shadow-rendering-module
+    adr: docs/architecture/adr-027-gameevent-interface-protocol.md
+    signal_signature: |
+      [EventInterface(EEventGroup.GroupLogic)]
+      interface ISettingsEvent {
+          void OnSettingChanged(string key, string value);
+          void OnTouchSensitivityChanged(float multiplier);
+      }
+    referenced_by:
+      - docs/architecture/adr-010-input-abstraction.md
+      - docs/architecture/adr-017-audio-mix.md
+      - docs/architecture/adr-027-gameevent-interface-protocol.md
+    added: 2026-04-23
+    revised: ""
+
+  - contract: shadow_rt_updated
+    status: active
+    pattern: event_bus
+    producer: shadow-rt-readback
+    consumers:
+      - shadow-match-algorithm
+      - puzzle-state-machine
+    adr: docs/architecture/adr-027-gameevent-interface-protocol.md
+    signal_signature: |
+      [EventInterface(EEventGroup.GroupLogic)]
+      interface IShadowRTEvent {
+          void OnShadowRTUpdated(ShadowRTData data);
+      }
+    referenced_by:
+      - docs/architecture/adr-002-urp-shadow-rendering.md
+      - docs/architecture/adr-012-shadow-match-algorithm.md
+      - docs/architecture/adr-027-gameevent-interface-protocol.md
+    added: 2026-04-23
+    revised: ""
+
+  - contract: puzzle_lock_token
+    status: active
+    pattern: event_bus
+    producer: any-system-holding-lock
+    consumers:
+      - object-interaction-system
+      - input-blocker
+    adr: docs/architecture/adr-027-gameevent-interface-protocol.md
+    signal_signature: |
+      [EventInterface(EEventGroup.GroupLogic)]
+      interface IPuzzleLockEvent {
+          void OnPuzzleLockAll(PuzzleLockPayload payload);
+          void OnPuzzleUnlock(PuzzleLockPayload payload);
+      }
+      // Token protocol inherited from ADR-006 §4:
+      //   LockToken.Puzzle / LockToken.Narrative / LockToken.Tutorial
+      //   HashSet<string> semantics: non-empty = locked; empty = unlocked
+    referenced_by:
+      - docs/architecture/adr-006-gameevent-protocol.md
+      - docs/architecture/adr-013-object-interaction.md
+      - docs/architecture/adr-016-narrative-sequence-engine.md
+      - docs/architecture/adr-027-gameevent-interface-protocol.md
+    added: 2026-04-23
+    revised: ""
 
 # Example:
 #
@@ -157,7 +248,50 @@ api_decisions: []
 # Register a pattern when an ADR explicitly bans it AND other ADRs might
 # unknowingly use it (i.e., it's a tempting but wrong approach for this project).
 
-forbidden_patterns: []
+forbidden_patterns:
+  - pattern: const_int_event_id
+    status: active
+    description: |
+      Defining `public const int Evt_Xxx` event IDs (manually allocated, as in
+      original ADR-006 §1) is forbidden. All inter-module events must be declared
+      as C# interfaces decorated with `[EventInterface(EEventGroup.GroupXxx)]`;
+      TEngine's Roslyn Source Generator (`EventInterfaceGenerator`) produces the
+      int IDs at compile time as `RuntimeId.ToRuntimeId("{Interface}_Event.{Method}")`.
+    why: |
+      Hand-maintained const int IDs lose compile-time type safety, IDE navigation,
+      and collision guarantees. TEngine's `[EventInterface]` + Source Generator
+      provides all three for free. The project originally had both approaches
+      in parallel, causing the ADR-006 vs. TEngine contract conflict that ADR-027
+      resolves.
+    adr: docs/architecture/adr-027-gameevent-interface-protocol.md
+    added: 2026-04-23
+
+  - pattern: raw_gameevent_send_with_hashed_int
+    status: active
+    description: |
+      Bypassing `GameEvent.Get<T>()` by calling `GameEvent.Send(hashedInt, ...)`
+      with a pre-computed hash is forbidden, even when the hash is obtained from
+      `EventInterfaceGenerator` output.
+    why: |
+      Breaks IDE navigation (find-usages on interface method stops working),
+      type checking (wrong payload type will crash at runtime instead of
+      compile time), and future refactoring. Always dispatch via the interface.
+    adr: docs/architecture/adr-027-gameevent-interface-protocol.md
+    added: 2026-04-23
+
+  - pattern: asmdef_without_tengine_runtime_ref
+    status: active
+    description: |
+      Any `.asmdef` that references `GameLogic` MUST also reference
+      `TEngine.Runtime`. Test asmdefs, tool asmdefs, and editor extensions
+      are all subject to this rule.
+    why: |
+      TEngine's Roslyn Source Generator (`EventInterfaceGenerator`) emits
+      `GameEventHelper.g.cs` into every assembly that transitively touches
+      GameLogic. Without `TEngine.Runtime`, the generated file fails with
+      `CS0246: 'TEngine' could not be found`, blocking the whole assembly.
+    adr: docs/architecture/adr-027-gameevent-interface-protocol.md
+    added: 2026-04-23
 
 # Example:
 #

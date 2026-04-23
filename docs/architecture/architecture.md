@@ -491,7 +491,14 @@ Shadow Puzzle System                 Narrative Event System               Chapte
 
 ### 5.3 Event / Signal Communication Map（GameEvent 总表）
 
-所有系统间通信使用 TEngine `GameEvent`（int-based event ID）。以下为完整事件清单：
+> **⚠️ 协议更新（2026-04-23）**：本节的 `Evt_Xxx` const int 分配方式已被 **[ADR-027](./adr-027-gameevent-interface-protocol.md)** 取代（supersedes ADR-006 §1/§2）。
+>
+> - **实施时一律使用 `[EventInterface]` C# 接口**（例：`IGestureEvent.OnTap(GestureData)`），Event ID 由 TEngine Roslyn Source Generator 在编译期生成。
+> - 下表保留 `Evt_Xxx` 命名仅作为 **历史语义参考**（Sender/Payload/Listener 映射关系不变）。
+> - **新代码禁止引用 `Evt_Xxx` 常量**；legacy 名称 → 新接口方法的完整映射见 [`architecture-traceability.md` 附录 A](./architecture-traceability.md#appendix-a--adr-006-eventid--adr-027-interface-mapping)。
+> - Puzzle Lock token 协议（`LockToken.Puzzle/Narrative/Tutorial` + `HashSet<string>` 多发送者语义）**完整继承 ADR-006 §4**，不受协议切换影响。
+
+所有系统间通信使用 TEngine `GameEvent`（接口事件协议，ADR-027）。以下为完整事件**语义**清单（命名保留历史形式以对齐 sprint 0 设计讨论）：
 
 **Input Events** (dispatched by Input System):
 
@@ -1102,7 +1109,8 @@ public interface ISceneService
 | **ADR-003** | Mobile-First Platform Strategy | All | **P0** | None |
 | **ADR-004** | HybridCLR Assembly Boundary Rules | All hot-fix code | **P0** | ADR-001 |
 | **ADR-005** | YooAsset Resource Loading & Lifecycle Pattern | Scene Mgmt, all asset loading | **P0** | ADR-001 |
-| **ADR-006** | GameEvent Communication Protocol (Event ID allocation, payload conventions) | All inter-module communication | **P0** | ADR-001 |
+| ~~**ADR-006**~~ | ~~GameEvent Communication Protocol (Event ID allocation, payload conventions)~~ **— superseded by ADR-027** | All inter-module communication | **P0** | ADR-001 |
+| **ADR-027** | GameEvent Interface Protocol (supersedes ADR-006 §1/§2; inherits §3/§4/§5/§6) | All inter-module communication | **P0** | ADR-001 |
 | **ADR-007** | Luban Config Table Access Pattern | All config-driven systems | **P0** | ADR-004 |
 | **ADR-008** | Save System Architecture (format, migration, integrity) | Save System, Chapter State | **P0** | None |
 | **ADR-009** | Scene Lifecycle & Additive Scene Strategy | Scene Mgmt | **P0** | ADR-005 |
@@ -1119,7 +1127,7 @@ public interface ISceneService
 | **ADR-013** | Object Interaction State Machine & Snap Mechanics | Object Interaction | **P1** | ADR-010 |
 | **ADR-014** | Puzzle State Machine & Absence Puzzle Variant | Shadow Puzzle, Chapter State | **P1** | ADR-008 |
 | **ADR-015** | Hint System Trigger Formula & Escalation Logic | Hint System | **P1** | ADR-012 |
-| **ADR-016** | Narrative Sequence Engine (atomic effects, timeline, config) | Narrative Event | **P1** | ADR-006, ADR-007 |
+| **ADR-016** | Narrative Sequence Engine (atomic effects, timeline, config) | Narrative Event | **P1** | ADR-027 (inherits ADR-006 §3-§6), ADR-007 |
 | **ADR-017** | Audio Mix Architecture (3-layer, ducking, crossfade) | Audio System | **P1** | ADR-001 |
 | **ADR-018** | Performance Monitoring & Auto-Degradation Strategy | All (cross-cutting) | **P1** | ADR-002 |
 
@@ -1134,7 +1142,7 @@ public interface ISceneService
 | **ADR-021** | Quality Tier Auto-Detection & Dynamic Switching | Rendering, Scene | **P2** | ADR-002, ADR-018 |
 | **ADR-022** | I2 Localization Integration & String Management | Settings, UI | **P2** | ADR-011 |
 | **ADR-023** | Collectible System Architecture | Collectible (planned) | **P2** | ADR-008 |
-| **ADR-024** | Analytics & Telemetry Architecture | Analytics (planned) | **P2** | ADR-006 |
+| **ADR-024** | Analytics & Telemetry Architecture | Analytics (planned) | **P2** | ADR-027 |
 | **ADR-025** | Haptic Feedback Cross-Platform Abstraction | Object Interaction | **P2** | ADR-013 |
 | **ADR-026** | Video Playback Strategy for Narrative (H.264 vs VP8, memory) | Narrative | **P2** | ADR-016 |
 
@@ -1142,10 +1150,10 @@ public interface ISceneService
 
 | Category | Count | Deadline |
 |----------|:-----:|----------|
-| Must Have Before Coding (P0) | **11** | Sprint 0 / Sprint 1 planning |
+| Must Have Before Coding (P0) | **12** (ADR-001–011 + ADR-027; ADR-006 superseded) | Sprint 0 / Sprint 1 planning |
 | Should Have Before System Build (P1) | **7** | Before each system's Sprint |
 | Can Defer (P2) | **8** | Vertical Slice / Alpha |
-| **Total** | **26** | — |
+| **Total** | **27** (ADR-001–026 + ADR-027; ADR-006 retained as historical) | — |
 
 ---
 
@@ -1198,7 +1206,7 @@ public interface ISceneService
 │  ├── All interfaces (IInputService, IShadowPuzzle, etc.)         │
 │  ├── All implementations (InputManager, PuzzleManager, etc.)     │
 │  ├── All MonoBehaviour components (InteractableObject, etc.)     │
-│  ├── GameEvent ID constants (EventId.cs)                         │
+│  ├── GameEvent [EventInterface] interfaces (IEvent/, ADR-027)    │
 │  └── GameEntry / GameApp hot-fix entry point                     │
 ├──────────────────────────────────────────────────────────────────┤
 │  GameProto Assembly (热更, Luban 生成代码)                        │

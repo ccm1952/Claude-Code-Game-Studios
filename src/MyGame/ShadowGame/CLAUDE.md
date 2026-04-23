@@ -7,6 +7,83 @@ TEngine 基于 HybridCLR + YooAsset + UniTask + Luban 构建。
 
 ---
 
+## ⚠️ 跨工具镜像提醒（升级本文件时必读）
+
+本协议（尤其是「🎯 TEngine 任务前置协议」与「⚡ 强制工作流」）同时被以下文件镜像，修改本文件时**必须同步更新**，否则会发生工具间行为漂移：
+
+| 镜像文件 | 角色 | 同步策略 |
+|---------|------|---------|
+| [`.cursor/rules/shadowgame-tengine.mdc`](../../../.cursor/rules/shadowgame-tengine.mdc) | Cursor 硬强制规则（按 glob 自动挂载）| **完整镜像** — 协议叙述、红线、违反流程都需跟随本文件更新 |
+| [`AGENTS.md`](AGENTS.md) | 跨工具短入口（Cursor / Claude Code / Codex 等）| **仅同步五条红线 + 关键指针**；协议叙述不重复抄录 |
+| [`../../../AGENTS.md`](../../../AGENTS.md) | 工作区根入口 | **通常无需同步**；仅当工作区布局变化时更新 |
+
+**单一真相源**：本文件（`src/MyGame/ShadowGame/CLAUDE.md`）。其他文件是派生镜像。
+
+**升级工作流**：
+1. 先改本文件（真相源）
+2. 完整同步 `.cursor/rules/shadowgame-tengine.mdc`
+3. 检查 `AGENTS.md` 的五条红线与本文件是否一致
+4. 在 commit message 里标注"同步镜像：yes/no"
+
+---
+
+## 🎯 TEngine 任务前置协议（MUST）
+
+> **强制度**：MUST — 触发条件下必读，未完成前置阅读不得写代码 / 改代码 / 操作资源。
+> **本协议是「⚡ 强制工作流」的前置步骤**，完成后方可继续现有工作流（L1-L4 分级）。
+
+### 触发条件
+
+任务涉及以下任一项即触发（无论等级）：
+
+- 使用 / 修改 TEngine 模块（`GameModule.*` / `ModuleSystem` / `UIWindow` / `UIWidget` / `ProcedureBase` / `GameEvent` 等）
+- 读写 HotFix 程序集（`Assets/GameScripts/HotFix/**`）
+- 操作 Unity Editor 资产（场景 `.unity` / Prefab / 材质 / Shader / 动画 / ScriptableObject）
+- 需要通过 unity-mcp 自动化 Editor 操作
+- 涉及 YooAsset 资源加载 / 热更 / 包策略
+- 涉及 HybridCLR 程序集边界或 AOT 限制
+- 涉及 Luban 配置表生成或访问
+- 涉及 UniTask 异步规范
+
+### 三级阅读策略
+
+| 层级 | 何时读 | 阅读对象 | 成本 |
+|------|-------|---------|------|
+| **L-0 导航**（所有 TEngine 任务必读） | 任务开始前 | [`.claude/skills/tengine-dev/SKILL.md`](.claude/skills/tengine-dev/SKILL.md) | 极低（~50 行） |
+| **L-1 Editor 操作**（涉及场景 / 资产 / MCP 时追加） | 需要操作 Unity Editor 时 | `.claude/skills/tengine-dev/references/` 下对应文件：`scene-gameobject.md` / `script-asset-workflow.md` / `unity-mcp-guide.md` / `ui-prefab-builder.md` / `material-shader-vfx.md` / `editor-automation.md` | 低（100-300 行） |
+| **L-2 深度 API**（L3 / L4 任务追加） | 需要深度 API 规范时 | 调用 `wiki-query-agent` 查询 `repowiki/zh/content/` | 中（subagent 独立上下文） |
+
+### 强制执行检查点
+
+1. **进入 TEngine 任务第一步**：必须在 `TodoWrite` 的**第一项**添加 TEngine 前置阅读 todo（措辞可灵活，只要明确指向 SKILL.md 的阅读动作）。该项完成前，其他 todo 一律处于 `pending`。
+
+2. **输出代码 / 方案前必须声明**：基于 SKILL.md 导航表判断是否需要 L-1 / L-2，并在回复中以类似格式声明：
+   ```
+   已读: SKILL.md + [references/xxx.md ...]
+   未读: [说明为何跳过某些 reference]
+   ```
+
+3. **涉及 Editor 资产操作时**：禁止生成"让用户手动在 Unity Editor 里操作"的步骤，必须优先评估 unity-mcp 自动化可能性（读 `unity-mcp-guide.md`）。仅当 unity-mcp Bridge 不可用（MCP 状态错误或用户未开启 Bridge）时才降级为手动操作指南。
+
+### 违反记录（自检机制）
+
+发现违反本协议（未读 SKILL.md 就写代码 / 未评估 unity-mcp 就给手动步骤 / L3+ 任务未调 wiki-query-agent）时：
+
+1. **立即写入** 工程根 `/.claude/memory/problem_YYYY-MM-DD_tengine-skill-violation.md`，格式参考 `/.claude/memory/problem_2026-04-22_asmdef-source-generator.md`。
+2. **当前任务重启**：回滚或暂停当前代码产出，先补齐阅读，再重新产出。
+3. **同会话内二次违反**：无条件中止任务，主动向用户报告。
+
+### 边界说明（豁免情况）
+
+以下情况**不触发**本协议，仍走现有 L1-L4 流程：
+
+- **L1 任务**：typo 修正 / 单行注释 / 日志字符串修改
+- **纯 docs / ADR / production 文档编写任务**（不涉及代码或资产）
+- **非 TEngine 的 .NET 标准库代码**：纯算法、CRC32、JSON 序列化、数据结构等
+- **纯 EditMode 单元测试且被测代码无 TEngine 依赖**
+
+---
+
 ## ⚡ 强制工作流（所有任务必须遵守）
 
 > **禁止跳过** — 无论任务大小，必须按此顺序执行：
