@@ -72,20 +72,20 @@ Chapter_XX_xxx (章节场景, 热更, 同时只存在一个)
 
 ### Core Rules
 
-**场景加载规则：**
+**场景加载规则（UPDATED 2026-04-30 — S3-01 D5 patch / ADR-029 R2）：**
 
 1. 所有场景加载必须使用 `async UniTask`，禁止任何同步加载 API
-2. 场景通过 TEngine `GameModule.Resource.LoadSceneAsync()` 加载，底层走 YooAsset 资源管线
-3. 场景以 `LoadSceneMode.Additive` 模式加载，不使用 `Single` 模式（避免销毁常驻场景）
-4. 加载完成后调用 `SceneManager.SetActiveScene()` 将新章节场景设为活跃场景（光照烘焙/默认 Instantiate 目标）
-5. 场景加载前必须检查 YooAsset 资源包状态，若未下载则先触发下载流程
+2. 场景通过 TEngine `GameModule.Scene.LoadSceneAsync(string sceneName, LoadSceneMode, Action<float> progressCallBack)` 加载（返 `UniTask<Scene>`，Unity 原生 struct；底层走 YooAsset 资源管线）— **注**：API 在 `GameModule.Scene` 而非 `GameModule.Resource`；2026-04-30 之前文档误述 `GameModule.Resource.LoadSceneAsync` 是 fantasy API，已废弃
+3. 场景以 `LoadSceneMode.Additive` 模式加载，不使用 `Single` 模式（避免销毁常驻 MainScene）
+4. 加载完成后调用 `GameModule.Scene.ActivateScene(sceneName)` 将新章节场景设为活跃场景（光照烘焙/默认 Instantiate 目标；返 `bool`，false 仅 warning 不阻塞）
+5. 场景加载前由 `GameModule.Resource.CreateResourceDownloader(...)` 检查并下载缺失资源；当 `downloader.TotalDownloadCount > 0` 才走下载分支（缓存命中则跳过）— **不**前置 `CheckLocationValid`（对 scene 资产一律返 false，已在 S3-01 P0 修订移除）
 
-**场景卸载规则：**
+**场景卸载规则（UPDATED 2026-04-30 — S3-01 D5 patch）：**
 
-1. 卸载当前章节场景前，必须先通知所有监听者（Shadow Puzzle、Narrative 等）执行清理
-2. 使用 `GameModule.Resource.UnloadSceneAsync()` 卸载场景
-3. 场景卸载后必须调用 `GameModule.Resource.UnloadUnusedAssets()` + `Resources.UnloadUnusedAssets()` + `GC.Collect()` 确保释放该场景引用的所有资源
-4. 卸载过程中禁止接受新的场景切换请求（防止竞态）
+1. 卸载当前章节场景前，必须先通知所有监听者（Shadow Puzzle、Narrative 等）执行清理（派 `GameEvent.Get<ISceneEvent>().OnSceneUnloadBegin(chapterId)`）
+2. 使用 `GameModule.Scene.UnloadAsync(string sceneName)` 卸载场景（返 `UniTask<bool>`），其中 `sceneName` 是 YooAsset location 字符串（即 SceneManager `_currentChapterSceneName` 字段值）— **注**：SceneManager **不缓存** `SceneHandle` / `Scene` 引用（D5=[X]）；2026-04-30 之前文档 `GameModule.Resource.UnloadSceneAsync(handle)` 是 fantasy API，已废弃
+3. 场景卸载后必须 `await Resources.UnloadUnusedAssets().ToUniTask()` + `GC.Collect()` 同步调用确保释放该场景引用的所有资源（GC 同步 ~50ms，跑在 fade overlay 黑屏期不可感）
+4. 卸载过程中禁止接受新的场景切换请求（防止竞态；FSM Unloading 状态由 SceneManager 状态机守门）
 
 **切换互斥规则：**
 
@@ -531,22 +531,32 @@ totalBlackScreen = unloadTime + loadTime   (玩家看到黑屏/遮罩的时间)
 
 ## TEngine Integration Details
 
-### ResourceModule 集成
+### TEngine Scene Module 集成（UPDATED 2026-04-30 — S3-01 D5 patch / ADR-029 R2）
 
 ```csharp
-// 场景加载（通过 TEngine ResourceModule，底层走 YooAsset）
-var sceneHandle = await GameModule.Resource.LoadSceneAsync(sceneId, LoadSceneMode.Additive);
+// 场景加载（TEngine SceneModule wrapper，底层走 YooAsset；返 UniTask<Scene> Unity 原生 struct）
+Scene scene = await GameModule.Scene.LoadSceneAsync(
+    sceneName,                  // YooAsset location string (来自 ChapterData.sceneId)
+    LoadSceneMode.Additive,     // never Single
+    progress => GameEvent.Get<ISceneEvent>().OnSceneLoadProgress(sceneName, progress));
 
-// 场景卸载
-await GameModule.Resource.UnloadSceneAsync(sceneHandle);
+// 场景激活（必须显式调；framework wrapper 包装 UnityEngine.SceneManagement.SceneManager.SetActiveScene）
+bool activated = GameModule.Scene.ActivateScene(sceneName);
+// 失败仅 warning 不阻塞 — Unity 原生 SetActiveScene 可能在 lighting 异步未就绪时返 false
 
-// 资源释放
-GameModule.Resource.UnloadUnusedAssets();
+// 场景卸载（参数是 sceneName 字符串，不是 handle）
+bool unloaded = await GameModule.Scene.UnloadAsync(sceneName);
+
+// 资源释放（Unity 原生 API；返 AsyncOperation，UniTask 提供 ToUniTask extension）
+await Resources.UnloadUnusedAssets().ToUniTask();
+GC.Collect();  // synchronous, ~50ms 在 fade overlay 黑屏期间运行
 ```
 
-**关键注意事项**：
-- `LoadSceneAsync` 返回的 handle 必须持有引用，用于后续卸载
-- 卸载场景时必须使用同一个 handle，不能用场景名重新查找
+**关键注意事项（S3-01 D5 修订）**：
+- `LoadSceneAsync` 返回 Unity 原生 `Scene` struct（**非** YooAsset `SceneHandle`），双断言 `scene.IsValid()` + `scene.isLoaded` 检测有效性
+- SceneManager **不缓存** Scene 对象，只缓存 `_currentChapterSceneName: string`（YooAsset location）
+- 卸载场景时使用 `sceneName` 字符串参数；不需要持有 handle 引用
+- 失败路径走 `LoadSceneAsync` 抛异常 + outer `try-catch` retry MAX = 2 次；不前置 `GameModule.Resource.CheckLocationValid`（对 scene 资产返 false 不可用，S3-01 P0 修订）
 - `UnloadUnusedAssets()` 在卸载场景后调用一次即可，不需要每帧调用
 
 ### YooAsset 资源包策略
