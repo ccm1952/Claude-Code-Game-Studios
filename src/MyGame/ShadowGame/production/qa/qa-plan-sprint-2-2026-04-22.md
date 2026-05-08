@@ -9,6 +9,8 @@
 **Sprint File**: `production/sprints/sprint-2.md`
 **Source of truth**: `production/sprint-status.yaml`
 
+> **⚠️ 历史档说明（2026-04-30 — Sprint 2 已结束 retrospective）**：本文档 Scene Management 测试章节（§S2-13/-14 部分）写于 SceneHandle ownership 模式假设下；S3-01 D5（2026-04-30）决策修订为 SceneManager 持 `_currentChapterSceneName: string` (YooAsset location)，不缓存 SceneHandle/Scene 引用。**Sprint 2 实际通过的测试**为 SP-011（YooAsset Additive 兼容性 ✅ PASS）；S2-14 推延为 S3-01 + 已 DONE 2026-04-30。Sprint 3 QA plan (`qa-plan-sprint-3-2026-04-30.md`) 是当前活跃 source of truth；本档保留以供 Sprint 2 retrospective 与 drift 数据点回溯。
+
 ---
 
 ## Test Summary

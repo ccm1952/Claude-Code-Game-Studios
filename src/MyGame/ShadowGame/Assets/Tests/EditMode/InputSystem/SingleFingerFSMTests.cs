@@ -11,6 +11,7 @@ namespace ShadowGame.Tests.EditMode.InputSystem
         public float TapTimeoutSeconds { get; set; } = 0.25f;
         public float MaxDeltaPerFrame { get; set; } = 100f;
         public float FallbackDpi { get; set; } = 160f;
+        public float FatFingerMarginMm { get; set; } = 8f;
     }
 
     [TestFixture]

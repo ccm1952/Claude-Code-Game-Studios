@@ -19,6 +19,14 @@ namespace GameLogic
     public class PuzzleProgress
     {
         public int PuzzleId;
+
+        /// <summary>
+        /// 1-based ordering within the chapter. Drives sequential unlock:
+        /// completing puzzle with <c>PuzzleOrder=N</c> unlocks the puzzle with
+        /// <c>PuzzleOrder=N+1</c>. Sourced from <c>TbPuzzle.PuzzleOrder</c>.
+        /// </summary>
+        public int PuzzleOrder;
+
         public PuzzleStateEnum State;
         public int AttemptCount;
         public float BestMatchScore;

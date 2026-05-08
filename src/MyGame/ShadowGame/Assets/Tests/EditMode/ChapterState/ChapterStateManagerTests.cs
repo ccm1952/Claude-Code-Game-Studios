@@ -35,16 +35,28 @@ namespace ShadowGame.Tests.EditMode.ChapterState
         }
 
         [Test]
-        public void Init_NullSaveData_AllPuzzlesLocked()
+        public void Init_NullSaveData_Chapter1FirstPuzzleIdle_OthersLocked()
         {
+            // S2-01 AC-1: first puzzle of the unlocked chapter (Ch.1) starts Idle;
+            // every other puzzle (including Ch.1 P2/P3 and all puzzles of locked
+            // chapters) starts Locked.
             _mgr.Init(null, DefaultPuzzleCounts);
 
-            for (int c = 1; c <= 5; c++)
+            Assert.AreEqual(PuzzleStateEnum.Idle, _mgr.GetPuzzleState(1, 1),
+                "Ch1 Puzzle1 should be Idle (first puzzle of unlocked chapter)");
+
+            for (int p = 2; p <= 3; p++)
+            {
+                Assert.AreEqual(PuzzleStateEnum.Locked, _mgr.GetPuzzleState(1, p),
+                    $"Ch1 Puzzle{p} should be Locked");
+            }
+
+            for (int c = 2; c <= 5; c++)
             {
                 for (int p = 1; p <= 3; p++)
                 {
                     Assert.AreEqual(PuzzleStateEnum.Locked, _mgr.GetPuzzleState(c, p),
-                        $"Ch{c} Puzzle{p} should be Locked");
+                        $"Ch{c} Puzzle{p} should be Locked (chapter is locked)");
                 }
             }
         }
@@ -143,18 +155,21 @@ namespace ShadowGame.Tests.EditMode.ChapterState
         [Test]
         public void Init_InvalidPuzzleStateOrdinal_DefaultsToLocked()
         {
+            // Use Chapter 2 puzzle to avoid the Ch.1 first-puzzle Idle auto-promotion
+            // (S2-01 AC-1). Chapter 2 is locked by default, so the first-puzzle Idle
+            // rule does not apply and we can observe the raw fallback to Locked.
             var save = new StubChapterProgress
             {
                 UnlockedChapterIds = Array.Empty<int>(),
                 CompletedChapterIds = Array.Empty<int>(),
                 PuzzleEntries = new[]
                 {
-                    new PuzzleProgressEntry { ChapterId = 1, PuzzleId = 1, StateOrdinal = 255 }
+                    new PuzzleProgressEntry { ChapterId = 2, PuzzleId = 1, StateOrdinal = 255 }
                 }
             };
 
             _mgr.Init(save, DefaultPuzzleCounts);
-            Assert.AreEqual(PuzzleStateEnum.Locked, _mgr.GetPuzzleState(1, 1));
+            Assert.AreEqual(PuzzleStateEnum.Locked, _mgr.GetPuzzleState(2, 1));
         }
 
         // --- puzzlesPerChapter validation ---

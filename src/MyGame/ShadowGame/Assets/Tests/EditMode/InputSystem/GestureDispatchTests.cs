@@ -34,7 +34,14 @@ namespace ShadowGame.Tests.EditMode.InputSystem
         [SetUp]
         public void SetUp()
         {
-            GameEventHelper.Init();
+            // 绕开 TEngine SG 歧义：EventInterfaceGenerator 在每个 asmdef 都会生成一份
+            // GameEventHelper，EditModeTests.asmdef 里没有任何 [EventInterface] 接口，
+            // 所以本程序集下的 GameEventHelper.Init() 是空方法。C# 名字解析优先选当前
+            // compilation 的类型，导致测试 SetUp 调的 Init() 什么都不做。
+            // 修复：直接 reset EventMgr 后手动 new 需要的 _Gen，绕过 GameEventHelper 解析。
+            // (TODO: 根治需改 SG — 无 [EventInterface] 时不生成 GameEventHelper.g.cs)
+            GameEvent.EventMgr.Init();
+            _ = new IGestureEvent_Gen(GameEvent.EventMgr.GetDispatcher());
 
             _tapFired = _dragFired = _rotateFired = _pinchFired = _lightDragFired = false;
 

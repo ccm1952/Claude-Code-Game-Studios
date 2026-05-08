@@ -3,7 +3,8 @@
     "rootNamespace": "ShadowGame.Tests.EditMode",
     "references": [
         "GameLogic",
-        "TEngine.Runtime"
+        "TEngine.Runtime",
+        "UniTask"
     ],
     "includePlatforms": [
         "Editor"

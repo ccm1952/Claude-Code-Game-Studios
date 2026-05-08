@@ -24,6 +24,7 @@ namespace GameLogic
         private float _rotateThresholdRad;
         private float _pinchThreshold;
         private float _minFingerDistance;
+        private float _fatFingerMarginMm;
 
         private float _sensitivityMultiplier = 1f;
         private float _dragThresholdPx;
@@ -34,6 +35,7 @@ namespace GameLogic
         public float TapTimeoutSeconds => _tapTimeoutSeconds;
         public float MaxDeltaPerFrame => _maxDeltaPerFrame;
         public float FallbackDpi => _fallbackDpi;
+        public float FatFingerMarginMm => _fatFingerMarginMm;
 
         // IDualFingerConfig
         public float RotateThresholdRad => _rotateThresholdRad;
@@ -58,6 +60,7 @@ namespace GameLogic
             _rotateThresholdRad = 8f * Mathf.Deg2Rad;
             _pinchThreshold = 0.08f;
             _minFingerDistance = 20f;
+            _fatFingerMarginMm = 8f;   // S2-13 default — Apple HIG 44pt 触摸目标半径
             _sensitivityMultiplier = 1f;
             _screenDpi = Screen.dpi;
             RecalculateDerivedValues();
@@ -74,7 +77,8 @@ namespace GameLogic
             float pinchThreshold,
             float minFingerDistance,
             float maxDeltaPerFrame,
-            float fallbackDpi)
+            float fallbackDpi,
+            float fatFingerMarginMm = 8f)
         {
             _baseDragThresholdMm = baseDragThresholdMm;
             _tapTimeoutSeconds = tapTimeout;
@@ -83,6 +87,7 @@ namespace GameLogic
             _rotateThresholdRad = rotateThresholdDeg * Mathf.Deg2Rad;
             _pinchThreshold = pinchThreshold;
             _minFingerDistance = minFingerDistance;
+            _fatFingerMarginMm = fatFingerMarginMm;
             _sensitivityMultiplier = 1f;
             _screenDpi = Screen.dpi;
             RecalculateDerivedValues();

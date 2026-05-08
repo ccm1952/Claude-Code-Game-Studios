@@ -13,11 +13,11 @@ namespace ShadowGame.Tests.EditMode.Rendering
     [TestFixture]
     public class ShadowRTReadbackTests
     {
-        [SetUp]
-        public void SetUp()
-        {
-            GameEventHelper.Init();
-        }
+        // ShadowRTReadback 系列测试不依赖 IShadowRTEvent wrap 注册（struct 字段 / 静态
+        // 事件 ID / 无依赖状态机测试）；原先的 GameEventHelper.Init() 无实际作用，
+        // 且因 TEngine SG 在 EditModeTests.asmdef 生成空版 GameEventHelper 造成解析歧义，
+        // 故直接移除 SetUp。若将来新增依赖 IShadowRTEvent wrap 的测试，按
+        // GestureDispatchTests 的 "GameEvent.EventMgr.Init() + new IShadowRTEvent_Gen(...)" 模式注册。
 
         // --- ShadowRTData struct ---
         [Test]

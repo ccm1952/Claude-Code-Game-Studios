@@ -30,5 +30,13 @@ namespace GameLogic
         /// DPI assumed when <c>Screen.dpi</c> returns 0 (e.g. in the Editor).
         /// </summary>
         float FallbackDpi { get; }
+
+        /// <summary>
+        /// Fat finger compensation margin in physical millimetres (S2-13 InteractionCoordinator).
+        /// 用于 Tap raycast 的"半径放大量"：实际命中半径 = colliderRadius + (FatFingerMarginMm * dpi / 25.4)，
+        /// 转 px 后再乘 worldUnitsPerPixel 转 world。
+        /// 推荐默认 8mm（约对应 Apple HIG 44pt 触摸目标半径）。
+        /// </summary>
+        float FatFingerMarginMm { get; }
     }
 }

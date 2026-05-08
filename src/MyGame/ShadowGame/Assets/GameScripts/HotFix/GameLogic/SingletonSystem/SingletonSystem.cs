@@ -1,9 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using TEngine;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
+using UnitySceneManager = UnityEngine.SceneManagement.SceneManager;
 
 namespace GameLogic
 {
@@ -263,7 +264,7 @@ namespace GameLogic
             }
 
             Release();
-            SceneManager.LoadScene(0);
+            UnitySceneManager.LoadScene(0);
         }
 
         internal static ISingleton GetSingleton(string name)

@@ -18,6 +18,7 @@ namespace GameLogic
     {
         private readonly SemaphoreSlim _writeLock = new SemaphoreSlim(1, 1);
         private readonly List<ISaveMigration> _migrations = new List<ISaveMigration>();
+        private Func<IChapterProgress> _chapterProgressProvider;
 
         /// <summary>
         /// Register a migration step. Migrations are applied in order of
@@ -30,6 +31,23 @@ namespace GameLogic
         }
 
         /// <summary>
+        /// Story-005 AC-2 / AC-3: register a delegate supplying the current
+        /// <see cref="IChapterProgress"/> snapshot. Called inside
+        /// <see cref="SaveAsync"/> to populate the chapter segment of
+        /// <see cref="SaveData.chapterProgress"/>. Passing <c>null</c>
+        /// unregisters the provider — subsequent saves keep the previously
+        /// loaded chapter data as-is (they do NOT zero the segment).
+        /// <para>This is the single decoupling seam between Save System and
+        /// Chapter State (ADR-008 §4): <see cref="SaveManager"/> holds a
+        /// <see cref="Func{IChapterProgress}"/>, never a
+        /// <c>ChapterStateManager</c> reference.</para>
+        /// </summary>
+        public void RegisterProgressProvider(Func<IChapterProgress> provider)
+        {
+            _chapterProgressProvider = provider;
+        }
+
+        /// <summary>
         /// Atomically persist <paramref name="data"/> to disk.
         /// Sequence: serialize → CRC → write temp → rename → backup.
         /// </summary>
@@ -38,6 +56,31 @@ namespace GameLogic
             await _writeLock.WaitAsync();
             try
             {
+                // Story-005 AC-2: pull latest chapter snapshot BEFORE serializing
+                // so the timestamp reflects the data about to be written.
+                // When provider is null, leave data.chapterProgress untouched —
+                // callers may have populated it directly (e.g. migration tests).
+                var provider = _chapterProgressProvider;
+                if (provider != null)
+                {
+                    var snap = provider.Invoke();
+                    if (snap == null)
+                    {
+                        data.chapterProgress.unlockedChapterIds = Array.Empty<int>();
+                        data.chapterProgress.completedChapterIds = Array.Empty<int>();
+                        data.chapterProgress.puzzleEntries = Array.Empty<PuzzleProgressEntry>();
+                    }
+                    else
+                    {
+                        data.chapterProgress.unlockedChapterIds =
+                            snap.UnlockedChapterIds ?? Array.Empty<int>();
+                        data.chapterProgress.completedChapterIds =
+                            snap.CompletedChapterIds ?? Array.Empty<int>();
+                        data.chapterProgress.puzzleEntries =
+                            snap.PuzzleEntries ?? Array.Empty<PuzzleProgressEntry>();
+                    }
+                }
+
                 data.lastSaveTimestampUtc = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
                 string json = JsonUtility.ToJson(data, false);

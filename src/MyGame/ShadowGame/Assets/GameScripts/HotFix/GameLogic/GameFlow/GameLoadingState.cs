@@ -26,12 +26,18 @@ namespace GameLogic
         }
 
         /// <summary>
-        /// 初始加载完成，切换到大厅。
+        /// 初始加载完成。
+        /// <para>DEBUG / Editor 走 DevTestState（开发测试模式）；Release 暂停留在本状态，
+        /// 等业务 UI 接入后再推进 GameLobbyState（这是 v1 期暂态，业务接入后改回 ChangeState&lt;GameLobbyState&gt;）。</para>
         /// </summary>
         private void OnLoadingComplete(IFsm<IFsmModule> fsm)
         {
-            // TODO: 关闭加载 UI
-            ChangeState<GameLobbyState>(fsm);
+            Log.Info("[GameFlow] 初始加载完成");
+#if UNITY_EDITOR || DEBUG
+            ChangeState<DevTestState>(fsm);
+#else
+            Log.Info("[GameFlow] Release 路径暂停留在 GameLoadingState（等业务 UI 就绪后接入 GameLobbyState）");
+#endif
         }
     }
 }

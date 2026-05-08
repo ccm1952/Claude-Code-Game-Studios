@@ -3,10 +3,13 @@
 # Story 003: Chapter Completion → Next Chapter Unlock Flow
 
 > **Epic**: Chapter State
-> **Status**: Ready
+> **Status**: Complete
+> **Completed**: 2026-04-23
 > **Layer**: Core
 > **Type**: Logic
 > **Manifest Version**: 2026-04-22
+>
+> **Completion note**: EditMode 手动跑通 — `ChapterProgressionTests` 14/14 + 回归 Run All 161/161 全绿（用户确认 2026-04-23）。
 
 ## Context
 
@@ -14,8 +17,10 @@
 **Requirement**: `TR-save-001`, `TR-save-004`
 *(5 chapters sequential unlock; Chapter State is single authority)*
 
-**ADR Governing Implementation**: ADR-007: Luban Config Access + ADR-006: GameEvent Protocol
-**ADR Decision Summary**: When all puzzles in a chapter reach `Complete`, the chapter itself is marked `IsCompleted=true` and the next chapter's `IsUnlocked` is set to `true`. Chapter 5 completion is the game end condition. `TbChapter.UnlockCondition` defines the unlock rule (by default: previous chapter complete). Chapter completion fires `Evt_ChapterComplete`.
+**ADR Governing Implementation**: ADR-007: Luban Config Access + ADR-027: GameEvent Interface Protocol
+**ADR Decision Summary**: When all puzzles in a chapter reach `Complete`, the chapter itself is marked `IsCompleted=true` and the next chapter's `IsUnlocked` is set to `true`. Chapter 5 completion is the game end condition. `TbChapter.UnlockCondition` defines the unlock rule (by default: previous chapter complete). Chapter completion triggers a chapter-complete event dispatched through the TEngine `[EventInterface]` + Source-Generator protocol (ADR-027) — the actual interface method + dispatch is implemented in Story 004 (S2-03); this story only sets the data flag and delegates dispatch to the neighbouring story.
+
+*Note*: Story header previously referenced ADR-006; ADR-006 is **Superseded by ADR-027** (2026-04-23). Updated 2026-04-23 during S2-02 readiness.
 
 **Engine**: Unity 2022.3.62f2 LTS | **Risk**: LOW
 **Engine Notes**: Chapter unlock is purely data-driven — no hardcoded "chapter 2 unlocks after chapter 1" logic. The unlock condition reads from `TbChapter.UnlockCondition`. For MVP, `UnlockCondition = "prev_chapter_complete"` for all chapters 2–5.
@@ -88,6 +93,8 @@ private bool EvaluateUnlockCondition(string condition)
 `CheckChapterCompletion` is called from `OnPuzzleComplete` (Story 002) after unlocking the next puzzle or detecting no next puzzle remains.
 
 **Replay guard**: `if (chapter.IsCompleted) return;` prevents re-firing on replay mode. Replay mode (TR-save-016) is an observation-only mode — no puzzle state changes propagate.
+
+**Performance**: N/A — pure data-model update on `ChapterProgress`/`PuzzleProgress` fields. No rendering, physics, or per-frame work touched. Config lookup (`Tables.Instance.TbChapter.Get(id)`) is `Dictionary<int,T>` O(1). Event dispatch happens in S2-03, not here.
 
 ---
 

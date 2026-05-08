@@ -3,10 +3,11 @@
 # Story 002: Puzzle Unlock/Ordering Within a Chapter
 
 > **Epic**: Chapter State
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Manifest Version**: 2026-04-22
+> **Completed**: 2026-04-23 — EditMode 手动跑通（ChapterState 两个 fixture 全绿，用户确认）
 
 ## Context
 
@@ -136,9 +137,30 @@ Any `SetPuzzleState(puzzleId, newState)` call must check `IsTerminalState(curren
 
 **Story Type**: Logic
 **Required evidence**:
-- `tests/unit/chapter-state/puzzle_ordering_test.cs` — must exist and pass
+- `Assets/Tests/EditMode/ChapterState/PuzzleOrderingTests.cs` — **created** ✅
+  （项目实际采用 Unity Test Framework；等价路径取代 skill 模板里的 `tests/unit/...`）
+- `Assets/Tests/EditMode/ChapterState/ChapterStateManagerTests.cs` — **updated** ✅
+  （`Init_NullSaveData_AllPuzzlesLocked` 重命名为 `Init_NullSaveData_Chapter1FirstPuzzleIdle_OthersLocked`；`Init_InvalidPuzzleStateOrdinal_DefaultsToLocked` 改用 Ch.2 puzzle 避开 Idle 提升）
 
-**Status**: [ ] Not yet created
+### Implementation delta
+- 新增 `PuzzleMeta.cs`（ChapterId / PuzzleId / PuzzleOrder）— Luban 前置占位结构
+- `PuzzleProgress` 新增 `PuzzleOrder` 字段
+- `ChapterStateManager`：
+  - 新增 `Init(saveData, PuzzleMeta[][])` 主重载；旧 `Init(saveData, int[])` 内部转译 `PuzzleOrder = PuzzleId`
+  - 新增 `OnPuzzleComplete(chapterId, puzzleId)` — 权威完成入口，N → N+1 `Locked → Idle`
+  - 新增 `SetPuzzleState(chapterId, puzzleId, newState)` — `IsTerminalState` 守卫：Complete 拒一切；PerfectMatch/AbsenceAccepted 仅允许转 Complete（ADR-014）
+  - 新增 `GetActivePuzzle(chapterId)` — 首个 `Idle`；锁章 / 无效 / 全 Complete 返 `null`
+  - `Init` 末段：对 `IsUnlocked=true` 章节的 `PuzzleOrder` 首 puzzle 仍为 `Locked` 者自动提升为 `Idle`（AC-1）
+
+### Covered ACs（按 test case 映射）
+- AC-1 → `AC1_FirstPuzzle_IsIdle_RestLocked` / `AC1_SinglePuzzleChapter_IsIdleImmediately` / `AC1_LockedChapter_FirstPuzzleStaysLocked` / `AC1_PuzzleOrder_DrivesOrdering_NotPuzzleId`
+- AC-2 → `AC2_OnPuzzleComplete_UnlocksNextPuzzle` / `AC2_CompleteLastPuzzle_NoNextPuzzleSideEffect` / `AC2_OnPuzzleComplete_InvalidChapter_LogsWarningNoop` / `AC2_OnPuzzleComplete_InvalidPuzzle_LogsWarningNoop`
+- AC-3 → `AC3_Complete_Irreversible_ViaSetPuzzleState` / `AC3_Complete_Irreversible_ViaOnPuzzleComplete` / `AC3_Complete_AllNonCompleteTargets_Rejected`
+- AC-4 → `AC4_PerfectMatch_OnlyComplete_IsAllowed` / `AC4_AbsenceAccepted_OnlyComplete_IsAllowed`
+- AC-5 → `AC5_GetActivePuzzle_ReturnsFirstIdle` / `AC5_GetActivePuzzle_AfterOneComplete_ReturnsNextIdle` / `AC5_GetActivePuzzle_AllComplete_ReturnsNull` / `AC5_GetActivePuzzle_LockedChapter_ReturnsNull` / `AC5_GetActivePuzzle_InvalidChapter_ReturnsNull` / `AC5_GetActivePuzzle_MidPuzzle_ReturnsNull`
+- 附加：`SetPuzzleState_*`、`Init_LegacyOverload_PuzzleOrderEqualsPuzzleId`、`Ordering_Chain_FromSaveDataComplete_PromotesNextPuzzle`
+
+**Status**: [x] Tests written — [x] Tests manually executed — ALL GREEN ✅
 
 ---
 
