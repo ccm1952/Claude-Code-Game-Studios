@@ -14,7 +14,7 @@ TEngine 基于 HybridCLR + YooAsset + UniTask + Luban 构建。
 | 镜像文件 | 角色 | 同步策略 |
 |---------|------|---------|
 | [`.cursor/rules/shadowgame-tengine.mdc`](../../../.cursor/rules/shadowgame-tengine.mdc) | Cursor 硬强制规则（按 glob 自动挂载）| **完整镜像** — 协议叙述、红线、违反流程都需跟随本文件更新 |
-| [`AGENTS.md`](AGENTS.md) | 跨工具短入口（Cursor / Claude Code / Codex 等）| **仅同步五条红线 + 关键指针**；协议叙述不重复抄录 |
+| [`AGENTS.md`](AGENTS.md) | 跨工具短入口（Cursor / Claude Code / Codex 等）| **仅同步七条红线 + 关键指针**；协议叙述不重复抄录 |
 | [`../../../AGENTS.md`](../../../AGENTS.md) | 工作区根入口 | **通常无需同步**；仅当工作区布局变化时更新 |
 
 **单一真相源**：本文件（`src/MyGame/ShadowGame/CLAUDE.md`）。其他文件是派生镜像。
@@ -22,7 +22,7 @@ TEngine 基于 HybridCLR + YooAsset + UniTask + Luban 构建。
 **升级工作流**：
 1. 先改本文件（真相源）
 2. 完整同步 `.cursor/rules/shadowgame-tengine.mdc`
-3. 检查 `AGENTS.md` 的五条红线与本文件是否一致
+3. 检查 `AGENTS.md` 的七条红线与本文件是否一致
 4. 在 commit message 里标注"同步镜像：yes/no"
 
 ---
@@ -64,6 +64,24 @@ TEngine 基于 HybridCLR + YooAsset + UniTask + Luban 构建。
    ```
 
 3. **涉及 Editor 资产操作时**：禁止生成"让用户手动在 Unity Editor 里操作"的步骤，必须优先评估 unity-mcp 自动化可能性（读 `unity-mcp-guide.md`）。仅当 unity-mcp Bridge 不可用（MCP 状态错误或用户未开启 Bridge）时才降级为手动操作指南。
+
+4. **MCP 绑定项目归属校验（涉及 Editor 写操作时 MUST）**：在调用**任何有副作用**的 unity-mcp 工具（`scene-create` / `scene-save` / `gameobject-create` / `gameobject-destroy` / `gameobject-component-add` / `assets-*`（除 `assets-find` / `assets-refresh`）/ `editor-application-set-state isPlaying=true` / `script-update-or-create` / `script-delete` 等）之前，**必须先校验 MCP 绑定的 Unity Editor 进程打开的项目是否为 ShadowGame**。
+
+   **校验方法优先级**（越靠前越可信）：
+
+   1. ⭐ **首选**：检查 `Packages/manifest.json` — `grep "com.aibridge.unity" src/MyGame/ShadowGame/Packages/manifest.json`，**只有装了 Bridge 的项目才运行 MCP Bridge**。多 Unity 实例并存时看哪个项目装了这个 Package
+   2. ⭐ **次选**：`script-read` 读一个 ShadowGame 独有的文件（如 `Assets/GameScripts/HotFix/GameLogic/Input/InputBlocker.cs`），能读到且内容匹配 → 绑定正确
+   3. 🚫 **不可信**：`~/Library/Logs/Unity/Editor.log` 的 `-projectpath` — macOS 上多个 Unity 进程共享这一个 log 文件，后启动的进程会截断前者的日志。该参数**只反映最新启动的进程**，**不反映** MCP 绑定的进程
+
+   **匹配结论处理**：
+   - ✅ 匹配 → 继续执行
+   - ❌ 不匹配 → **立即停止所有写操作**，告知用户 "MCP 绑定的 Unity 项目不是 ShadowGame，请在 Unity Hub 中切换项目（或把 Bridge Package 装到 ShadowGame 项目）"，等用户切换后重新校验，禁止绕过
+
+   > 警示：`project-0-MyGameStudio-unity-bridge` 这个 MCP server 命名只是 Cursor 层面的 project-scoped 标识符，**不保证**当前 Unity 进程匹配该项目。MCP Bridge 绑定的是**装了 `com.aibridge.unity` Package 并运行中的 Unity Editor 进程**。详见 `/.claude/memory/problem_2026-04-23_wrong-unity-project.md`。
+
+5. **只读优先原则（涉及 MCP 时）**：MCP 操作永远**先用只读工具探测**（`gameobject-find` / `scene-list-opened` / `editor-application-get-state` / `console-get-logs` / `script-read` / `assets-find`），确认项目身份 + 场景状态正确后，再用写操作。
+
+6. **MonoBehaviour 挂载前置自检（涉及 `gameobject-component-add` 时 MUST）**：调用 MCP 添加 MonoBehaviour 组件前，必须先用 `Glob **/<类名>.cs` 确认目标类有**同名 .cs 文件**（见核心原则编码红线第 6 条）。**看到 "The associated script can not be loaded" 警告时**，优先排查顺序：① `Glob` 文件名匹配 → ② `console-get-logs` 编译错误 → ③ 命名空间冲突 → ④ 才考虑 Assembly / HybridCLR 层面问题（禁止从 ④ 开始猜）。
 
 ### 违反记录（自检机制）
 
@@ -176,6 +194,26 @@ TEngine 基于 HybridCLR + YooAsset + UniTask + Luban 构建。
 3. **资源必须释放**：`LoadAssetAsync` 对应 `UnloadAsset`，GameObject 用 `LoadGameObjectAsync`
 4. **热更边界**：`GameScripts/Main` 不热更，`GameScripts/HotFix/` 全部热更
 5. **事件解耦**：模块间用 `GameEvent`，UI 内部用 `AddUIEvent`
+6. **MonoBehaviour / ScriptableObject 文件命名（MUST）**：继承自 `UnityEngine.MonoBehaviour` 或 `UnityEngine.ScriptableObject` 的 **public 类必须单独放在一个与类名完全同名的 `.cs` 文件中**（大小写敏感）。违反时 Unity 不会注册该类为可挂载组件，Inspector 搜不到，场景反序列化时会显示"The associated script can not be loaded"（编译不报错，极具欺骗性）。
+   - ❌ 禁止：一个 `.cs` 文件定义多个 MonoBehaviour
+   - ❌ 禁止：MonoBehaviour 与其他 public 类共存一个文件
+   - ✅ 允许：同一文件内 MonoBehaviour + 同命名空间下的 `private` / `internal` 辅助类型
+   - **自检**：创建/修改 MonoBehaviour 文件后，`Glob **/类名.cs` 确认文件名匹配；若调 `gameobject-component-add` 挂组件后 Inspector 显示"can not be loaded"警告，**第一排查项就是此规则**（详见 `/.claude/memory/problem_2026-04-23_monobehaviour-filename-mismatch.md`）
+
+7. **测试 / Spike / 开发诊断代码挂载（MUST）**：
+   - ❌ 禁止：把业务 / 测试 / Spike 的 MonoBehaviour 静态挂到 `Assets/Scenes/main.unity`（冷启动场景）。`main.unity` **只挂 `GameEntry`**。
+   - ❌ 禁止：在 `ProcedureStartGame` 之前、`GameApp.Entrance` 之外直接访问 `GameModule.*`（会拿到 null，只能用轮询兜底，是反模式）。
+   - ✅ 所有热更域测试 / Spike / 诊断代码，必须实现 `GameLogic.DevTest.IDevSpike`，在 `GameApp.Entrance` 里通过 `DevBootstrap.Register(new XxxSpike())` 注册，并由业务 FSM 的 `DevTestState` 动态挂载。
+   - ✅ 注册代码、Spike 实现、`DevTestState` 整文件必须用 `#if UNITY_EDITOR || DEBUG` 包裹，Release 包零残留。
+   - ✅ 动态挂载方式：`new GameObject("Xxx_Runtime").AddComponent<XxxRuntime>() + DontDestroyOnLoad`（纯代码，不依赖 Prefab）。Spike 生命周期由自己管，默认保留 OnGUI 直到手动停 PlayMode。
+   - **自检**：涉及"测试/Spike 跑不起来"、"要挂 MonoBehaviour 到场景"、"修改 main.unity" 之前，必读本条。
+
+8. **C# 字符串字面量内的引号嵌套（MUST）**：写 Assert message / `Log.*` / Exception message / 任何包含中文术语引用的 C# 字符串字面量时，**禁止**直接在双引号包围的字符串内再用 ASCII `"` 嵌套——这会被编译器解析为字符串提前闭合，触发 `CS1003: Syntax error, ',' expected` 等连锁报错。
+   - ✅ **首选**：术语引用改用中文标点 `『…』` / `「…」` / `《…》`（不与 C# 语法冲突且可读性最好）。例：`"走『已在格点』路径"`。
+   - ✅ **次选**：用 `\"` 转义，或改用逐字字符串 `@"...""...""..."`。
+   - ❌ **禁止**：`"浮点小偏差 → 走"已在格点"路径"`（嵌套未转义 ASCII 双引号）。
+   - **自检**：写完任何带 `"..."` 的 C# 字符串字面量后，**视觉扫一遍** ASCII `"` 应成对出现；如果违反，立即用 `『』` 替换术语两端的引号。
+   - **CS1003 / CS1525 / CS1026 类 "Syntax error, X expected" 在中文代码文件里出现时，第一排查项就是本条**——`Grep` 该行 `"` 计数是否成对（详见 `/.claude/memory/problem_2026-04-29_csharp-string-literal-nested-quotes.md`）。
 
 ---
 

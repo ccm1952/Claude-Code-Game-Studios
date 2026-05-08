@@ -135,14 +135,25 @@ GameModule.Audio.SoundEnable = true;   // 音效开关
 
 ## FsmModule 有限状态机
 
+> **设计取向**：TEngine FsmModule 是 **procedure-style** FSM —— OOP per-state class、状态切换在 `OnUpdate` 内由状态自身触发。最适合**顶层 / 单实例 / 长生命周期**的流程（如 GameFlow / NPC AI）。**事件驱动 trigger reducer 风格的 FSM**（外部事件即时切换、多对象实例、高频低延迟、需要 1:1 本地反馈 C# event）请参考项目 `ADR-028 §3` 自建例外名单的二分原则。
+
 ### 创建并启动状态机
 
 ```csharp
-// 定义状态
+// 定义状态（每个状态一个 class，继承 FsmState<T>）
 public class IdleState : FsmState<MyOwner>
 {
     protected override void OnEnter(IFsm<MyOwner> fsm)  { }
-    protected override void OnUpdate(IFsm<MyOwner> fsm, float elapseSeconds, float realElapseSeconds) { }
+
+    protected override void OnUpdate(IFsm<MyOwner> fsm, float elapseSeconds, float realElapseSeconds)
+    {
+        // 状态切换必须在状态内部触发（见下方 §状态切换）
+        if (someCondition)
+        {
+            ChangeState<RunState>(fsm); // ✅ 调基类 protected 包装方法
+        }
+    }
+
     protected override void OnLeave(IFsm<MyOwner> fsm, bool isShutdown) { }
 }
 
@@ -159,13 +170,54 @@ fsm.Start<IdleState>();
 
 ### 状态切换
 
+**关键约束**：`Fsm<T>.ChangeState` 在 TEngine 6.0 源码中是 `internal`（仅 `TEngine.Runtime` 程序集内可见），`IFsm<T>` 接口（public）**未声明** `ChangeState` 方法。这意味着：
+
 ```csharp
-// 在状态内部切换
+// ❌ 错误（GameLogic 程序集中编译不通过）
 fsm.ChangeState<RunState>();
 
-// 数据传递
+// ✅ 正确：从 FsmState<T> 子类内部调用 protected 包装方法
+public class IdleState : FsmState<MyOwner>
+{
+    protected override void OnUpdate(IFsm<MyOwner> fsm, float elapseSeconds, float realElapseSeconds)
+    {
+        if (CheckRunCondition(fsm.Owner))
+        {
+            ChangeState<RunState>(fsm);            // 泛型版
+            // 或：ChangeState(fsm, typeof(RunState));  // Type 版
+        }
+    }
+}
+```
+
+**外部事件触发切换**：FsmModule 不支持外部代码直接 `ChangeState` 当前状态。如外部需要触发切换，可借 `fsm.SetData(...)` 写入 trigger flag，由当前状态在 `OnUpdate` 内检查 + 切换：
+
+```csharp
+// 外部代码
+fsm.SetData("RequestedTransition", typeof(AttackState));
+
+// 状态内 OnUpdate
+protected override void OnUpdate(IFsm<MyOwner> fsm, float elapseSeconds, float realElapseSeconds)
+{
+    if (fsm.HasData("RequestedTransition"))
+    {
+        var target = fsm.GetData<Type>("RequestedTransition");
+        fsm.RemoveData("RequestedTransition");
+        ChangeState(fsm, target);
+    }
+}
+```
+
+> **如果**外部即时切换是核心需求（如手势 / 输入 / 业务事件驱动的多对象 FSM），FsmModule 的"绕路"模式可能与设计意图严重不符，此时请参考 `ADR-028 §3` 评估是否走"自建 trigger reducer FSM"路径（项目内样板：`SingleFingerFSM` / `SceneManager` / `InteractableObjectFsm`）。
+
+### 数据传递
+
+```csharp
+// 状态间共享数据
 fsm.SetData<int>("Key", value);
 int val = fsm.GetData<int>("Key");
+bool exists = fsm.HasData("Key");
+fsm.RemoveData("Key");
 ```
 
 ### 销毁
@@ -208,19 +260,79 @@ MemoryPool.Release(info);
 
 ## ObjectPool 对象池
 
-用于 GameObject 的复用，减少 Instantiate/Destroy 开销：
+> **启用前提**（项目当前为"未启用"状态，参见 `ADR-028 §1` M8 决策）：
+> - `Assets/GameScripts/HotFix/GameLogic/GameModule.cs` 当前**未暴露** `ObjectPool` facade 字段；启用前需要按 `ADR-028 §2` 流程添加：
+>   ```csharp
+>   public static IObjectPoolModule ObjectPool => _objectPool ??= Get<IObjectPoolModule>();
+>   private static IObjectPoolModule _objectPool;
+>   // Shutdown() 中清空 _objectPool = null;
+>   ```
+> - 启用时机：场景对象量超过 ~50 时再评估（章节 8/9/10 大场景）；项目当前 ≤ 10 puzzle objects/章节，UI 已自管池化（UIWindow 缓存），不需要 ObjectPoolModule。
+
+TEngine 对象池为**两层 API**结构：
+
+- **`IObjectPoolModule`**（外层管理器，由 `GameModule.ObjectPool` 暴露后取用）：负责创建 / 获取 / 销毁不同类型的对象池
+- **`IObjectPool<T>`（`T : ObjectBase`）**（单个池子）：负责该类型对象的实际 Spawn / Unspawn
+
+### 第一步：定义 ObjectBase 子类
 
 ```csharp
-// 框架内置 ObjectPoolModule，通过 YooAsset 管理 Prefab
-// 生成对象（从池中取或新建）
-GameObject go = GameModule.ObjectPool.Spawn("PrefabLocation", parent);
+// 你的池化对象必须继承 ObjectBase
+public class BulletObject : ObjectBase
+{
+    public GameObject Prefab; // 业务字段
 
-// 回收对象（不要 Destroy，而是归还池）
-GameModule.ObjectPool.Unspawn(go);
-
-// 预热（提前创建若干实例）
-GameModule.ObjectPool.WarmUp("PrefabLocation", count: 10);
+    // 框架要求的清理钩子
+    protected override void Release(bool isShutdown)
+    {
+        // 真实销毁逻辑（如池容量超出时）
+    }
+}
 ```
+
+### 第二步：通过外层管理器创建池
+
+```csharp
+// 待 GameModule.ObjectPool facade 字段添加后：
+IObjectPool<BulletObject> pool = GameModule.ObjectPool.CreateMultiSpawnObjectPool<BulletObject>(
+    name:     "BulletPool",
+    capacity: 20,         // 池容量
+    expireTime: 30f,      // 对象过期秒数
+    priority: 0
+);
+
+// 或单次获取池：
+IObjectPool<BulletObject> singlePool =
+    GameModule.ObjectPool.CreateSingleSpawnObjectPool<BulletObject>("UniqueBoss");
+```
+
+> 当前未启用阶段（GameModule.ObjectPool 字段未加），可临时通过 `ModuleSystem.GetModule<IObjectPoolModule>()` 直访 —— 但属于 `ADR-028 §"启用条件未到"暂时例外`，不推荐扩散到生产代码。
+
+### 第三步：从池中 Spawn / 归还 Unspawn
+
+```csharp
+// 获取对象（池空时由 Register 注入的实例补充；用完必须 Unspawn 归还）
+BulletObject bullet = pool.Spawn();
+
+// 归还（不要 Destroy；不要 Spawn 同一对象后再 Spawn 同一对象不归还）
+pool.Unspawn(bullet);
+```
+
+### 预热（不存在 WarmUp 方法，用 Capacity + Register 模式）
+
+```csharp
+// TEngine 的 IObjectPool<T> 接口中没有 WarmUp 方法。预热模式：
+pool.Capacity = 10;
+for (int i = 0; i < 10; i++)
+{
+    var obj = new BulletObject { Prefab = ... };
+    pool.Register(obj, spawned: false); // 先注册到池中（未占用状态）
+}
+```
+
+### GameObject Prefab 池化的常用替代方案
+
+如目标只是"GameObject Instantiate 复用"而**不需要复杂的池子管理（容量 / 优先级 / 过期）**，更轻量的做法是直接用 `IResourceModule.LoadGameObject` + 自管引用计数（参见 `references/resource-management.md`），由 YooAsset 的 AssetReference 管理即可。完整 `ObjectPoolModule` 适合需要主动控制 Spawn 时机 + Capacity 上限 + 自动过期回收的高频场景。
 
 ---
 

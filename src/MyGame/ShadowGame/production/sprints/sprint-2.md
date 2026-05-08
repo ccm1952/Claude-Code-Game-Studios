@@ -5,7 +5,7 @@
 > **Sprint N**: 2
 > **Phase**: Pre-Production
 > **Start**: 2026-04-23
-> **End (expected)**: TBD（AI 协作模式下以 story 完成为准）
+> **End (expected)**: 2026-05-10（拍定于 2026-04-29；剩余 11 自然日 / 8 工作日，Must Have 剩 5 stories / 8 点）
 > **Review Mode**: solo
 > **Previous Sprint**: [sprint-1.md](./sprint-1.md)（13/13 ✅ / 122 tests / +18% velocity）
 > **Retrospective**: [sprint-1-retrospective.md](./sprint-1-retrospective.md)
@@ -142,15 +142,20 @@ S2-01 → S2-02 → S2-03    S2-05 → S2-06, S2-07    S2-08 → S2-09 → S2-10
 
 ## Definition of Done for this Sprint
 
-- [ ] SP-011 Spike 产出 PASS/FAIL 报告
-- [ ] All Must Have stories（10 个）Status = Complete（通过 `/story-done`）
-- [ ] 所有 Logic / Integration story 有对应 EditMode 测试，全绿
-- [ ] `production/qa/qa-plan-sprint-2.md` 存在（Phase 5 要求）
-- [ ] Code review 通过（零 ADR 违规）
-- [ ] Unity Editor 编译零错误
-- [ ] 枚举/常量引用在 Story 实现前 grep 校验（Retro Action #1）
-- [ ] active.md 更新反映 Sprint 2 完成状态
-- [ ] Smoke check 通过（若 Sprint 2 结束前 Test Runner 绿 & 可冷启动进入 MainMenu）
+- [x] ✅ SP-011 Spike 产出 PASS/FAIL 报告 — **ALL PASSED (2026-04-23)**，Scene Management 故事解除风险
+- [x] ✅ All Must Have stories（10 个）Status = Complete（通过 `/story-done`）— **10/10 ✅**
+- [x] ✅ 所有 Logic / Integration story 有对应 EditMode 测试，全绿 — **321 tests，100% PASS**
+- [x] ✅ `production/qa/qa-plan-sprint-2-2026-04-22.md` 存在
+- [x] ✅ Code review 通过（零 ADR 违规）
+- [x] ✅ Unity Editor 编译零错误
+- [x] ✅ 枚举/常量引用在 Story 实现前 grep 校验（Retro Action #1）— `dev-story` 5min readiness checklist 4 次抓住 §Impl Notes drift
+- [x] ✅ active.md 更新反映 Sprint 2 完成状态
+- [x] ✅ Smoke check 通过（Test Runner 全绿 — 用户多次确认）
+
+**Sprint 2 Verdict**: ✅ **PASS** — Must 10/10 + Should 3/4 + Nice 0/3 = 13/17（commitments 13/14 = **93%**）
+**Retrospective**: [sprint-2-retrospective.md](./sprint-2-retrospective.md)（2026-04-30）
+**Carryover to Sprint 3**: S2-14 Additive Scene Loading + S2-15/-16/-17 nice-to-have
+**Action item 关键**: 起 ADR-029 "Story §Implementation Notes 验证流程"（drift 第 4 次反复触发条件成熟）
 
 ---
 
@@ -183,7 +188,7 @@ S2-01 → S2-02 → S2-03    S2-05 → S2-06, S2-07    S2-08 → S2-09 → S2-10
 ## Next Steps
 
 1. **[完成]** ~~`/qa-plan sprint`~~ → `production/qa/qa-plan-sprint-2-2026-04-22.md` 已出（DRAFT）
-2. **立即**：完成 SP-011 YooAsset Additive Spike
+2. **[完成]** ~~SP-011 YooAsset Additive Spike~~ → **ALL PASSED (2026-04-23)**，Scene Management 风险解除
 3. **Phase 2 开始**：`/story-readiness chapter-state/story-002-puzzle-ordering` → `/dev-story`
 4. **Sprint 中**：`/sprint-status` 查进度
 5. **Sprint 末**：`/retrospective sprint-2`

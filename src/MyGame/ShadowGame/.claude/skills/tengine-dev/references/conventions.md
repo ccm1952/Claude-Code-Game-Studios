@@ -335,6 +335,178 @@ ModuleSystem.GetModule<IMyCustomModule>();
 
 ---
 
+## 测试 fixture 规范（EditMode / NUnit）
+
+> 触发背景：S2-10 GridSnapTests 漏复用 stub Camera 导致 SetUp 阶段触发 fail-loud `Log.Error`，被 Unity Test Runner 视为 11/11 全失败。详见 `/.claude/memory/problem_2026-04-29_test-fixture-fail-loud-boilerplate-skip.md`。
+
+### 关键事实（Unity NUnit 隐式行为）
+
+- **`[SetUp]` / `[Test]` 阶段任何未 expect 的 `LogType.Error` 都会让该测试自动失败**——即使代码没抛异常、没 `Assert.Fail`。
+- `Debug.LogError` / `TEngine.Log.Error` / `Console.LogError` 都属于 `LogType.Error`。
+- 容忍单个预期 ERROR 的唯一合规方式：`LogAssert.Expect(LogType.Error, regex)`（在该 `Log.Error` 调用**之前**注册）。
+- **禁止**用 `LogAssert.ignoreFailingMessages = true` 全局放行——会掩盖真正的 fixture bug。
+
+### R1 — 同 epic 新 fixture 必须**整段**复用既有 fixture 的 boilerplate
+
+新建测试 fixture（同一 epic / system）时，第一动作是读同 epic 内已有 fixture 的 `SetUp` / `TearDown` / `MakeXxx` 工厂方法**整段**复用，而非选择性挑取。
+
+| 操作 | 是否允许 |
+|---|---|
+| 增加新 stub（本 system 多出来的依赖） | ✅ 允许 |
+| 减少 dispatcher 桩（如本 fixture 不依赖 `IGestureEvent`，可不实例化 `IGestureEvent_Gen`，但**注释**说明"不依赖 X"） | ✅ 允许，必须注释 |
+| 减少 fail-loud 校验涉及的 stub（camera / config provider / 其他 `Initialize` 校验依赖） | ❌ 禁止 |
+| 减少 `_ = new IXxxEvent_Gen(dispatcher)` 注册（多个 fixture 行为一致时） | ⚠️ 需评估，缺失会导致事件发不出去而 silent fail |
+
+**判断哪些 stub 必备的方法**：
+
+```bash
+# Grep 被测类的 Log.Error，每条触发条件对应一个必备 stub
+rg "Log\.Error" Assets/GameScripts/HotFix/GameLogic/<system>/<class>.cs
+```
+
+每一条 `Log.Error` 都对应 SetUp 中的 stub 注入（如 `_gameplayCamera`、`PuzzleConfigProvider`、`_objectId`、`_puzzleId` 等）。
+
+### R2 — fail-loud 改造与测试 fixture 同步审查
+
+被测组件的某条路径从 silent return / `enabled = false` 改成 `Log.Error`（fail-loud）时，**同一次提交**必须：
+
+1. `rg "AddComponent<<class>>" Assets/Tests/` 列出所有引用此组件的测试 fixture
+2. 每个 fixture 的 SetUp 是否已注入新 fail-loud 校验对应的 stub？没有 → 同提交补齐
+3. 在 ADR / story `Implementation Notes` 段标注："fail-loud 校验 X 已审查 N 个 fixture，全部已注入 stub"
+
+跳过此审查 = 等下次跑测试时 boom 全红。
+
+### R3 — 预期 ERROR 用 `LogAssert.Expect` 显式声明
+
+测试**期望**触发 ERROR log 的场景（如"未注册 provider 应日志 Error"），必须用：
+
+```csharp
+[Test]
+public void AC5_OnEnable_LogsError_WhenProviderNotRegistered()
+{
+    LogAssert.Expect(LogType.Error,
+        new System.Text.RegularExpressions.Regex(@"PuzzleConfigProvider 未注册"));
+    InteractableObject.ClearPuzzleConfigProviderForTest();
+    var go = MakeInteractableObject(out var io, objectId: 7, puzzleId: 0);
+    // … 略
+}
+```
+
+参考实现：`DragMechanicsTests.cs` AC5_* 测试（行 266 / 283）。
+
+### 新 fixture 创建 checklist
+
+写每个新 `[TestFixture]` 前 **逐条勾选**：
+
+- [ ] 已读同 epic 已有 fixture 的 SetUp / TearDown / Make 工厂方法**整段**
+- [ ] 已 `rg "Log\.Error"` 被测类，每条 ERROR 触发条件对应：① 一个 SetUp 注入 stub  或 ② 一个 `LogAssert.Expect`（针对该测试）
+- [ ] 测试 asmdef 引用 `GameLogic` + `TEngine.Runtime`（参 `/.claude/memory/problem_2026-04-22_asmdef-source-generator.md`）
+- [ ] `MakeXxx` 工厂方法显式调 `Initialize()`（EditMode 中 PlayerLoop 不驱动 `OnEnable`，参 `/.claude/memory/problem_2026-04-29_*editmode-lifecycle*.md` 路线图，如尚未独立成 memo 见 `story-002-drag-mechanics.md` X1 patch v3）
+- [ ] `TearDown` 中销毁所有 SetUp 创建的 GameObject + 调用 `Shutdown()` + 清 reflection-注入的全局状态（如 `ClearPuzzleConfigProviderForTest`）
+
+### 抽 fixture base class 的触发阈值（P2）
+
+当某 epic 出现 ≥ 3 个测试 fixture 复用同样 boilerplate 时，触发"抽 abstract base class"动作（如 `InteractableObjectFixtureBase`），子类只 override 必要差异。低于 3 个 fixture 时**不**预先抽，避免抽象失误。
+
+---
+
+## Listener 端订阅模式（GameEvent / EventMgr）
+
+> **背景**：S2-12 InteractionLockManager 实施时发现 story-006 §Implementation Notes 用了"整接口订阅"风格 `GameEvent.AddEventListener<IInteractionEvent>(this)` —— 与 TEngine 实际 API 不符。详见 `/.claude/memory/problem_2026-04-29_story-impl-notes-vs-framework-drift.md`。
+
+### 唯一支持的 listener 注册模式（per-event）
+
+```csharp
+// ✅ 正确：per-event 签名
+GameEvent.AddEventListener<TArg1>(int eventType, Action<TArg1> handler);
+GameEvent.AddEventListener<TArg1, TArg2>(int eventType, Action<TArg1, TArg2> handler);
+// ... 最多到 6 args
+GameEvent.AddEventListener(int eventType, Action handler);   // 无参版本
+
+// 实际示例（InteractionLockManager.Init）
+GameEvent.AddEventListener<string>(
+    IInteractionEvent_Event.OnRequestPuzzleLockAll, OnRequestPuzzleLockAll);
+GameEvent.AddEventListener<int>(
+    ISceneEvent_Event.OnSceneUnloadBegin, OnSceneUnloadBegin);
+```
+
+EventId 常量来自 `IXxxEvent_Event` 静态类（由 GameEventSourceGenerator 生成；与接口方法一一对应）。
+
+### 禁止的 listener 注册模式（不存在的 API）
+
+```csharp
+// ❌ 错误：整接口订阅 — 没有这种签名
+GameEvent.AddEventListener<IInteractionEvent>(this);
+GameEvent.AddEventListener<ISceneEvent>(this);
+
+// ❌ 错误：误用 sender 端代理注册做 listener
+EventMgr.RegWrapInterface<IInteractionEvent>(this);   // 这是 sender 端
+```
+
+`EventMgr.RegWrapInterface<T>(T)` 是 **sender 端**注册 —— 让 source generator 生成的 `IXxxEvent_Gen` 类拿到 dispatcher 用于 `GameEvent.Get<TInterface>().OnYyy(...)` 派发；**不**是 listener 端 API。
+
+### 配套 sender 端
+
+```csharp
+// ✅ 正确：通过 facade 派发（ADR-027 §3 推荐）
+GameEvent.Get<IInteractionEvent>().OnInteractionLockChanged(true);
+GameEvent.Get<ISceneEvent>().OnSceneUnloadBegin(chapterId);
+```
+
+### POCO 监听器实施模板（推荐）
+
+POCO（不继承 MonoBehaviour）的监听器**不**实施 `IXxxEvent` 接口本身 —— 仅按需 per-event 注册关心的事件：
+
+```csharp
+public sealed class MyManager
+{
+    private bool _listenersRegistered;
+
+    public void Init()
+    {
+        if (_listenersRegistered) return;
+        GameEvent.AddEventListener<string>(IFooEvent_Event.OnBar, OnBar);
+        _listenersRegistered = true;
+    }
+
+    public void Dispose()
+    {
+        if (_listenersRegistered)
+        {
+            GameEvent.RemoveEventListener<string>(IFooEvent_Event.OnBar, OnBar);
+            _listenersRegistered = false;
+        }
+    }
+
+    private void OnBar(string arg) { /* ... */ }
+}
+```
+
+### 反例（之前 story 模板的错误写法）
+
+```csharp
+// ❌ 不要这样写 — 与 framework 不符（TEngine 不支持整接口订阅）
+public sealed class MyManager : IFooEvent, IBarEvent
+{
+    public void Init()
+    {
+        GameEvent.AddEventListener<IFooEvent>(this);    // ← 编译报错或 silently 不工作
+        GameEvent.AddEventListener<IBarEvent>(this);    // ← 同上
+    }
+
+    void IFooEvent.OnBar(string arg) { /* listener */ }
+    // 还要实施所有其他接口方法（噪音 + 误导）
+}
+```
+
+### Self-checklist（dev-story 起手）
+
+- [ ] §Implementation Notes 中的 `GameEvent.AddEventListener<...>(...)` 调用是否符合 per-event 签名？
+- [ ] 是否避免了 `class : IXxxEvent + AddEventListener<TInterface>(this)` 反模式？
+- [ ] 反复发现的 drift 是否触发 Problem→Rule promotion 协议？
+
+---
+
 ## Git 工作流
 
 ```

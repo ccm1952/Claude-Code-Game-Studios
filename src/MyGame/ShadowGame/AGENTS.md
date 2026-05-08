@@ -41,13 +41,15 @@ wiki 查询: [主题 A, 主题 B] （Cursor 模式：降级为 SemanticSearch）
 
 ---
 
-## 五条编码红线（兜底，禁止越线）
+## 七条编码红线（兜底，禁止越线）
 
 1. **异步优先**：IO 操作用 `UniTask`，**禁止**同步加载 / `Coroutine`
 2. **模块访问**：统一走 `GameModule.XXX`，**禁止** `ModuleSystem.GetModule<T>()`
 3. **资源必须释放**：`LoadAssetAsync` 对应 `UnloadAsset`；GameObject 用 `LoadGameObjectAsync`
 4. **热更边界**：`GameScripts/Main/` 不热更，`GameScripts/HotFix/` 全部热更；依赖方向 `GameLogic → TEngine.Runtime` 单向
 5. **事件解耦**：模块间用 `GameEvent`，UI 内部用 `AddUIEvent`
+6. **MonoBehaviour 文件命名**：继承 `MonoBehaviour` / `ScriptableObject` 的 public 类**必须**单独放在与类名完全同名的 `.cs` 文件中，否则 Inspector 搜不到、场景反序列化显示"can not be loaded"（编译不报错，极具欺骗性）。看到该警告时排查顺序强制为 ① `Glob` 文件名匹配 → ② 编译错误 → ③ 命名空间冲突 → ④ Assembly / HybridCLR。详见 [`/.claude/memory/problem_2026-04-23_monobehaviour-filename-mismatch.md`](../../../.claude/memory/problem_2026-04-23_monobehaviour-filename-mismatch.md)
+7. **测试 / Spike / 开发诊断代码挂载**：`main.unity` **只挂 `GameEntry`**，**禁止**静态挂业务 / 测试 / Spike 的 MonoBehaviour。所有热更域测试必须实现 `GameLogic.DevTest.IDevSpike` 并在 `GameApp.Entrance` 里 `DevBootstrap.Register(...)`，由 `DevTestState` 动态挂载。注册代码 / Spike 整文件 / `DevTestState` 必须用 `#if UNITY_EDITOR || DEBUG` 包裹，Release 包零残留。
 
 > 额外 asmdef 约束：所有引用 `GameLogic` 的 `.asmdef` 必须**同时**引用 `TEngine.Runtime`，否则 Source Generator 会编译失败（根因见 `/.claude/memory/problem_2026-04-22_asmdef-source-generator.md`）。
 
@@ -58,8 +60,14 @@ wiki 查询: [主题 A, 主题 B] （Cursor 模式：降级为 SemanticSearch）
 涉及场景 / Prefab / 材质 / Shader / 动画 / ScriptableObject 时：
 
 - **禁止**输出"请在 Unity Editor 里手动执行 A/B/C"这类让用户手动操作的步骤
-- **必须**先读 [`.claude/skills/tengine-dev/references/unity-mcp-guide.md`](.claude/skills/tengine-dev/references/unity-mcp-guide.md) 评估 `manage_scene` / `manage_gameobject` / `manage_prefabs` / `manage_components` / `manage_script` / `batch_execute` 的自动化可能性
+- **必须**先读 [`.claude/skills/tengine-dev/references/unity-mcp-guide.md`](.claude/skills/tengine-dev/references/unity-mcp-guide.md) 评估 `scene-*` / `gameobject-*` / `gameobject-component-*` / `script-*` / `assets-*` 等工具的自动化可能性
 - 仅当 unity-mcp Bridge 不可用（MCP 状态错误 / 用户未开启 Bridge）时，才降级为**明确标注降级原因**的手动操作指南
+- **写操作前必须做「MCP 绑定项目归属校验」**（按优先级）：
+  1. 首选：`grep "com.aibridge.unity" src/MyGame/ShadowGame/Packages/manifest.json`（只有装了 Bridge 的项目绑定 MCP）
+  2. 次选：`script-read` 读 ShadowGame 独有文件确认能取到
+  3. 🚫 不可信：`~/Library/Logs/Unity/Editor.log` 的 `-projectpath`（多 Unity 实例时会被覆盖）
+
+  MCP server 名 `project-0-MyGameStudio-unity-bridge` **不保证**绑定 ShadowGame，实际绑定的是**装了 `com.aibridge.unity` Package 的 Unity 进程**。详见 [`/.claude/memory/problem_2026-04-23_wrong-unity-project.md`](../../../.claude/memory/problem_2026-04-23_wrong-unity-project.md)
 
 ---
 
