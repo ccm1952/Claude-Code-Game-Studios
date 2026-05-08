@@ -4,7 +4,7 @@
 
 ## Status
 
-Proposed
+Accepted (Promoted 2026-05-06 — bulk ceremony post Sprint 3 closure / ADR-029 V2.0 review B-1; SP-007 HybridCLR spike closed; production code enforces boundary)
 
 ## Date
 

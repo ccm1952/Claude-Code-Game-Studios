@@ -4,7 +4,7 @@
 
 ## Status
 
-Proposed
+Accepted (2026-04-22) | **Updated 2026-04-30 — §SceneHandle Ownership superseded by S3-01 D5; SceneManager caches `_currentChapterSceneName: string` (YooAsset location) instead of `SceneHandle`. See §Scene Handle Update note below. ADR core decisions (additive-only, 11-step flow, mandatory cleanup, MainScene persistence) remain authoritative and verified by SP-011 + S3-01 PlayMode CORE PASSED.**
 
 ## Date
 
@@ -12,7 +12,7 @@ Proposed
 
 ## Last Verified
 
-2026-04-22
+2026-04-30 — Scene wrapper API refined (GameModule.Scene not GameModule.Resource); SceneManager state strategy updated (string instead of handle); 11-step flow verified by S3-01 PlayMode CORE PASSED + SP-011 P1/P2/P3 PASS
 
 ## Decision Makers
 
@@ -29,10 +29,10 @@ Technical Director, Lead Programmer
 | **Engine** | Unity 2022.3.62f2 (LTS) |
 | **Asset System** | YooAsset 2.3.17 via TEngine ResourceModule |
 | **Domain** | Core / Scene Management |
-| **Knowledge Risk** | MEDIUM — TEngine SceneModule wrapper and YooAsset SceneHandle lifecycle specifics may not be in LLM training data; must verify against project source |
+| **Knowledge Risk** | LOW (was MEDIUM 2026-04-22) — TEngine SceneModule wrapper API + lifecycle now verified by SP-011 + S3-01 (2026-04-30 PlayMode CORE PASSED) |
 | **References Consulted** | ADR-001 (TEngine Framework), ADR-005 (YooAsset Resource Loading & Lifecycle), ADR-027 (GameEvent Interface Protocol — supersedes ADR-006 §1/§2 for event ID allocation; ADR-006 §3-§6 lifecycle/token/ordering still inherited), project source (`TEngine/` directory), `design/gdd/scene-management.md`, `docs/engine-reference/unity/VERSION.md` |
-| **Post-Cutoff APIs Used** | `GameModule.Resource.LoadSceneAsync()`, `GameModule.Resource.UnloadSceneAsync()`, `SceneManager.SetActiveScene()`, `Resources.UnloadUnusedAssets()`, YooAsset `SceneHandle`, `ResourcePackage` download API |
-| **Verification Required** | Sprint 0 spike: confirm `SetActiveScene()` works correctly on additively loaded scenes; confirm YooAsset resource package download status query API; confirm `UnloadSceneAsync(SceneHandle)` fully releases scene references |
+| **Post-Cutoff APIs Used (UPDATED 2026-04-30)** | `GameModule.Scene.LoadSceneAsync(string, LoadSceneMode, Action<float>) → UniTask<Scene>`, `GameModule.Scene.UnloadAsync(string) → UniTask<bool>`, `GameModule.Scene.ActivateScene(string) → bool`, `Resources.UnloadUnusedAssets()`, `GameModule.Resource.CreateResourceDownloader(...)`, `DownloadUpdateCallback(DownloadUpdateData)` (single-arg). ⚠️ Old fantasy APIs `GameModule.Resource.LoadSceneAsync` / `UnloadSceneAsync(SceneHandle)` were never real — see §Scene Handle Update below. |
+| **Verification Done (2026-04-30)** | SP-011 ✅ PASS (YooAsset Additive compatibility); S3-01 ✅ PlayMode CORE PASSED (`GameModule.Scene.LoadSceneAsync(Additive)` + `ActivateScene` + `UnloadAsync` 在真实 Editor + YooAsset EditorSimulateMode 实测) |
 
 > **Note**: If Knowledge Risk is MEDIUM or HIGH, this ADR must be re-validated if the
 > project upgrades engine or YooAsset versions. Flag it as "Superseded" and write a new ADR.
@@ -41,7 +41,7 @@ Technical Director, Lead Programmer
 
 | Field | Value |
 |-------|-------|
-| **Depends On** | ADR-001 (TEngine 6.0 Framework — `GameModule.Resource` and `GameModule.Scene` wrappers), ADR-005 (YooAsset Resource Loading & Lifecycle — SceneHandle ownership and cleanup patterns) |
+| **Depends On** | ADR-001 (TEngine 6.0 Framework — `GameModule.Scene` and `GameModule.Resource` wrappers), ADR-005 (YooAsset Resource Loading & Lifecycle — AssetHandle ownership and cleanup patterns; ADR-005 §SceneHandle section superseded by S3-01 D5 — see §Scene Handle Update below) |
 | **Enables** | All chapter-based gameplay implementation; Narrative sequence system (scene-aware transitions); Tutorial system (first-chapter onboarding flow) |
 | **Blocks** | Scene transition implementation; chapter-based gameplay; any system that reacts to scene lifecycle events (Shadow Puzzle init/cleanup, Audio BGM switching, Narrative sequence gating) |
 | **Ordering Note** | ADR-005 must reach Accepted first — this ADR consumes the SceneHandle ownership pattern and cleanup sequence defined there. ADR-027 must also be Accepted — all 8 scene events use the `[EventInterface]` protocol defined there (implementation will expose `ISceneEvent` / `ISceneUI` interfaces; see §3.4 below). ADR-006 §3-§6 inherited by ADR-027 (lifecycle, multi-sender token, ordering). |
@@ -123,7 +123,7 @@ ADR-005 established the handle-ownership resource lifecycle pattern and defined 
 │  │                 Loading → TransitionIn → Idle                │ │
 │  │                          ↘ Error → Idle                      │ │
 │  │                                                              │ │
-│  │  Holds: _currentSceneHandle (SceneHandle, ADR-005)           │ │
+│  │  Holds: _currentChapterSceneName (string, S3-01 D5 patch)    │ │
 │  │  Holds: _pendingRequest (max 1 queued request)               │ │
 │  │  Fires: 8 scene lifecycle events via ISceneEvent (ADR-027)  │ │
 │  └─────────────────────────────────────────────────────────────┘ │
@@ -132,8 +132,8 @@ ADR-005 established the handle-ownership resource lifecycle pattern and defined 
 
 ### Additive-Only Loading Rules
 
-1. **MainScene** is loaded once during `ProcedureMain` via `GameModule.Resource.LoadSceneAsync("MainScene", LoadSceneMode.Additive)`. It is never unloaded for the lifetime of the application.
-2. **Chapter scenes** are loaded via `GameModule.Resource.LoadSceneAsync(sceneName, LoadSceneMode.Additive)`. Only one chapter scene may exist at any time.
+1. **MainScene** is loaded once during `ProcedureMain` via `GameModule.Scene.LoadSceneAsync("MainScene", LoadSceneMode.Additive, null)`. It is never unloaded for the lifetime of the application. (UPDATED 2026-04-30 — S3-01 D5 patch: API moved from `GameModule.Resource` to `GameModule.Scene` namespace)
+2. **Chapter scenes** are loaded via `GameModule.Scene.LoadSceneAsync(sceneName, LoadSceneMode.Additive, progressCallBack)`. Only one chapter scene may exist at any time.
 3. After loading a chapter scene, `SceneManager.SetActiveScene()` is called on the new scene so that its lighting settings, skybox, and default instantiation target are applied.
 4. `LoadSceneMode.Single` is **forbidden** project-wide. A Roslyn analyzer or code review checklist item must flag any use.
 5. No chapter-scene object may call `DontDestroyOnLoad()`. All persistent state lives in MainScene managers.
@@ -190,8 +190,9 @@ Step  Action                                          Event Fired
       → Puzzle: release runtime data
       → Narrative: abort active sequences
       → Systems: remove scene-scoped listeners
- 6    Await UnloadSceneAsync(_currentSceneHandle)      —
-      via GameModule.Resource
+ 6    Await GameModule.Scene.UnloadAsync(             —
+      _currentChapterSceneName); ClearCurrent...()
+      [UPDATED 2026-04-30 — S3-01 D5]
  7    Mandatory cleanup:                               —
       Resources.UnloadUnusedAssets()
       + GC.Collect()
@@ -266,25 +267,39 @@ public enum SceneManagerState
 // Other systems interact with it only through GameEvents.
 ```
 
-### SceneHandle Ownership
+### Scene Identity Caching (UPDATED 2026-04-30 — S3-01 D5 supersedes original §SceneHandle Ownership)
 
-Per ADR-005, the Scene Manager is the sole owner of the chapter scene's `SceneHandle`:
+Per S3-01 D5=[X] decision (2026-04-30, verified by PlayMode CORE PASSED): the Scene Manager caches **only the YooAsset location string** for the current chapter scene, not a `SceneHandle` or `Scene` reference:
 
 ```csharp
-// Scene Manager holds exactly one SceneHandle at a time
-private SceneHandle _currentSceneHandle;
-private int _currentChapterId = -1;
+// Scene Manager holds exactly one location string at a time
+private string _currentChapterSceneName;        // YooAsset location, e.g. "SP011_SceneA"
+private int _currentChapterId = NoChapterId;    // sentinel = -1
 
-// Load: acquire handle
-_currentSceneHandle = await GameModule.Resource.LoadSceneAsync(
-    sceneName, LoadSceneMode.Additive);
+// Load: get back Unity Scene struct, set sceneName cache + activate
+Scene scene = await GameModule.Scene.LoadSceneAsync(
+    sceneName, LoadSceneMode.Additive,
+    progress => GameEvent.Get<ISceneEvent>().OnSceneLoadProgress(sceneName, progress));
+if (scene.IsValid() && scene.isLoaded)
+{
+    GameModule.Scene.ActivateScene(sceneName);
+    _currentChapterSceneName = sceneName;
+}
 
-// Unload: release handle
-await GameModule.Resource.UnloadSceneAsync(_currentSceneHandle);
-_currentSceneHandle = null;
+// Unload: pass sceneName string (not handle); clear via internal setter (S3-02 cleanup sequence)
+await GameModule.Scene.UnloadAsync(_currentChapterSceneName);
+ClearCurrentChapterSceneName();  // sets _currentChapterSceneName = null
 ```
 
-The `SceneHandle` is held for the entire duration a chapter scene is active. It is released only during the Unloading step. No other system may hold or release the SceneHandle — this is the Scene Manager's exclusive responsibility.
+**Rationale (S3-01 D5)**:
+1. YooAsset's framework wrapper (`GameModule.Scene`) accepts location strings consistently across `LoadSceneAsync` / `UnloadAsync` / `ActivateScene` — caching the location is enough to drive all subsequent operations
+2. Unity's native `Scene` struct is value-type and can become invalid asynchronously; caching it adds aliasing risk without benefit
+3. YooAsset 2.3.17 internally tracks the SceneHandle by location; Re-querying via `GameModule.Scene.UnloadAsync(name)` is canonical
+4. `_currentChapterSceneName` is read-only outside `SceneManager`; mutation goes through `ClearCurrentChapterSceneName()` setter only (Story 003 cleanup uses this)
+
+The location string is held for the entire duration a chapter scene is active. It is cleared only during the Unloading step (Story 003 cleanup sequence). No other system may write `_currentChapterSceneName` directly.
+
+**Original §SceneHandle Ownership (2026-04-22 first draft)**: 假设 `GameModule.Resource.LoadSceneAsync()` 返 YooAsset `SceneHandle` —— 此 API 不存在，是 fantasy API（被 ADR-029 R2 grep gate 抓住）。Verified by SP-011 + S3-01: scene wrapper API 在 `GameModule.Scene` namespace 而非 `GameModule.Resource`。
 
 ### Fade Transition Specification
 
@@ -344,13 +359,20 @@ SceneManager.LoadSceneAsync("Chapter01", LoadSceneMode.Additive);
 void Start() { DontDestroyOnLoad(gameObject); } // in chapter scene object
 
 // ╳ FORBIDDEN: Multiple chapter scenes loaded simultaneously
-await GameModule.Resource.LoadSceneAsync("Chapter02", LoadSceneMode.Additive);
+await GameModule.Scene.LoadSceneAsync("Chapter02", LoadSceneMode.Additive, null);
 // without first unloading Chapter01
 
 // ╳ FORBIDDEN: Skipping cleanup between scenes
-await GameModule.Resource.UnloadSceneAsync(_currentSceneHandle);
-// Missing: Resources.UnloadUnusedAssets() + GC.Collect()
-await GameModule.Resource.LoadSceneAsync(nextScene, LoadSceneMode.Additive);
+await GameModule.Scene.UnloadAsync(_currentChapterSceneName);
+// Missing: Resources.UnloadUnusedAssets().ToUniTask() + GC.Collect()
+await GameModule.Scene.LoadSceneAsync(nextScene, LoadSceneMode.Additive, null);
+
+// ╳ FORBIDDEN: Calling fantasy API GameModule.Resource.LoadSceneAsync (does not exist)
+await GameModule.Resource.LoadSceneAsync("Chapter01", LoadSceneMode.Additive);  // ⚠ ADR-029 R2 fail
+
+// ╳ FORBIDDEN: Caching SceneHandle / Scene reference field on SceneManager
+private SceneHandle _currentSceneHandle;  // S3-01 D5=[X] — store sceneName string only
+private Scene _scene;                     // S3-01 D5=[X] — value-type aliasing risk
 
 // ╳ FORBIDDEN: Synchronous scene operations
 SceneManager.LoadScene("Chapter01"); // sync load
@@ -434,8 +456,8 @@ sceneManager.LoadChapter(3); // must use GameEvent: Evt_RequestSceneChange
 | Risk | Probability | Impact | Mitigation |
 |------|-------------|--------|------------|
 | `SetActiveScene` not applied → wrong lighting on chapter scene | MEDIUM | MEDIUM | Step 10 of flow explicitly sets active scene; automated test validates lighting source matches expected chapter |
-| Memory leak if cleanup step (7) is skipped or incomplete | HIGH | HIGH | Cleanup is mandatory in the flow — never optional. Memory Profiler check after every chapter transition in QA. ADR-005's handle-ownership pattern ensures SceneHandle release. |
-| SceneHandle not properly released → scene remains in memory | MEDIUM | HIGH | Scene Manager is sole SceneHandle owner (ADR-005); `_currentSceneHandle` set to null after unload; debug assertion on non-null handle during load |
+| Memory leak if cleanup step (7) is skipped or incomplete | HIGH | HIGH | Cleanup is mandatory in the flow — never optional. Memory Profiler check after every chapter transition in QA. ADR-005's handle-ownership pattern ensures AssetHandle release; S3-02 cleanup sequence ensures Scene + Assets cleanup. |
+| Chapter scene not properly unloaded → memory remains | MEDIUM | HIGH | Scene Manager is sole owner of `_currentChapterSceneName` (S3-01 D5; previously SceneHandle ownership in original ADR-009 §SceneHandle Ownership, now superseded); `ClearCurrentChapterSceneName()` setter clears after `Scene.UnloadAsync` (S3-02 cleanup); debug assertion on non-empty name during next load |
 | YooAsset download fails mid-transition → stuck in Loading state | MEDIUM | MEDIUM | 30s download timeout; max 2 retries; Error state with user-facing recovery UI; MainScene remains functional |
 | Fade animation stutters during heavy async loading | LOW | MEDIUM | Fade driven by unscaled time on UI Canvas, independent of scene loading; loading is async and should not block main thread; profile on target devices |
 | Chapter scene contains `DontDestroyOnLoad` object → leaked persistent object | LOW | HIGH | Code review + static analysis rule: no `DontDestroyOnLoad` calls in chapter scene scripts; runtime warning in debug builds |
@@ -458,7 +480,7 @@ sceneManager.LoadChapter(3); // must use GameEvent: Evt_RequestSceneChange
 
 This is a greenfield architecture — no existing scene management system requires migration. Implementation steps:
 
-1. **Sprint 0: Verify engine APIs** — Confirm `SceneManager.SetActiveScene()` works on additively loaded YooAsset scenes; confirm `UnloadSceneAsync(SceneHandle)` returns a completable task; confirm resource package download status query API
+1. ~~**Sprint 0: Verify engine APIs**~~ → **DONE 2026-04-30 by SP-011 + S3-01**: `GameModule.Scene.ActivateScene(name)` works on YooAsset Additive scenes (S3-01 P1/P2 verified); `GameModule.Scene.UnloadAsync(name) → UniTask<bool>` returns completable task (S3-01 P2 verified); `GameModule.Resource.CreateResourceDownloader(...)` query verified (S3-01 P3 cache hit path)
 2. **Implement Scene Manager state machine** — `SceneManagerState` enum, mutex logic, queue management
 3. **Implement 11-step transition flow** — Wire each step with the corresponding `ISceneEvent` interface method (ADR-027; legacy names map per `architecture-traceability.md` 附录 A)
 4. **Implement Transition Overlay** — CanvasGroup-based fade with EaseInCubic/EaseOutCubic curves, chapter-specific overlay colors from Luban config
@@ -471,7 +493,7 @@ This is a greenfield architecture — no existing scene management system requir
 ## Validation Criteria
 
 - [ ] No memory leaks after 10 consecutive chapter transitions (verified via Unity Memory Profiler: memory baseline returns to within 5% after each transition)
-- [ ] SceneHandle properly released on every unload (`_currentSceneHandle == null` after Unloading step; no orphaned SceneHandles in YooAsset's internal tracking)
+- [x] ~~SceneHandle properly released on every unload~~ → **Superseded by S3-01 D5**: `_currentChapterSceneName == null` after Unloading step (S3-02 cleanup sequence); YooAsset internally tracks scene by location, framework `Scene.UnloadAsync(name)` releases its internal handle
 - [ ] All 8 events fire in correct order during a normal transition: 1400 → 1401 → [1403] → 1402 → 1404 → 1405 → 1406
 - [ ] `Evt_SceneLoadFailed` fires on load failure; error UI appears; retry successfully loads scene
 - [ ] Hot-update download → scene load works on real mobile device (iOS and Android)
@@ -490,7 +512,7 @@ This is a greenfield architecture — no existing scene management system requir
 |-------------|--------|-------------|--------------------------|
 | `design/gdd/scene-management.md` | Scene | TR-scene-001: Additive scene loading only | Additive-Only Loading Rules: `LoadSceneMode.Single` is forbidden; all scenes loaded via `LoadSceneMode.Additive` |
 | `design/gdd/scene-management.md` | Scene | TR-scene-002: Persistent MainScene never unloaded | MainScene loaded once at boot, never unloaded; holds all persistent infrastructure |
-| `design/gdd/scene-management.md` | Scene | TR-scene-003: Async scene loading via UniTask | All loading through `GameModule.Resource.LoadSceneAsync()` — fully async, zero synchronous calls |
+| `design/gdd/scene-management.md` | Scene | TR-scene-003: Async scene loading via UniTask | All loading through `GameModule.Scene.LoadSceneAsync()` (UPDATED 2026-04-30 — S3-01 D5; framework wrapper `SceneModule.cs:312`) — fully async, zero synchronous calls |
 | `design/gdd/scene-management.md` | Scene | TR-scene-004: SetActiveScene for lighting | Step 10 of transition flow: `SceneManager.SetActiveScene(new scene)` after load |
 | `design/gdd/scene-management.md` | Scene | TR-scene-005: One chapter scene at a time | Previous chapter fully unloaded (steps 5–7) before new chapter loads (steps 8–9) |
 | `design/gdd/scene-management.md` | Scene | TR-scene-006: Scene transition mutex | Step 2: mutex check; max 1 queued request; state machine prevents concurrent transitions |
@@ -505,13 +527,46 @@ This is a greenfield architecture — no existing scene management system requir
 | `design/gdd/scene-management.md` | Scene | TR-scene-015: Luban-driven scene registry | Scene name ↔ chapter ID mapping from `TbChapter.sceneId`; no hardcoded scene names |
 | `design/gdd/scene-management.md` | Scene | TR-scene-016: UnloadUnusedAssets after scene unload | Step 7: mandatory `Resources.UnloadUnusedAssets()` in cleanup sequence |
 | `design/gdd/scene-management.md` | Scene | TR-scene-017: GC.Collect after scene unload | Step 7: mandatory `GC.Collect()` immediately after UnloadUnusedAssets |
-| `design/gdd/game-concept.md` | Core | TR-concept-005: No sync loading | All scene operations are async via `GameModule.Resource` — synchronous loading is explicitly forbidden |
-| `design/gdd/game-concept.md` | Core | TR-concept-010: Resource lifecycle closure | SceneHandle ownership by Scene Manager (ADR-005 pattern); mandatory cleanup between transitions ensures no resource accumulation |
+| `design/gdd/game-concept.md` | Core | TR-concept-005: No sync loading | All scene operations are async via `GameModule.Scene` (UPDATED 2026-04-30 — S3-01 D5) — synchronous loading is explicitly forbidden |
+| `design/gdd/game-concept.md` | Core | TR-concept-010: Resource lifecycle closure | Chapter sceneName ownership by Scene Manager (S3-01 D5; supersedes original ADR-005 SceneHandle ownership); mandatory cleanup between transitions (S3-02 sequence) ensures no resource accumulation |
+
+---
+
+## Scene Handle Update (2026-04-30 — S3-01 D5 / ADR-029 R2)
+
+**Context**: Original ADR-009 §SceneHandle Ownership (drafted 2026-04-22) assumed `GameModule.Resource.LoadSceneAsync()` returned a YooAsset `SceneHandle` reference, with the Scene Manager caching it for the chapter's lifetime. SP-011 (Sprint 2) + S3-01 (Sprint 3 PlayMode CORE PASSED) implementation revealed:
+
+1. **API namespace**: Scene wrapper lives on `GameModule.Scene`, not `GameModule.Resource`. The original API name was a fantasy — caught by ADR-029 R2 grep gate during S3-01 readiness check.
+2. **Return type**: `LoadSceneAsync` returns Unity native `Scene` struct (not YooAsset `SceneHandle`), validated via `scene.IsValid()` + `scene.isLoaded` double-assertion.
+3. **Cache strategy (D5=[X])**: SceneManager caches `_currentChapterSceneName: string` (YooAsset location) instead of any handle/struct reference. Justification: framework wrapper accepts location strings consistently; Unity Scene struct is value-type with async invalidation risk; YooAsset 2.3.17 internally indexes scenes by location.
+4. **Cleanup integration**: Story 003 (S3-02) cleanup sequence calls `await GameModule.Scene.UnloadAsync(_currentChapterSceneName)` then `ClearCurrentChapterSceneName()` setter (the only authorized mutation path).
+
+**Sections updated in-place**:
+- §Scene Manager Decoupling Pattern ASCII diagram (L126): `Holds: _currentChapterSceneName (string)`
+- §11-Step Transition Flow Step 6 (L193): `Await GameModule.Scene.UnloadAsync(_currentChapterSceneName); ClearCurrent...()`
+- §Scene Identity Caching (L269 — replaces §SceneHandle Ownership)
+- §Forbidden Patterns code block (L355-379): includes fantasy-API grep target + cache-field forbidden patterns
+- §Risks (L452-453): "memory leak" + "chapter scene not properly unloaded" descriptions
+- §Migration Plan Step 1 (L476): Sprint 0 spike marked DONE by SP-011 + S3-01
+- §Validation Criteria SceneHandle line (L496): superseded ✅
+- §GDD Requirements rows TR-scene-003 + TR-concept-010: refreshed
+
+**ADR core decisions remain authoritative** (verified by SP-011 + S3-01 PlayMode CORE PASSED):
+- ✅ Additive-only loading (`LoadSceneMode.Additive`)
+- ✅ MainScene persistent, chapter scenes one-at-a-time
+- ✅ 11-step transition flow (P0 修订: removed `CheckLocationValid` pre-check; framework `LoadSceneAsync` exception drives retry)
+- ✅ Mandatory cleanup sequence (Story 003 / S3-02)
+- ✅ State machine 6 states (Idle / TransitionOut / Unloading / Loading / TransitionIn / Error)
+- ✅ ISceneEvent 9-method protocol (S2-05 + S3-03 implementation)
+
+**Change tracking**: `docs/architecture/change-impact-2026-04-30-d5-scene-handle-decision.md` (待写)
+
+---
 
 ## Related
 
-- **Depends On**: ADR-001 (TEngine 6.0 Framework) — `GameModule.Resource` and `GameModule.Scene` wrappers provide the underlying scene loading capability
-- **Depends On**: ADR-005 (YooAsset Resource Loading & Lifecycle) — SceneHandle ownership pattern, cleanup sequence, and handle-release semantics consumed directly by this ADR
+- **Depends On**: ADR-001 (TEngine 6.0 Framework) — `GameModule.Scene` and `GameModule.Resource` wrappers provide the underlying scene loading capability
+- **Depends On**: ADR-005 (YooAsset Resource Loading & Lifecycle) — AssetHandle ownership pattern, cleanup sequence, and handle-release semantics consumed directly by this ADR. ADR-005 §SceneHandle section also superseded by S3-01 D5 in parallel.
 - **Depends On**: ADR-027 (GameEvent Interface Protocol) — 8 scene lifecycle events expose as `ISceneEvent` interface methods; Event IDs auto-generated by Roslyn Source Generator. (ADR-006 §1/§2 superseded; §3/§4/§5/§6 lifecycle/token/ordering inherited.)
 - **Cross-Reference**: ADR-003 (Mobile-First Platform) — Memory budgets and mobile constraints that drive the single-chapter-at-a-time requirement
 - **Enables**: All chapter-based gameplay systems — Shadow Puzzle, Narrative, Audio BGM switching, Tutorial first-chapter flow

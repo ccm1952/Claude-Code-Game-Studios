@@ -2,10 +2,11 @@
 
 # Architecture Traceability Index — 影子回忆 (Shadow Memory)
 
-> **Version**: 1.0
+> **Version**: 1.1
 > **Generated**: 2026-04-22
-> **Source**: `phase0-tr-baseline.md` (212 TRs), 18 ADRs (ADR-001 ~ ADR-018), `architecture.md` v1.0
-> **Last Review**: `architecture-review-2026-04-22.md`
+> **Source**: `phase0-tr-baseline.md` (212 TRs), 21 ADRs (ADR-001 ~ ADR-018 + ADR-027/028/029), `architecture.md` v1.0
+> **Last Review**: `architecture-review-2026-05-06.md` (was: 2026-04-22)
+> **Notes (2026-05-06)**: Coverage matrix unchanged (124 ✅ / 87 ⚠️ / 1 ❌). 7 cross-ADR conflicts from prior review全部 resolved or formally bound. 1 new minor intra-ADR drift (CONFLICT-008 ADR-011 §7) resolved 2026-05-06 in same session. ADR-027/028/029 governance ADRs added (no TR coverage delta). 14 Proposed ADRs promoted to Accepted in same session bulk ceremony.
 
 ---
 
@@ -115,7 +116,7 @@
 | TR-scene-014 | 8 scene transition GameEvent IDs | ✅ | ADR-009, ADR-006 | EventId 1400-1407 |
 | TR-scene-015 | Emotional weight fade duration | ✅ | ADR-009 | Narrative-heavy transitions |
 | TR-scene-016 | UnloadUnusedAssets + GC.Collect | ✅ | ADR-009 | After every unload |
-| TR-scene-017 | SceneHandle reference retention | ✅ | ADR-009, ADR-005 | YooAsset handle tracking |
+| TR-scene-017 | Chapter scene identity retention | ✅ | ADR-009, ADR-005 | UPDATED 2026-04-30 — S3-01 D5: SceneManager caches `_currentChapterSceneName: string` (YooAsset location); framework `GameModule.Scene` wrapper handles SceneHandle internally; was "SceneHandle reference retention" |
 
 ### 1.5 Object Interaction (22 TRs) — Primary: ADR-013 (P1)
 

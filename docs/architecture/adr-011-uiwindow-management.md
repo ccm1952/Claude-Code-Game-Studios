@@ -4,7 +4,7 @@
 
 ## Status
 
-Proposed
+Accepted with patch (Promoted 2026-05-06 — bulk ceremony post Sprint 3 closure / ADR-029 V2.0 review B-1 + B-2 CONFLICT-008 §7 sample fix applied same session; UI sprint upcoming)
 
 ## Date
 
@@ -219,9 +219,28 @@ GameModule.UI.CloseWindow<PauseMenuPanel>();
 // 面板内部 widget 事件
 AddUIEvent(buttonId, OnButtonClicked);
 
-// 跨系统事件（通过 GameEvent）
-GameEvent.AddEventListener(EventId.ChapterCompleted, OnChapterCompleted);
-GameEvent.RemoveEventListener(EventId.ChapterCompleted, OnChapterCompleted);
+// 跨系统事件（通过 GameEvent — 遵循 ADR-027 接口协议 + §5 ⚠️ Framework knowledge fact）
+// TEngine RemoveEventListener 非 idempotent；listener 不存在时抛 "Delete handle failed, not exist"。
+// Required pattern：handler null-out + 外部 cleanup null-check guard（详见 ADR-027 §5）。
+private Action<int> _onChapterCompleted;
+
+public override void RegisterEvent()
+{
+    _onChapterCompleted = OnChapterCompleted;
+    GameEvent.AddEventListener<int>(IChapterStateEvent_Event.OnChapterComplete, _onChapterCompleted);
+}
+
+private void OnChapterCompleted(int chapterId) { /* ... 业务逻辑 ... */ }
+
+// Cleanup 路径（OnDisable / Dispose 等）— null-check guard 防 raw double-remove
+public void Cleanup()
+{
+    if (_onChapterCompleted != null)
+    {
+        GameEvent.RemoveEventListener<int>(IChapterStateEvent_Event.OnChapterComplete, _onChapterCompleted);
+        _onChapterCompleted = null;
+    }
+}
 ```
 
 ### Implementation Guidelines

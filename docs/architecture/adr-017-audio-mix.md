@@ -4,7 +4,7 @@
 
 ## Status
 
-Proposed
+Accepted (Promoted 2026-05-06 — bulk ceremony post Sprint 3 closure / ADR-029 V2.0 review B-1; ADR-028 §1 AudioModule activation gate now unblocked)
 
 ## Date
 
@@ -337,3 +337,220 @@ void PlaySFX(string sfxId, Vector3? worldPosition = null)
 - **Consumed By**: ADR-016 (Narrative Sequence Engine) — sends ducking/SFX events during sequences
 - **References**: `architecture.md` §4.2 (Audio System ownership), §5.3 (Audio Events table), §6.8 (IAudioService)
 - **References**: `audio-system.md` (full GDD), `settings-accessibility.md` (player-facing volume controls)
+
+---
+
+## Implementation Expand (Sprint 4 S4-03 — 2026-05-06)
+
+> **Source**: Sprint 4 plan Track A 第三站（收官）；本节为 ADR-017 v1 (2026-04-22) 的 Sprint 4 implementation alignment update：(a) ADR-027 interface protocol；(b) ADR-029 V2.0 R3 mandatory + §V2-5；(c) ADR-028 §1 AudioModule activation gate 真接入；(d) Sprint 4 implementation file paths；(e) 首批 story 创建索引。沿 S4-01/-02 Track A pattern。
+
+### A. ADR-027 Interface Protocol Mapping (replaces legacy `Evt_*` const-int)
+
+ADR-017 v1 文中事件采用 `Evt_AudioDuckingRequest` / `Evt_PlaySFXRequest` / `Evt_MusicCrossfadeRequest` 等 ADR-006 const-int 命名（已 superseded by ADR-027 2026-04-23）。本节定义 ADR-027 接口协议下的 `IAudioEvent`：
+
+```csharp
+namespace GameLogic
+{
+    [EventInterface(EEventGroup.GroupLogic)]
+    public interface IAudioEvent
+    {
+        /// <summary>SFX 一次性播放请求。Sender: gameplay system / NarrativeSequencePlayer atomic effect。
+        /// Listener: AudioManager.PlaySFX(sfxId, ...). Cascade: 触发 AudioModule.PlayOneShot.</summary>
+        void OnPlaySFX(int sfxId, float delay, float volume);
+
+        /// <summary>Music 切换请求（含 crossfade）。Sender: ChapterStateManager / NarrativeSequencePlayer.
+        /// Listener: AudioManager.PlayMusic(clipId, crossfadeDuration). Typical: 章节切换 + chapter-final sequence.</summary>
+        void OnPlayMusic(int musicClipId, float crossfadeDuration);
+
+        /// <summary>Music 停止请求（fade out）。Sender: ChapterStateManager / NarrativeSequencePlayer.</summary>
+        void OnStopMusic(float fadeDuration);
+
+        /// <summary>Ducking 请求 — 临时降低 Ambient + Music 音量（典型 narrative sequence）。
+        /// Sender: NarrativeSequencePlayer atomic effect AudioDucking。
+        /// Listener: AudioManager.SetDucking(duckRatio, fadeDuration). Cascade depth ≤ 2.</summary>
+        void OnDuckingRequest(float duckRatio, float fadeDuration);
+
+        /// <summary>Ducking 释放 — 恢复正常音量。Sender: NarrativeSequencePlayer sequence 末尾 OR atomic effect end.
+        /// Listener: AudioManager.ReleaseDucking(fadeDuration).</summary>
+        void OnReleaseDucking(float fadeDuration);
+
+        /// <summary>Layer volume 设置（来自 Settings change 或 narrative special case）。
+        /// Sender: SettingsManager OnSettingChanged listener / NarrativeSequencePlayer.
+        /// Listener: AudioManager.SetLayerVolume(layer, volume).</summary>
+        void OnSetLayerVolume(AudioLayer layer, float volume);
+
+        /// <summary>App pause/resume 信号（Audio system internal 不响应 Unity OnApplicationPause; 由 GameApp 派发）.</summary>
+        void OnAudioPauseRequest();
+        void OnAudioResumeRequest();
+    }
+
+    public enum AudioLayer
+    {
+        Ambient = 0,
+        SFX = 1,
+        Music = 2,
+    }
+}
+```
+
+**Migration table** (legacy → ADR-027)：
+
+| Legacy `Evt_*` | ADR-027 Interface Method |
+|---------------|--------------------------|
+| `Evt_PlaySFXRequest` | `IAudioEvent.OnPlaySFX(int sfxId, float delay, float volume)` |
+| `Evt_MusicChange` / `Evt_MusicCrossfadeRequest` | `IAudioEvent.OnPlayMusic(int musicClipId, float crossfadeDuration)` |
+| `Evt_StopMusicRequest` | `IAudioEvent.OnStopMusic(float fadeDuration)` |
+| `Evt_AudioDuckingRequest` | `IAudioEvent.OnDuckingRequest(float duckRatio, float fadeDuration)` |
+| `Evt_ReleaseDuckingRequest` | `IAudioEvent.OnReleaseDucking(float fadeDuration)` |
+| `Evt_SettingChanged` (audio sub-channel) | `ISettingsEvent.OnSettingChanged` (existing — ADR-027 §A.5) → IAudioEvent.OnSetLayerVolume cascade |
+
+**ADR-027 §5 ⚠️ Framework knowledge fact applies**: `IAudioEvent` listener (AudioManager) 必须 handler null-out + Cleanup null-check guard。
+
+### B. ADR-028 §1 AudioModule Activation Gate (本 ADR 解锁)
+
+ADR-028 §1 explicitly defers AudioModule activation 到 "ADR-017 Accept + Audio Sprint 接入"。**ADR-017 已 Accepted 2026-05-06**；本节是 ADR-028 §1 gate 解锁 reference：
+
+```csharp
+// GameApp.Entrance() — 当 AudioManager 接入时（Sprint 4-5 dev-story）
+public static void Entrance(object[] objects)
+{
+    GameEventHelper.Init();
+    // ... existing init ...
+
+    // ADR-028 §1 AudioModule activation (post-ADR-017 ✅ 2026-05-06)
+    GameModule.Audio.Activate();   // ← 解锁此调用
+    AudioManager.Instance.Initialize();  // 启动 AudioManager（IAudioService impl）
+    // ...
+}
+```
+
+**注**: `GameModule.Audio.Activate()` API 名是占位（取决于 TEngine AudioModule 真实 API）；Sprint 4-5 dev-story 时验证。
+
+### C. Production Code Paths
+
+```
+Assets/GameScripts/HotFix/GameLogic/
+├── Audio/                                              # 新建目录 (Sprint 4-5 起)
+│   ├── AudioManager.cs                                 # IAudioService impl 主体
+│   ├── AudioMixLayer.cs                                # Per-layer state (Ambient/SFX/Music)
+│   ├── AudioConfig.cs                                  # readonly POCO (TbAudio 投影；audioId / volume / 3d / pitch / variant)
+│   ├── AudioConfigFromLuban.cs                         # provider impl
+│   └── DuckingController.cs                            # Ducking interpolation logic
+└── IEvent/
+    └── IAudioEvent.cs                                  # 新建 (8 method + EEventGroup.GroupLogic)
+```
+
+**Initialize / Shutdown lifecycle pattern** (8 listener × null-out + null-check guard)：
+
+```csharp
+public sealed class AudioManager : IAudioService
+{
+    private Action<int, float, float> _onPlaySFX;
+    private Action<int, float> _onPlayMusic;
+    private Action<float> _onStopMusic;
+    private Action<float, float> _onDuckingRequest;
+    private Action<float> _onReleaseDucking;
+    private Action<AudioLayer, float> _onSetLayerVolume;
+    private Action _onAudioPause;
+    private Action _onAudioResume;
+
+    public void Initialize()
+    {
+        // 8 IAudioEvent listeners + 1 ISettingsEvent listener (cross-system cascade)
+        _onPlaySFX = HandlePlaySFX;
+        GameEvent.AddEventListener<int, float, float>(IAudioEvent_Event.OnPlaySFX, _onPlaySFX);
+        // ... 其余 7 listeners 同模式注册 ...
+    }
+
+    public void Shutdown()
+    {
+        // 8 null-check guards (per ADR-027 §5)
+        if (_onPlaySFX != null) { GameEvent.RemoveEventListener<...>(..., _onPlaySFX); _onPlaySFX = null; }
+        // ... 其余 7 同模式 ...
+        // Stop all AudioSources + release Music crossfade temp source
+    }
+}
+```
+
+### D. ADR-029 V2.0 R3 Mandatory Coverage (R3 PlayMode probe requirements)
+
+Per ADR-029 V2.0 §V2-3 R3 mandatory + §V2-5 framework boundary behavior probe checklist：
+
+| 必备 R3 case | 触发 case | spike 路径 |
+|-------------|----------|-----------|
+| **3-layer volume isolation** (业务 happy path) | SetLayerVolume(Ambient, 0.6); SetLayerVolume(SFX, 0); 验 Ambient layer 仍有声 / SFX silent / Music 不受影响 | `S403_AudioMixArchitecture.cs` IDevSpike P1 |
+| **Master + per-layer volume multiplicative** (业务) | SetMasterVolume(0.5) + SetLayerVolume(SFX, 0.8) → 实际播放 SFX 0.4 (multiplicative) | P2 |
+| **Ducking + release smooth interpolation** (业务) | SetDucking(0.3, 0.5s) → 0.5s 内 Ambient/Music 平滑降至 30%；SFX 不受影响；ReleaseDucking 平滑恢复 | P3 |
+| **Music crossfade (no gap/overlap artifacts)** (业务 + framework boundary) | PlayMusic(track1) → PlayMusic(track2, 1.0s crossfade) → 1s 内 track1 fade out / track2 fade in；audible 测试 verify (advisory) | P4 |
+| **SFX concurrency cap + oldest cull** (业务) | 4 concurrent same sfxId → OK；5th → kills oldest instance | P5 |
+| **Cross-method state — Settings change cascade** (Type-2(b) cross-method) | ISettingsEvent.OnSettingChanged → AudioManager.SetLayerVolume → AudioMixLayer.volume field updated | P6 |
+| **Listener self-removal pattern** (§V2-5 idempotency) | AudioManager Initialize → 8 listeners subscribe → Shutdown → 8 null-check unsubscribe → 全程无 TEngine "Delete handle failed" exception | P7 |
+| **AudioModule activation gate** (Type-2(a) framework facade behavior) | GameModule.Audio.Activate() 前调 PlaySFX → fail-loud or no-op 行为；activation 后 PlaySFX 正常 | P8 |
+| **App pause/resume** (§V2-5 cancellation/silent-failure) | OnApplicationPause → all AudioSources pause；resume 后从断点继续 | P9 |
+| **Volume = 0 不停 AudioSource** (业务) | SetLayerVolume(SFX, 0) → AudioSource 仍 playing (silent)；SetLayerVolume(SFX, 0.8) → 立即恢复无 restart | P10 |
+
+**Spike 文件路径**: `Assets/GameScripts/HotFix/GameLogic/DevTest/Spikes/S403_AudioMixArchitecture.cs`
+
+### E. Story-001 Framework
+
+**首批 story 创建**: `production/epics/audio-system/story-001-audio-manager-init.md`
+
+Story scope：
+- Implement `IAudioEvent` interface + 8 method + sender 派发 (ADR-027)
+- Implement AudioManager (IAudioService impl + 3-layer mix + ducking + crossfade)
+- 8 listener subscribe with null-out + null-check guard pattern (ADR-027 §5)
+- ADR-028 §1 AudioModule activation gate 接入（GameApp.Entrance 时）
+- AudioConfigFromLuban provider 接入 TbAudio
+- Settings cross-system cascade (ISettingsEvent.OnSettingChanged → IAudioEvent.OnSetLayerVolume)
+
+**TR coverage** (closes 10 ⚠️ TRs)：
+- TR-audio-002 Volume formula (4 multipliers) ⚠️→✅
+- TR-audio-003 SFX variant + pitch randomization ⚠️→✅
+- TR-audio-004 3D spatial audio ⚠️→ partial（依赖 AudioSource positioning impl）
+- TR-audio-005 maxConcurrent + oldest cull ⚠️→✅
+- TR-audio-008 SFX latency ≤ 1 frame ⚠→✅
+- TR-audio-009 Ambient starts within 2s ⚠→ partial（依赖 scene load 时 trigger）
+- TR-audio-010 Ambient occasional sounds ⚠→ partial
+- TR-audio-011 Audio CPU < 1ms with 10 sources ⚠→✅
+- TR-audio-013 App pause/resume ⚠→✅
+- TR-audio-014 Music continues during PauseMenu ⚠→✅
+- TR-settings-008 Ambient volume independent of sfx_enabled ⚠→✅
+
+**Sprint 4 deliverable**: ADR-017 expanded ✅ + Story-001 framework created ✅。actual implementation 留 future Sprint 4-5 dev-story。
+
+### F. Validation Criteria Update (V2.0 alignment)
+
+V1 §Validation Criteria 12 项保持有效，本节新增 R3-mandatory 验证：
+
+- [ ] R3 PlayMode probe `S403_AudioMixArchitecture.cs` 8 CORE cases (P1/P2/P3/P5/P6/P7/P8/P9/P10) PASS + 2 advisory cases (P4 audible crossfade verify + 1 reserved)
+- [ ] ADR-027 §5 framework knowledge fact compliance (P7 verifies — 8 listeners null-out + null-check guard)
+- [ ] ADR-029 V2.0 §V2-5 framework boundary behavior coverage (P8 activation gate + P9 pause/resume)
+- [ ] ADR-028 §1 AudioModule activation gate 解锁 verified (P8)
+- [ ] Story-001 dev-story Phase 1.5 R1/R2/R3 grep gate PASS
+- [ ] Story-001 finishes with /story-done verdict APPROVED
+
+**Bulk promotion stamp**: ADR-017 Status: `Accepted (Promoted 2026-05-06 — bulk ceremony post Sprint 3 closure / ADR-029 V2.0 review B-1; ADR-028 §1 AudioModule activation gate now unblocked)`. Implementation Expand done 2026-05-06 — Sprint 4 S4-03.
+
+### G. Track A Sprint 4 Closure (S4-01 + S4-02 + S4-03 完成)
+
+S4-03 是 Sprint 4 Track A "P1 ADR impl expand" 收官 story。Track A 累计：
+
+- S4-01 ADR-014 Puzzle State Machine ✅ (2026-05-06)
+- S4-02 ADR-016 Narrative Sequence Engine ✅ (2026-05-06)
+- S4-03 ADR-017 Audio Mix Architecture ✅ (2026-05-06)
+
+**Sprint 5 VS slice (chapter 1) 全部 P1 ADR 依赖现已 ready**：
+- Puzzle State Machine ✅ → 实现章节 puzzle 完整 lifecycle
+- Narrative Sequence Engine ✅ → 实现 PerfectMatch / chapter-final / absence narrative beats
+- Audio Mix Architecture ✅ → 实现章节 ambient + SFX + music + ducking 配套
+
+**Sprint 5 VS Build 主要组件依赖图**：
+
+```
+Sprint 5 VS Build (chapter 1 端到端):
+├── scene-management/SceneManager (S3-01..03 ✅) — chapter scene load/unload
+├── object-interaction (S2-08..13 ✅) — drag/rotate/grid-snap
+├── shadow-puzzle (S4-01 framework ready ⏳ impl)
+├── narrative-event (S4-02 framework ready ⏳ impl)
+└── audio-system (S4-03 framework ready ⏳ impl + ADR-028 §1 unblocked)
+```

@@ -4,7 +4,7 @@
 
 ## Status
 
-Proposed
+Accepted (Promoted 2026-05-06 — bulk ceremony post Sprint 3 closure / ADR-029 V2.0 review B-1; required to unblock Puzzle State Machine implementation)
 
 ## Date
 
@@ -300,3 +300,157 @@ On each frame while isAbsencePuzzle && state == Active/NearMatch:
 - **Enables**: ADR-015 (Hint System) — monitors PuzzleState for timer pause/resume
 - **Enables**: ADR-016 (Narrative Sequence Engine) — PerfectMatch/AbsenceAccepted events trigger sequences
 - **References**: `architecture.md` §4.3 (Shadow Puzzle System ownership), §5.2 (Puzzle Complete Flow)
+
+---
+
+## Implementation Expand (Sprint 4 S4-01 — 2026-05-06)
+
+> **Source**: Sprint 4 plan Track A first story；本节为 ADR-014 v1 (2026-04-22) 的 Sprint 4 implementation alignment update：(a) ADR-027 interface protocol 替换 legacy const-int；(b) ADR-029 V2.0 R3 mandatory + §V2-5 framework boundary probe coverage；(c) Sprint 4 implementation file paths；(d) 首批 story 创建索引。
+
+### A. ADR-027 Interface Protocol Mapping (replaces legacy `Evt_*` const-int)
+
+ADR-014 v1 文中事件采用 `Evt_NearMatchEnter` / `Evt_PerfectMatch` / `Evt_PuzzleComplete` 等 ADR-006 const-int 命名（已 superseded by ADR-027 2026-04-23）。本节定义 ADR-027 接口协议下的 `IShadowPuzzleEvent`：
+
+```csharp
+namespace GameLogic
+{
+    [EventInterface(EEventGroup.GroupLogic)]
+    public interface IShadowPuzzleEvent
+    {
+        /// <summary>NearMatch 状态进入（matchScore 跨 nearMatchThreshold）。Sender: PuzzleStateMachine。
+        /// Listener: ShadowGlowEffect / HintSystem / AudioFeedback。</summary>
+        void OnNearMatchEnter(int puzzleId);
+
+        /// <summary>NearMatch 状态退出（hysteresis：matchScore 跌破 nearMatchThreshold - 0.05）。</summary>
+        void OnNearMatchExit(int puzzleId);
+
+        /// <summary>PerfectMatch — 标准 puzzle 完成路径（matchScore ≥ perfectMatchThreshold；不可逆）。
+        /// Cascade: 触发 IPuzzleLockEvent.OnPuzzleLockAll + INarrativeEvent.OnRequestSequence(puzzleId, "perfect")。</summary>
+        void OnPerfectMatch(int puzzleId, float finalMatchScore);
+
+        /// <summary>AbsenceAccepted — Ch.5 absence puzzle 完成路径（idle ≥ absenceAcceptDelay at ≥ maxCompletionScore；不可逆）。
+        /// Cascade: 触发 IPuzzleLockEvent.OnPuzzleLockAll + INarrativeEvent.OnRequestSequence(puzzleId, "absence")。</summary>
+        void OnAbsenceAccepted(int puzzleId, float finalMatchScore);
+
+        /// <summary>PuzzleComplete — narrative sequence 完成后 Chapter State 推进进度。
+        /// Sender: PuzzleStateMachine OnSnap/AbsenceSequenceComplete。Listener: ChapterStateManager / SaveManager。</summary>
+        void OnPuzzleComplete(int puzzleId, PuzzleCompletionType completionType);
+    }
+
+    public enum PuzzleCompletionType
+    {
+        Perfect = 0,
+        Absence = 1,
+    }
+}
+```
+
+**Migration table** (legacy → ADR-027)：
+
+| Legacy `Evt_*` | ADR-027 Interface Method |
+|---------------|--------------------------|
+| `Evt_NearMatchEnter` | `IShadowPuzzleEvent.OnNearMatchEnter(int puzzleId)` |
+| `Evt_NearMatchExit` | `IShadowPuzzleEvent.OnNearMatchExit(int puzzleId)` |
+| `Evt_PerfectMatch` | `IShadowPuzzleEvent.OnPerfectMatch(int puzzleId, float finalMatchScore)` |
+| `Evt_AbsenceAccepted` | `IShadowPuzzleEvent.OnAbsenceAccepted(int puzzleId, float finalMatchScore)` |
+| `Evt_PuzzleComplete` | `IShadowPuzzleEvent.OnPuzzleComplete(int puzzleId, PuzzleCompletionType)` |
+| `Evt_PuzzleLockAll` | `IPuzzleLockEvent.OnPuzzleLockAll()` (existing — ADR-013) |
+
+**ADR-027 §5 ⚠️ Framework knowledge fact applies**: 任何订阅 `IShadowPuzzleEvent` 方法的 listener 必须 handler 内 self-remove + `_handler = null` (null-out) + 外部 cleanup `if (_handler != null) RemoveEventListener(...)` (null-check guard)。详见 ADR-027 §5。
+
+### B. Production Code Paths
+
+```
+Assets/GameScripts/HotFix/GameLogic/
+├── ShadowPuzzle/                                       # 新建目录 (Sprint 4 起)
+│   ├── PuzzleStateMachine.cs                           # 7-state FSM 主体（IPuzzleStateMachine impl）
+│   ├── PuzzleState.cs                                  # PuzzleState enum + PuzzleCompletionType enum
+│   ├── PuzzleConfig.cs                                 # readonly POCO (TbPuzzle 投影；perfectMatchThreshold / nearMatchThreshold / absenceAcceptDelay / maxCompletionScore / isAbsencePuzzle)
+│   └── PuzzleConfigFromLuban.cs                        # IPuzzleConfigProvider impl 读 ConfigSystem.Tables.TbPuzzle
+└── IEvent/
+    └── IShadowPuzzleEvent.cs                           # 新建 (5 method + EEventGroup.GroupLogic)
+```
+
+**Initialize / Shutdown lifecycle pattern** (per ADR-013 v3 教训 + Sprint 2 retro)：
+
+```csharp
+public sealed class PuzzleStateMachine : IPuzzleStateMachine
+{
+    private Action<int> _onMatchScoreUpdated;  // ADR-027 §5 null-out + null-check guard
+    // ... fields ...
+
+    public void Initialize(int puzzleId, PuzzleConfig config)
+    {
+        // 注册 listener using ADR-027 per-event pattern
+        _onMatchScoreUpdated = OnMatchScoreUpdatedHandler;
+        GameEvent.AddEventListener<int, float>(IShadowMatchEvent_Event.OnMatchScoreUpdated, _onMatchScoreUpdated);
+        // FSM init to PuzzleState.Locked (then Chapter State unlocks 通过 OnPuzzleUnlock event)
+    }
+
+    public void Shutdown()
+    {
+        // Cleanup with null-check guard (ADR-027 §5 framework knowledge fact)
+        if (_onMatchScoreUpdated != null)
+        {
+            GameEvent.RemoveEventListener<int, float>(IShadowMatchEvent_Event.OnMatchScoreUpdated, _onMatchScoreUpdated);
+            _onMatchScoreUpdated = null;
+        }
+        // Stop timers / unfreeze / persist current state via IChapterProgress
+    }
+}
+```
+
+### C. ADR-029 V2.0 R3 Mandatory Coverage (R3 PlayMode probe requirements)
+
+Per ADR-029 V2.0 §V2-3 R3 mandatory + §V2-5 framework boundary behavior probe checklist：
+
+| 必备 R3 case | 触发 case | spike 路径 |
+|-------------|----------|-----------|
+| **State machine 7 transitions** (业务 happy path) | 完整跑 Locked → Idle → Active → NearMatch → PerfectMatch → Complete (standard); 单独跑 absence 路径 | `S401_PuzzleStateMachine.cs` IDevSpike P1/P2 |
+| **Hysteresis edge** (业务) | matchScore 振荡在 0.38-0.42 不导致 NearMatch ↔ Active 反复 | P3 |
+| **Irreversibility** (业务) | PerfectMatch 后 score 变化不影响 frozen state | P4 |
+| **Tutorial grace period** (业务) | 3s 内 PerfectMatch transition 被 block + 3s 后正常 | P5 |
+| **Absence idle timer** (业务) | 5s idle at ≥ maxCompletionScore 触发 AbsenceAccepted；4.9s idle 不触发；中途 interaction reset timer | P6 |
+| **Save/load round-trip** (cross-method state) | PerfectMatch 状态 save → load 后状态一致（IChapterProgress serialization） | P7 |
+| **Listener self-removal pattern** (framework boundary §V2-5 idempotency) | Subscribe IShadowPuzzleEvent → Handler 内 self-remove + null-out → 外部 Cleanup null-check skip → 全程无 TEngine "Delete handle failed" exception | P8 |
+| **TimerModule precision** (framework boundary) | absenceAcceptDelay 5s timer 实测精度 ±0.1s | P9 (advisory) |
+| **FsmModule conditional guard** (framework boundary) | TEngine FsmModule 是否支持 conditional transition guards (Risk #4 mitigation) | P10 (advisory) |
+
+**Spike 文件路径**: `Assets/GameScripts/HotFix/GameLogic/DevTest/Spikes/S401_PuzzleStateMachine.cs`
+
+### D. Story-001 Framework
+
+**首批 story 创建**: `production/epics/shadow-puzzle/story-001-puzzle-state-machine.md`
+
+Story scope：
+- Implement 7-state FSM with all 10 transitions
+- Implement IShadowPuzzleEvent interface + 5 sender 派发 (ADR-027)
+- Tutorial grace period + Absence idle timer
+- Hysteresis 防 flicker
+- Save/load round-trip via IChapterProgress
+- Cross-chapter difficulty matrix from TbPuzzle (Luban)
+
+**TR coverage** (closes 9 ⚠️ TRs)：
+- TR-puzzle-005 Puzzle state machine ⚠️→✅
+- TR-puzzle-006 AbsenceAccepted Ch.5 ⚠️→✅
+- TR-puzzle-007 matchScore temporal smoothing (handled by ADR-012; this story consume) ⚠️→partial
+- TR-puzzle-008 Tutorial grace period ⚠️→✅
+- TR-puzzle-009 PerfectMatch snap animation (handled by IShadowPuzzleEvent.OnPerfectMatch listener; this story is sender) ⚠→partial
+- TR-puzzle-012 Collectibles 不影响 scoring (decoration only — orthogonal to FSM) ⚠️→OK (依赖 ShadowMatchCalculator implementation)
+- TR-puzzle-013 Chapter-difficulty parameter matrix ⚠→✅
+- TR-puzzle-014 Per-puzzle config via Luban TbPuzzle ⚠→✅
+- TR-save-005 IChapterProgress serialization ⚠→ partial (依赖 ADR-008 实施)
+
+**Sprint 4 deliverable**: ADR-014 expanded ✅ + Story-001 framework created ✅。actual implementation 留 future Sprint 4-5 dev-story (per Sprint 4 plan §Track A — S4-01 范围是 ADR + story 框架，不是 production code 实施)。
+
+### E. Validation Criteria Update (V2.0 alignment)
+
+V1 §Validation Criteria 10 项保持有效，本节新增 R3-mandatory 验证：
+
+- [ ] R3 PlayMode probe `S401_PuzzleStateMachine.cs` 8 CORE cases (P1-P8) PASS + 2 advisory cases (P9-P10) optional
+- [ ] ADR-027 §5 framework knowledge fact compliance (P8 verifies)
+- [ ] ADR-029 V2.0 §V2-5 framework boundary behavior coverage (P9 + P10 advisory)
+- [ ] Story-001 dev-story Phase 1.5 R1/R2/R3 grep gate PASS
+- [ ] Story-001 finishes with /story-done verdict APPROVED
+
+**Bulk promotion stamp**: ADR-014 Status: `Accepted (Promoted 2026-05-06 — bulk ceremony post Sprint 3 closure / ADR-029 V2.0 review B-1; required to unblock Puzzle State Machine implementation)`. Implementation Expand done 2026-05-06 — Sprint 4 S4-01.

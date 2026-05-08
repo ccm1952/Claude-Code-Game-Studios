@@ -4,7 +4,7 @@
 
 | Field | Value |
 |-------|-------|
-| **Status** | Proposed |
+| **Status** | Accepted (Promoted 2026-05-06 — bulk ceremony post Sprint 3 closure / ADR-029 V2.0 review B-1; required for Sprint 4 chapter-state epic) |
 | **Date** | 2026-04-22 |
 | **Author** | Technical Director |
 | **Project** | 影子回忆 (Shadow Memory) |

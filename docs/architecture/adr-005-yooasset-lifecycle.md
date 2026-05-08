@@ -4,7 +4,7 @@
 
 ## Status
 
-Proposed
+Accepted (2026-04-22) | **Updated 2026-04-30 — Scene-handle pattern superseded by S3-01 D5; see §Scene Loading Update note below. ADR core principles (handle-ownership, async-only, mandatory cleanup) remain authoritative.**
 
 ## Date
 
@@ -12,7 +12,7 @@ Proposed
 
 ## Last Verified
 
-2026-04-22
+2026-04-30 (Scene-handle section partially superseded — see §Scene Loading Update; AssetHandle ownership pattern remains valid)
 
 ## Decision Makers
 
@@ -31,8 +31,8 @@ Every game system in 影子回忆 (Shadow Memory) loads assets — UI prefabs, a
 | **Domain** | Core / Asset Pipeline / Scene Management |
 | **Knowledge Risk** | MEDIUM — YooAsset 2.3.17 specifics and TEngine's ResourceModule wrapper are likely absent from LLM training data; must verify APIs from project source |
 | **References Consulted** | ADR-001 (TEngine Framework), project source (`TEngine/` directory), YooAsset GitHub repository, `docs/engine-reference/unity/VERSION.md` |
-| **Post-Cutoff APIs Used** | `GameModule.Resource.LoadAssetAsync<T>()`, `GameModule.Resource.LoadSceneAsync()`, `GameModule.Resource.UnloadSceneAsync()`, YooAsset `AssetHandle`, `SceneHandle`, `ResourcePackage` |
-| **Verification Required** | Sprint 0 spike: confirm `GameModule.Resource` wrapper API signatures, `AssetHandle.Release()` semantics, `SceneHandle` lifecycle, and `ResourcePackage` initialization flow from TEngine 6.0 + YooAsset 2.3.17 source |
+| **Post-Cutoff APIs Used** | `GameModule.Resource.LoadAssetAsync<T>()`, YooAsset `AssetHandle`, `ResourcePackage`, `GameModule.Resource.CreateResourceDownloader(...)` ⚠️ Scene loading APIs moved to `GameModule.Scene` (see §Scene Loading Update 2026-04-30) |
+| **Verification Required** | Sprint 0 spike: confirm `GameModule.Resource` wrapper API signatures, `AssetHandle.Release()` semantics, `ResourcePackage` initialization flow from TEngine 6.0 + YooAsset 2.3.17 source. Scene wrapper verification done by SP-011 + S3-01 (2026-04-30 ✅ PASS) |
 
 > **Note**: If Knowledge Risk is MEDIUM or HIGH, this ADR must be re-validated if the
 > project upgrades engine or YooAsset versions. Flag it as "Superseded" and write a new ADR.
@@ -137,25 +137,40 @@ public void UnloadHUD()
 }
 
 // ═══════════════════════════════════════════════════════════════
-// CORRECT: Scene loading with SceneHandle
+// CORRECT: Scene loading via GameModule.Scene wrapper (UPDATED 2026-04-30 — S3-01 D5)
+// Scene loading lives on GameModule.Scene (NOT GameModule.Resource);
+// SceneManager caches sceneName string only, never SceneHandle/Scene reference.
 // ═══════════════════════════════════════════════════════════════
-private SceneHandle _currentSceneHandle;
+private string _currentChapterSceneName;  // YooAsset location string
 
 public async UniTask LoadChapterScene(string sceneName)
 {
-    _currentSceneHandle = await GameModule.Resource.LoadSceneAsync(
-        sceneName, LoadSceneMode.Additive);
+    Scene scene = await GameModule.Scene.LoadSceneAsync(
+        sceneName,
+        LoadSceneMode.Additive,
+        progress => { /* progress callback */ });
+    if (scene.IsValid() && scene.isLoaded)
+    {
+        GameModule.Scene.ActivateScene(sceneName);
+        _currentChapterSceneName = sceneName;
+    }
 }
 
 public async UniTask UnloadChapterScene()
 {
-    if (_currentSceneHandle != null)
+    if (!string.IsNullOrEmpty(_currentChapterSceneName))
     {
-        await GameModule.Resource.UnloadSceneAsync(_currentSceneHandle);
-        _currentSceneHandle = null;
+        try
+        {
+            await GameModule.Scene.UnloadAsync(_currentChapterSceneName);
+        }
+        finally
+        {
+            _currentChapterSceneName = null;  // setter via SceneManager.ClearCurrentChapterSceneName()
+            await Resources.UnloadUnusedAssets().ToUniTask();
+            GC.Collect();
+        }
     }
-    await Resources.UnloadUnusedAssets();
-    GC.Collect();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -318,13 +333,13 @@ This sequence is mandatory (TR-scene-016, TR-scene-017). Skipping steps 4-5 will
 
 ## Validation Criteria
 
-- [ ] Sprint 0 spike: Confirm `GameModule.Resource.LoadAssetAsync<T>()` returns a handle with `.AssetObject` and `.Release()` as expected
-- [ ] Sprint 0 spike: Confirm `GameModule.Resource.LoadSceneAsync()` returns a SceneHandle that can be passed to `UnloadSceneAsync()`
-- [ ] Sprint 0 spike: Confirm `AssetHandle.Release()` decrements reference count and asset is unloaded when count reaches zero
-- [ ] Sprint 0 spike: Confirm single ResourcePackage initializes correctly during TEngine Procedure boot chain
-- [ ] Zero resource leaks after 10 consecutive chapter transitions (verified via Unity Memory Profiler)
+- [x] Sprint 0 spike: Confirm `GameModule.Resource.LoadAssetAsync<T>()` returns a handle with `.AssetObject` and `.Release()` as expected
+- [x] ~~`GameModule.Resource.LoadSceneAsync()` SceneHandle test~~ → **Superseded by S3-01 D5 (2026-04-30)**: scene loading lives on `GameModule.Scene.LoadSceneAsync(sceneName, LoadSceneMode, progressCallBack) → UniTask<Scene>`; verified by SP-011 + S3-01 PlayMode CORE PASSED
+- [x] Sprint 0 spike: Confirm `AssetHandle.Release()` decrements reference count and asset is unloaded when count reaches zero
+- [x] Sprint 0 spike: Confirm single ResourcePackage initializes correctly during TEngine Procedure boot chain
+- [ ] Zero resource leaks after 10 consecutive chapter transitions (verified via Unity Memory Profiler) — TR-scene-011 covered by S3-02 P6 5-cycle spike (in-progress)
 - [ ] Zero synchronous `Resources.Load<T>()` or `AssetBundle.LoadAsset()` calls in entire codebase (verified via automated grep / Roslyn analyzer)
-- [ ] SceneHandle properly held during scene lifetime and released during transitions (verified via Editor tooling)
+- [x] ~~SceneHandle properly held during scene lifetime~~ → **Superseded by S3-01 D5**: SceneManager holds `_currentChapterSceneName: string` only; verified by S3-01 (P1/P2 PASS) — ClearCurrentChapterSceneName() setter clears via Story 003 cleanup sequence
 - [ ] Hot-update asset download + load works on real mobile device (iOS and Android)
 - [ ] Scene-exit cleanup (`UnloadUnusedAssets()` + `GC.Collect()`) completes within 500ms on target mobile device
 
@@ -334,14 +349,41 @@ This sequence is mandatory (TR-scene-016, TR-scene-017). Skipping steps 4-5 will
 |-------------|--------|-------------|--------------------------|
 | `design/gdd/game-concept.md` | Core | TR-concept-005: Forbidden sync asset loading | All loading is async via `GameModule.Resource.LoadAssetAsync<T>()`; `Resources.Load<T>()` and `AssetBundle.LoadAsset()` are explicitly forbidden |
 | `design/gdd/game-concept.md` | Core | TR-concept-010: Resource lifecycle closure | Handle-ownership pattern mandates every `LoadAssetAsync` has a corresponding `Release()`; enforced via base class, code review, and Editor tooling |
-| `design/gdd/scene-management.md` | Scene | TR-scene-003: Async scene loading via UniTask | `GameModule.Resource.LoadSceneAsync()` returns a SceneHandle via UniTask-based async flow |
+| `design/gdd/scene-management.md` | Scene | TR-scene-003: Async scene loading via UniTask | `GameModule.Scene.LoadSceneAsync(sceneName, LoadSceneMode, progress) → UniTask<Scene>` (UPDATED 2026-04-30 — see §Scene Loading Update; framework wrapper `SceneModule.cs`) |
 | `design/gdd/scene-management.md` | Scene | TR-scene-016: UnloadUnusedAssets after scene unload | Mandatory step 4 in Scene Transition Cleanup Sequence |
 | `design/gdd/scene-management.md` | Scene | TR-scene-017: GC.Collect after scene unload | Mandatory step 5 in Scene Transition Cleanup Sequence |
 
+---
+
+## Scene Loading Update (2026-04-30 — S3-01 D5 / ADR-029 R2)
+
+**Context**: ADR-005 §Implementation Guidelines + §Validation Criteria + §Common Pitfalls 中关于 scene loading 的部分基于 fantasy API `GameModule.Resource.LoadSceneAsync` / `UnloadSceneAsync` + SceneHandle ownership 模式书写（drafted 2026-04-22 之前 framework spike 验证完成）。Sprint 2 SP-011 + Sprint 3 S3-01 PlayMode 实测后确认：
+
+1. **Scene wrapper API 在 `GameModule.Scene` 而非 `GameModule.Resource`**（`SceneModule.cs:312` UnloadAsync, framework facade 由 `ISceneModule` 接口契约固定）
+2. **`LoadSceneAsync` 返 Unity 原生 `Scene` struct**（不是 YooAsset `SceneHandle`），通过 `scene.IsValid()` + `scene.isLoaded` 双断言验证
+3. **SceneManager 不缓存 `Scene` / `SceneHandle` 引用**（D5=[X] 决策），改用 `_currentChapterSceneName: string` (YooAsset location)；`UnloadAsync(sceneName)` 以字符串参数为准
+4. **`CheckLocationValid` 对 scene 资产返 false**，不能作为前置；改靠 `LoadSceneAsync` 抛异常 + outer try-catch retry 路径处理失败（S3-01 P0 修订）
+
+**ADR 核心保留**（仍为 Accepted decision）：
+- AssetHandle handle-ownership 模式（每个系统自释放）
+- 单 ResourcePackage 策略
+- 强制 `Resources.UnloadUnusedAssets()` + `GC.Collect()` 顺序（Step 7-8 of 11-step flow）
+- 异步加载强制（无同步 API）
+
+**ADR 此章节已更新**（drafted 2026-04-22 之前 fantasy API 部分）：
+- §Forbidden Pitfalls + §Correct Pattern code block: 已 patch 用 `GameModule.Scene.LoadSceneAsync` / `UnloadAsync(sceneName)` / `_currentChapterSceneName`
+- §Validation Criteria scene 项: 标 ✅ Superseded by S3-01 D5 + 替代项
+- §GDD Requirements row: 替换为 `GameModule.Scene.LoadSceneAsync` 描述
+
+**变更追踪**: `docs/architecture/change-impact-2026-04-30-d5-scene-handle-decision.md` (待写)
+
+---
+
 ## Related
 
-- **Depends On**: ADR-001 (TEngine 6.0 Framework) — `GameModule.Resource` is the TEngine module wrapper this ADR builds upon
-- **Enables**: ADR-009 (Scene Lifecycle) — Scene loading/unloading patterns and SceneHandle management defined here are consumed by the scene lifecycle architecture
+- **Depends On**: ADR-001 (TEngine 6.0 Framework) — `GameModule.Resource` 与 `GameModule.Scene` 是 TEngine module wrappers
+- **Enables**: ADR-009 (Scene Lifecycle) — Scene loading/unloading patterns + 11-step flow consumed by SceneManager state machine
+- **Updated By**: S3-01 D5 (2026-04-30) — Scene wrapper API + caching strategy refinement; this ADR's AssetHandle pattern + cleanup sequence remain authoritative
 - **Cross-Reference**: ADR-003 (Mobile-First Platform) — Hot-update capability via YooAsset is a key enabler for the mobile distribution strategy
 - **References**: `.claude/docs/technical-preferences.md` — Forbidden sync loading and required cleanup patterns align with this ADR
 - **References**: `src/MyGame/ShadowGame/design/gdd/systems-index.md` — TEngine Integration Map documents per-system asset loading responsibilities

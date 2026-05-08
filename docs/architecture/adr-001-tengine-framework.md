@@ -4,7 +4,7 @@
 
 ## Status
 
-Proposed
+Accepted (Promoted 2026-05-06 — bulk ceremony post Sprint 3 closure / ADR-029 V2.0 review B-1; SP-001/SP-002 spike validations + Sprint 1-3 production code execution as evidence base)
 
 ## Date
 

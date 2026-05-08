@@ -4,7 +4,7 @@
 
 ## Status
 
-Proposed
+Accepted (Promoted 2026-05-06 — bulk ceremony post Sprint 3 closure / ADR-029 V2.0 review B-1; required to unblock Shadow Puzzle implementation sprint)
 
 ## Date
 

@@ -100,6 +100,99 @@ For each story, determine:
 
 ---
 
+## 4a. ADR-029 Implementation Notes Verification (BLOCKING)
+
+Before drafting `## Implementation Notes` for any story, verify all referenced framework APIs / cross-component calls / stub data types via grep. This is the **R1/R2/R3 readiness gate** mandated by [`docs/architecture/adr-029-story-impl-notes-verification.md`](../../../docs/architecture/adr-029-story-impl-notes-verification.md).
+
+For each story being decomposed, run the three checks against the story's intended `Implementation Notes` content **before** writing the file:
+
+### R1 — Per-event listener 模式实证
+
+For any event listener registration code in `Implementation Notes`:
+
+```bash
+# Forbidden pattern: 整接口订阅幻想（API 不存在）
+rg "AddEventListener<I\w+Event>\(this\)" production/epics/
+# 期望: 0 命中 across all draft stories
+
+rg "class \w+\s*:\s*\w+,\s*I\w+Event" production/epics/
+# 期望: 0 命中（整接口订阅心智模型）
+```
+
+**Required mode** (sole legal listener registration pattern):
+```csharp
+GameEvent.AddEventListener<TArg1, TArg2, ...>(IXxxEvent_Event.OnYyy, handler);
+```
+
+If the proposed `Implementation Notes` contains forbidden patterns, **rewrite the listener registration to per-event mode before continuing**. Do not include forbidden patterns in the story file even if "the original ADR mentions them" — silently incorrect ADR samples must be flagged separately.
+
+### R2 — 跨组件 API 调用 grep 实证
+
+For each cross-component API call in `Implementation Notes` (e.g., `obj.SetXxx(...)`, `Manager.YyyConfig`, `Provider.RegisterZzz(...)`):
+
+```bash
+# Generic pattern — replace MethodName / FieldName with actual identifiers
+rg "public .* MethodName\(" Assets/GameScripts/HotFix/   # for methods
+rg "public .* FieldName" Assets/GameScripts/HotFix/      # for fields
+rg "public static .* RegisterFooProvider" Assets/GameScripts/HotFix/  # for provider hooks
+```
+
+**Pass condition**: ≥ 1 hit per called API.
+
+**Deficiency flag path** (when 0 hits but the requirement is legitimate): in the story's `## Engine Notes` block, append explicitly:
+
+```markdown
+**Required Framework Extension**: <ClassName>.<MemberName> does not exist in the framework as of [grep date]. The dev-story implementation must add this before consuming it. Tracked here so dev-story does not silently invent the API.
+```
+
+Do **not** silently embed missing APIs without the deficiency flag — that is the exact drift mode this ADR prevents.
+
+### R3 — Stub 数据类型构造签名 grep 实证
+
+For each stub data type referenced by the story's tests (e.g., `PuzzleConfig`, `GestureData`, `IXxxConfig`):
+
+```bash
+# Class constructor signature
+rg "public XxxConfig\(" Assets/GameScripts/HotFix/
+
+# Sealed class + readonly fields detection (must use constructor; object initializer 不支持)
+rg "public sealed class XxxConfig" Assets/GameScripts/HotFix/ -A 25 | rg "readonly"
+
+# Interface property obligations
+rg "public interface IXxxConfig" Assets/GameScripts/HotFix/ -A 30
+```
+
+**Verify**:
+- Required (positional) parameters first; optional (default-valued) parameters last
+- For sealed class + readonly field types: stories must use `new XxxConfig(id: ..., field: ...)` — never object initializer syntax
+- For interface stub: every property in the interface must be implementable on the test stub
+
+**Typical drift case** (S2-13 PuzzleConfig CS7036/CS0191 ×3 教训): if `Implementation Notes` shows `new PuzzleConfig { GridSize = 1f }` but `PuzzleConfig` is sealed + readonly + has required `id` constructor parameter, the test will fail to compile. Catch it at create-stories time.
+
+---
+
+### Verification Summary in Output
+
+After completing R1/R2/R3 for all decomposed stories, surface a per-story status table to the user:
+
+```
+ADR-029 Implementation Notes Verification:
+| Story | R1 | R2 | R3 | Status |
+|-------|:--:|:--:|:--:|--------|
+| story-001 | ✅ | ✅ | ✅ | PASS |
+| story-002 | ✅ | DEFICIENCY-FLAGGED (PuzzleConfig.RotationStep missing) | ✅ | DEFICIENCY-FLAGGED |
+| story-003 | ✅ | ✅ | ✅ | PASS |
+```
+
+**Status rules**:
+- `PASS` — all three R checks pass; story can be written normally
+- `DEFICIENCY-FLAGGED` — at least one R check 0-hit, but `Engine Notes` deficiency flag is in place; story can be written, dev-story will implement the framework extension first
+- `NEEDS-WORK` — R check failed and no deficiency flag attempted; story decomposition must be revised before write approval
+
+If any story is `NEEDS-WORK`, revise that story's `Implementation Notes` (or framework extension plan) before proceeding to Step 4b.
+
+---
+
 ## 4b. QA Lead Story Readiness Gate
 
 **Review mode check** — apply before spawning QL-STORY-READY:

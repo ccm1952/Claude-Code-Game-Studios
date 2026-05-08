@@ -2,7 +2,7 @@
 
 # ADR-002: URP Rendering Pipeline for Shadow Projection
 
-> **Status**: Proposed
+> **Status**: Accepted (Promoted 2026-05-06 — bulk ceremony post Sprint 3 closure / ADR-029 V2.0 review B-1; SP-005 WallReceiver spike closed)
 > **Date**: 2026-04-22
 > **Author**: Technical Director
 > **Engine**: Unity 2022.3.62f2 LTS — URP (Universal Render Pipeline)

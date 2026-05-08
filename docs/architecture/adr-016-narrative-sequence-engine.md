@@ -4,7 +4,7 @@
 
 ## Status
 
-Proposed
+Accepted (Promoted 2026-05-06 — bulk ceremony post Sprint 3 closure / ADR-029 V2.0 review B-1; required to unblock Narrative Event sprint)
 
 ## Date
 
@@ -312,3 +312,170 @@ async UniTask PlaySequence(NarrativeSequenceConfig config)
 - **Triggers**: ADR-013 (Object Interaction) — sends PuzzleLockAll/SnapToTarget events
 - **Triggers**: ADR-017 (Audio Mix) — sends AudioDucking/SFX requests
 - **References**: `architecture.md` §4.3 (Narrative Event System ownership), §5.2 (Puzzle Complete Flow), §6.7 (INarrativeEvent interface)
+
+---
+
+## Implementation Expand (Sprint 4 S4-02 — 2026-05-06)
+
+> **Source**: Sprint 4 plan Track A 第二站；本节为 ADR-016 v1 (2026-04-22) 的 Sprint 4 implementation alignment update：(a) ADR-027 interface protocol 替换 legacy `Evt_*` const-int；(b) ADR-029 V2.0 R3 mandatory + §V2-5 framework boundary probe coverage；(c) Sprint 4 implementation file paths；(d) 首批 story 创建索引。沿 S4-01 ADR-014 expand pattern。
+
+### A. ADR-027 Interface Protocol Mapping (replaces legacy `Evt_*` const-int)
+
+ADR-016 v1 文中事件采用 `Evt_PerfectMatch` / `Evt_AbsenceAccepted` / `Evt_ChapterComplete` / `Evt_AudioDuckingRequest` / `Evt_PuzzleSnapToTarget` 等 ADR-006 const-int 命名（已 superseded by ADR-027 2026-04-23）。本节定义 ADR-027 接口协议下的 `INarrativeEvent`：
+
+```csharp
+namespace GameLogic
+{
+    [EventInterface(EEventGroup.GroupLogic)]
+    public interface INarrativeEvent
+    {
+        /// <summary>Sequence player 接收外部 trigger（PerfectMatch / AbsenceAccepted / ChapterComplete）后内部自处理；本方法是外部主动 trigger。
+        /// Sender: PuzzleStateMachine / ChapterStateManager / Tutorial（在特殊 case 下）。Listener: NarrativeSequencePlayer.
+        /// Cascade depth ≤ 3（per ADR-027 §2 guardrail）：trigger → sequence start → InputBlocker push + PuzzleLockAll cascade。</summary>
+        void OnRequestSequence(int triggerSourceId, NarrativeSequenceType sequenceType);
+
+        /// <summary>Sequence 开始播放（内部 NarrativeSequencePlayer 触发）。Cascade: 触发 IPuzzleLockEvent.OnPuzzleLockAll + IInputBlockerEvent.OnPushBlocker.</summary>
+        void OnSequenceStart(int sequenceId, NarrativeSequenceType sequenceType);
+
+        /// <summary>Sequence 完成播放，所有 atomic effects 执行完毕。Cascade: 触发 IPuzzleLockEvent.OnPuzzleUnlock + IInputBlockerEvent.OnPopBlocker.</summary>
+        void OnSequenceComplete(int sequenceId, NarrativeSequenceType sequenceType);
+
+        /// <summary>Sequence 因 resource load failure / queue overflow 等被跳过 / 截断。Listener: ChapterStateManager / SaveManager (确保 progression 不阻塞).</summary>
+        void OnSequenceFailed(int sequenceId, string reason);
+    }
+
+    public enum NarrativeSequenceType
+    {
+        MemoryReplay = 0,       // PerfectMatch 后的回忆 sequence
+        ChapterTransition = 1,  // 章节 final puzzle 完成 + chapter transition
+        AbsencePuzzle = 2,      // Ch.5 AbsenceAccepted 后的 absence sequence
+    }
+}
+```
+
+**Migration table** (legacy → ADR-027)：
+
+| Legacy `Evt_*` | ADR-027 Interface Method |
+|---------------|--------------------------|
+| `Evt_PerfectMatch` (trigger) | `IShadowPuzzleEvent.OnPerfectMatch` (S4-01)；`INarrativeSequencePlayer.OnRequestSequence` (本 ADR) |
+| `Evt_AbsenceAccepted` (trigger) | `IShadowPuzzleEvent.OnAbsenceAccepted` (S4-01) → `INarrativeEvent.OnRequestSequence` (本 ADR) |
+| `Evt_ChapterComplete` (trigger) | `IChapterStateEvent.OnChapterComplete` (existing) → `INarrativeEvent.OnRequestSequence` (本 ADR) |
+| `Evt_SequenceComplete` (sender) | `INarrativeEvent.OnSequenceComplete(int sequenceId, NarrativeSequenceType)` |
+| `Evt_AudioDuckingRequest` (effect) | `IAudioEvent.OnDuckingRequest(float duckRatio, float fadeDuration)` (defined in ADR-017 expand) |
+| `Evt_PlaySFXRequest` (effect) | `IAudioEvent.OnPlaySFX(int sfxId, float delay, float volume)` (defined in ADR-017 expand) |
+| `Evt_PuzzleSnapToTarget` (effect) | `IObjectInteractionEvent.OnSnapToTarget(int objectId, Vector3 pos, Quaternion rot, float duration, EaseType easing)` (defined in ADR-013) |
+| `Evt_PuzzleLockAll` (cascade) | `IPuzzleLockEvent.OnPuzzleLockAll(string token)` (existing — ADR-013) |
+| `Evt_PuzzleUnlock` (cascade) | `IPuzzleLockEvent.OnPuzzleUnlock(string token)` (existing — ADR-013) |
+
+**ADR-027 §5 ⚠️ Framework knowledge fact applies**: 任何订阅 `INarrativeEvent` 方法的 listener 必须 handler 内 self-remove + `_handler = null` (null-out) + 外部 cleanup `if (_handler != null) RemoveEventListener(...)` (null-check guard)。
+
+### B. Production Code Paths
+
+```
+Assets/GameScripts/HotFix/GameLogic/
+├── NarrativeEvent/                                              # 新建目录 (Sprint 4-5 起)
+│   ├── NarrativeSequencePlayer.cs                                # Sequence Player 主体（INarrativeSequencePlayer impl）
+│   ├── NarrativeSequenceConfig.cs                                # readonly POCO (TbNarrativeSequence 投影)
+│   ├── NarrativeSequenceConfigFromLuban.cs                       # provider impl
+│   ├── AtomicEffect.cs                                            # base abstract class
+│   ├── Effects/
+│   │   ├── AudioDuckingEffect.cs
+│   │   ├── ColorTemperatureEffect.cs
+│   │   ├── SFXOneShotEffect.cs
+│   │   ├── CameraShakeEffect.cs
+│   │   ├── ScreenFadeEffect.cs
+│   │   ├── TextureVideoEffect.cs
+│   │   ├── ObjectSnapEffect.cs
+│   │   ├── LightIntensityEffect.cs
+│   │   ├── ShadowFadeEffect.cs
+│   │   ├── ObjectFadeEffect.cs
+│   │   ├── WaitEffect.cs
+│   │   └── TimelineEffect.cs                                      # PlayableDirector 包装
+│   └── SequenceQueue.cs                                            # FIFO queue max 3 + drop oldest 策略
+└── IEvent/
+    └── INarrativeEvent.cs                                          # 新建 (4 method + EEventGroup.GroupLogic)
+```
+
+**Initialize / Shutdown lifecycle pattern** (per ADR-013 v3 + ADR-027 §5)：
+
+```csharp
+public sealed class NarrativeSequencePlayer : INarrativeSequencePlayer
+{
+    private Action<int, NarrativeSequenceType> _onRequestSequence; // ADR-027 §5 null-out
+
+    public void Initialize()
+    {
+        _onRequestSequence = OnRequestSequenceHandler;
+        GameEvent.AddEventListener<int, NarrativeSequenceType>(INarrativeEvent_Event.OnRequestSequence, _onRequestSequence);
+        // 同时订阅 IShadowPuzzleEvent.OnPerfectMatch / OnAbsenceAccepted / IChapterStateEvent.OnChapterComplete
+    }
+
+    public void Shutdown()
+    {
+        if (_onRequestSequence != null) // null-check guard
+        {
+            GameEvent.RemoveEventListener<int, NarrativeSequenceType>(INarrativeEvent_Event.OnRequestSequence, _onRequestSequence);
+            _onRequestSequence = null;
+        }
+        // Stop active sequence; release VideoPlayer + Timeline assets
+    }
+}
+```
+
+### C. ADR-029 V2.0 R3 Mandatory Coverage (R3 PlayMode probe requirements)
+
+Per ADR-029 V2.0 §V2-3 R3 mandatory + §V2-5 framework boundary behavior probe checklist：
+
+| 必备 R3 case | 触发 case | spike 路径 |
+|-------------|----------|-----------|
+| **Standard sequence playback** (业务 happy path) | MemoryReplay sequence 全 atomic effects 顺序 + 时序触发 | `S402_NarrativeSequenceEngine.cs` IDevSpike P1 |
+| **Parallel effects** (业务) | 同 startTime 多 effects 同时触发 (e.g., AudioDucking + ObjectSnap at t=0) | P2 |
+| **Sequence queue** (业务) | 3 rapid trigger → 3 sequences 顺序播放；4th trigger drop with warning | P3 |
+| **Resource load failure resilience** (业务 + framework boundary) | invalid videoClipPath → effect skip + Log.Warning + sequence 继续 | P4 |
+| **PuzzleLockAll/Unlock token** (cross-method state Type-2(b))| sequence 触发 lock token = "narrative_seq_<id>"；unlock 时 token 匹配 → safe；orphan token check → 0 残留 | P5 |
+| **InputBlocker push/pop** (cross-method) | sequence 期间 InputBlocker active；外部 input event 被 swallow；sequence 结束后 unblock | P6 |
+| **VideoPlayer memory release** (framework boundary) | sequence 包含 TextureVideo → 完成后 Memory profile 不 leak | P7 (advisory — Unity Profiler 接入复杂) |
+| **App pause/resume during sequence** (framework boundary §V2-5 cancellation/silent-failure) | sequence 中途 OnApplicationPause → timer 暂停；OnApplicationFocus → resume；effects 时序保持 | P8 |
+| **Listener self-removal pattern** (§V2-5 idempotency) | Subscribe INarrativeEvent → null-out + null-check guard 全程无 TEngine "Delete handle failed" exception | P9 |
+| **Queue overflow handling** (§V2-5 over-limit) | 5th trigger when queue full (3) → drop with INarrativeEvent.OnSequenceFailed + Log.Warning；queue state 不 corrupt | P10 |
+
+**Spike 文件路径**: `Assets/GameScripts/HotFix/GameLogic/DevTest/Spikes/S402_NarrativeSequenceEngine.cs`
+
+### D. Story-001 Framework
+
+**首批 story 创建**: `production/epics/narrative-event/story-001-sequence-engine.md`
+
+Story scope：
+- Implement `INarrativeEvent` interface + 4 method + sender 派发 (ADR-027)
+- Implement NarrativeSequencePlayer 主体（IPlayer impl + sequence type dispatching + queue management）
+- Implement 12 atomic effects pluggable executors (10 types + Wait + Timeline)
+- Token-based PuzzleLockAll/Unlock cascade
+- InputBlocker push/pop integration
+- Sequence queue FIFO max 3 + drop oldest 策略
+- Resource load failure resilience (skip + log + continue)
+- Luban TbNarrativeSequence integration via NarrativeSequenceConfigFromLuban provider
+
+**TR coverage** (closes 8 ⚠️ TRs)：
+- TR-narr-002 Time-sorted parallel effects ⚠️→✅
+- TR-narr-003 Config-table driven sequences ⚠️→✅
+- TR-narr-005 Absence puzzle Ch.5 sequence ⚠️→✅
+- TR-narr-006 Chapter transition Timeline ⚠️→✅
+- TR-narr-007 Chapter-final merged sequence ⚠️→✅
+- TR-narr-008 Queue max 3 + drop oldest ⚠️→✅
+- TR-narr-009 Resource load failure resilience ⚠️→✅
+- TR-narr-010 Timeline paths via config ⚠️→✅
+- TR-narr-011 TextureVideo 3-phase alpha ⚠️→ partial（依赖 Effects/TextureVideoEffect.cs 实施）
+
+**Sprint 4 deliverable**: ADR-016 expanded ✅ + Story-001 framework created ✅。actual implementation 留 future Sprint 4-5 dev-story（per Sprint 4 plan §Track A — S4-02 范围是 ADR + story 框架）。
+
+### E. Validation Criteria Update (V2.0 alignment)
+
+V1 §Validation Criteria 13 项保持有效，本节新增 R3-mandatory 验证：
+
+- [ ] R3 PlayMode probe `S402_NarrativeSequenceEngine.cs` 8 CORE cases (P1-P6 + P8/P9/P10) PASS + 2 advisory cases (P7 video memory + 1 reserved)
+- [ ] ADR-027 §5 framework knowledge fact compliance (P9 verifies)
+- [ ] ADR-029 V2.0 §V2-5 framework boundary behavior coverage (P7/P8/P10 三类 boundary)
+- [ ] Story-001 dev-story Phase 1.5 R1/R2/R3 grep gate PASS
+- [ ] Story-001 finishes with /story-done verdict APPROVED
+
+**Bulk promotion stamp**: ADR-016 Status: `Accepted (Promoted 2026-05-06 — bulk ceremony post Sprint 3 closure / ADR-029 V2.0 review B-1; required to unblock Narrative Event sprint)`. Implementation Expand done 2026-05-06 — Sprint 4 S4-02.

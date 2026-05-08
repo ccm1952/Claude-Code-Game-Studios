@@ -190,17 +190,40 @@ items pass or are explicitly marked N/A with a stated reason.
   (test file path for Logic/Integration, or evidence doc path for Visual/Feel/UI).
   Fix: Add `## Test Evidence` with the expected evidence location for the story's type.
 
+### ADR-029 §Implementation Notes Verification (separate verdict dimension)
+
+The story's `## Implementation Notes` section must pass three grep-based checks per [`docs/architecture/adr-029-story-impl-notes-verification.md`](../../../docs/architecture/adr-029-story-impl-notes-verification.md). This produces a **second verdict** alongside the main READY / NEEDS WORK / BLOCKED — they are reported independently.
+
+- [ ] **R1 — Per-event listener mode**: any `GameEvent.AddEventListener<...>(...)` call uses per-event signature (`int eventType, Action<TArg> handler`). Forbidden patterns: `AddEventListener<IXxxEvent>(this)`, `class : IXxxEvent + AddEventListener<TInterface>(this)`. Run:
+  ```bash
+  rg "AddEventListener<I\w+Event>\(this\)" [story-file]
+  rg "class \w+\s*:\s*\w+,\s*I\w+Event" [story-file]
+  ```
+  Both must return 0 hits.
+
+- [ ] **R2 — Cross-component API existence**: every cross-component method / field / provider call in `Implementation Notes` is grep-verified to exist in `Assets/GameScripts/HotFix/`, OR an explicit `**Required Framework Extension**` deficiency flag is present in `## Engine Notes`. 0-hit without a deficiency flag = R2 fail.
+
+- [ ] **R3 — Stub data type construction signatures**: every stub data type used in tests (e.g., `PuzzleConfig`, `GestureData`) is grep-verified — the constructor signature in `Implementation Notes` matches the actual class definition (required parameters first, optional last; `sealed class + readonly` types use constructor not object initializer; interface properties all implementable).
+
+**ADR-029 verdict** (separate from main verdict):
+
+- **PASS** — R1/R2/R3 all green
+- **DEFICIENCY-FLAGGED** — at least one R returns 0 hits, but `## Engine Notes` carries the explicit `**Required Framework Extension**` flag with grep date. Story may proceed to dev-story; dev-story implements the framework extension as Step 1.
+- **NEEDS-WORK** — at least one R fails and no deficiency flag is present. Story cannot proceed to dev-story until `Implementation Notes` (or framework extension plan) is revised.
+
+If main verdict is READY but ADR-029 verdict is NEEDS-WORK, the story is **NOT** ready for `/dev-story`. Both verdicts must be PASS or DEFICIENCY-FLAGGED.
+
 ---
 
 ## 4. Verdict Assignment
 
-Assign one of three verdicts per story:
+Assign one of three main verdicts per story (and an independent ADR-029 verdict — see ADR-029 subsection in §3):
 
-**READY** — All checklist items pass or have explicit N/A justifications.
-The story can be assigned immediately.
+**READY** — All main checklist items pass or have explicit N/A justifications.
+The story can be assigned immediately. **Additional gate**: ADR-029 verdict must be PASS or DEFICIENCY-FLAGGED for the story to actually be `/dev-story`-ready.
 
-**NEEDS WORK** — One or more checklist items fail, but all dependency stories
-exist and are not DRAFT. The story can be fixed before assignment.
+**NEEDS WORK** — One or more main checklist items fail, but all dependency stories
+exist and are not DRAFT. The story can be fixed before assignment. (ADR-029 NEEDS-WORK is also reported here.)
 
 **BLOCKED** — One or more dependency stories are missing or in DRAFT state,
 OR a critical design question (flagged UNRESOLVED in a criterion or rule) has
@@ -217,6 +240,10 @@ a story that is BLOCKED may also have NEEDS WORK items — list both.
 ## Story Readiness: [story title]
 File: [path]
 Verdict: [READY / NEEDS WORK / BLOCKED]
+ADR-029 Verification: [PASS / DEFICIENCY-FLAGGED / NEEDS-WORK]
+  R1 per-event listener: [✅ / ❌ pattern: ...]
+  R2 cross-component API: [✅ / DEFICIENCY-FLAGGED: <which API> / ❌ unflagged: <which API>]
+  R3 stub type construction: [✅ / ❌ mismatch: <which type>]
 
 ### Passing Checks (N/[total])
 [list passing items briefly]

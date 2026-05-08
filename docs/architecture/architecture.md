@@ -50,7 +50,7 @@
 
 ### P4: 资源闭环 (Resource Lifecycle Closure)
 
-每一次 `LoadAssetAsync` 必须有对应的 `UnloadAsset`。场景卸载后必须调用 `UnloadUnusedAssets()` + `GC.Collect()`。YooAsset `SceneHandle` 必须持有引用直到卸载完成。资源泄漏是 P0 级 bug。
+每一次 `LoadAssetAsync` 必须有对应的 `UnloadAsset` / `Release()`。场景卸载后必须调用 `await Resources.UnloadUnusedAssets().ToUniTask()` + `GC.Collect()`。SceneManager 持有当前章节 `_currentChapterSceneName` (string YooAsset location) 直到 cleanup sequence 卸载（S3-01 D5 修订；不缓存 `SceneHandle` / `Scene` 引用）。资源泄漏是 P0 级 bug。
 
 > 对应 TR: TR-concept-010, TR-scene-016, TR-scene-017
 
@@ -78,7 +78,7 @@
 |----|---------|---------|--------|
 | TEngine 6.0.0 | UI, Audio, Scene, Event 全部 | 阅读项目内 TEngine 源码；建立 API cheat-sheet；优先 spike UIWindow 生命周期和 GameEvent 签名 | Sprint 0 |
 | HybridCLR | 所有热更代码 | 验证 Default/GameLogic/GameProto 三程序集边界；测试热更 DLL 加载流程；确认 AOT 泛型限制 | Sprint 0 |
-| YooAsset 2.3.17 | Scene Management, 所有资源加载 | 阅读项目现有 YooAsset 集成代码；验证 ResourcePackage 初始化流和 SceneHandle 生命周期 | Sprint 0 |
+| YooAsset 2.3.17 | Scene Management, 所有资源加载 | 阅读项目现有 YooAsset 集成代码；验证 ResourcePackage 初始化流；SceneHandle 由 TEngine `SceneModule` 内部封装，业务层不直触（S3-01 D5 + ✅ DONE by SP-011 + S3-01 PlayMode CORE PASSED 2026-04-30） | Sprint 0 |
 | Luban | 所有配置读取 | 检查 GameProto 程序集中的生成代码；验证 `Tables` 单例访问模式 | Sprint 0 |
 | I2 Localization | Settings, UI text | 检查项目中已有 I2 配置；验证 runtime language switch API | Sprint 1 |
 
@@ -150,7 +150,7 @@
 |--------|------|:-------:|----------------------|
 | **Input System** | 触屏手势抽象、InputBlocker/InputFilter 栈 | LOW | Unity `Input.GetTouch()`, `Input.touchCount` |
 | **Save System** | JSON 序列化、CRC32 校验、原子写入 | LOW | `System.IO`, `PlayerPrefs`, UniTask |
-| **Scene Management** | 异步场景加载/卸载、fade 过渡 | **MEDIUM** | `GameModule.Resource.LoadSceneAsync`, `GameModule.Scene`, YooAsset `SceneHandle` |
+| **Scene Management** | 异步场景加载/卸载、fade 过渡 | **MEDIUM** | `GameModule.Scene.LoadSceneAsync` (returns `Scene`), `GameModule.Scene.UnloadAsync(string)`, `GameModule.Scene.ActivateScene(string)`, YooAsset wrapper internal (S3-01 D5: SceneManager 不直缓存 SceneHandle) |
 | **URP Shadow Rendering** | 影子贴图、质量分级、ShadowRT 采样 | LOW (Unity URP) / **MEDIUM** (WallReceiver shader) | URP `UniversalRenderPipelineAsset`, `AsyncGPUReadback`, `RenderTexture` |
 
 #### CORE LAYER（依赖 Foundation，提供 gameplay 基础设施）
@@ -216,10 +216,10 @@
 
 | 维度 | 内容 |
 |------|------|
-| **Owns** | 当前场景状态 (Idle/Transitioning/Unloading/Loading/Error)、场景切换队列 (max 1)、SceneHandle 引用、fade overlay |
-| **Exposes** | Responds to `RequestSceneChange` event; fires `SceneTransitionBegin`, `SceneUnloadBegin`, `SceneLoadComplete`, `SceneReady`, `SceneTransitionEnd`, `SceneLoadFailed`, `SceneLoadProgress`, `SceneDownloadProgress` events |
-| **Consumes** | `RequestSceneChange` event (from Chapter State); Luban `TbChapter.sceneId` mapping; Save System (startup: which chapter to load) |
-| **Engine APIs** | `GameModule.Resource.LoadSceneAsync()` [**MEDIUM** — TEngine+YooAsset]; `GameModule.Resource.UnloadSceneAsync()` [**MEDIUM**]; `SceneManager.SetActiveScene()` [LOW]; `Resources.UnloadUnusedAssets()` [LOW]; `GC.Collect()` [LOW] |
+| **Owns** | 当前场景状态 (Idle/TransitionOut/Unloading/Loading/TransitionIn/Error)、场景切换队列 (max 1)、`_currentChapterSceneName: string` (S3-01 D5 — 不缓存 SceneHandle/Scene 引用)、fade overlay |
+| **Exposes** | Responds to `ISceneEvent.OnRequestSceneChange` (ADR-027); fires 8 lifecycle events via `GameEvent.Get<ISceneEvent>().OnXxx(...)`: TransitionBegin / UnloadBegin / LoadComplete / Ready / TransitionEnd / LoadFailed / LoadProgress / DownloadProgress |
+| **Consumes** | `OnRequestSceneChange` event (from Chapter State); Luban `TbChapter.sceneId` mapping (via `_chapterDataProvider`); Save System (startup: which chapter to load) |
+| **Engine APIs (UPDATED 2026-04-30)** | `GameModule.Scene.LoadSceneAsync(string, LoadSceneMode, Action<float>) → UniTask<Scene>` [**LOW** post-S3-01]; `GameModule.Scene.UnloadAsync(string) → UniTask<bool>` [LOW]; `GameModule.Scene.ActivateScene(string) → bool` [LOW]; `Resources.UnloadUnusedAssets()` [LOW]; `GC.Collect()` [LOW]; `GameModule.Resource.CreateResourceDownloader(...)` [LOW] |
 
 #### URP Shadow Rendering
 
@@ -612,7 +612,7 @@ BootScene
 │
 ▼
 ProcedureMain (TEngine Procedure)
-├── await GameModule.Resource.LoadSceneAsync("MainScene", Additive)
+├── await GameModule.Scene.LoadSceneAsync("MainScene", Additive, null)  // S3-01 D5
 │   → MainScene 常驻: UI Canvas, AudioListener, Camera Rig, Managers
 │
 ├── Settings.Init() ← PlayerPrefs.Get*(keys)
@@ -1188,7 +1188,7 @@ public interface ISceneService
 | `float threshold = 0.85f;` (hardcoded) | `Tables.TbPuzzle.Get(id).PerfectMatchThreshold` | TR-concept-008 |
 | `GameObject.Find("ObjectName")` | Serialized reference / DI / event-based discovery | TR-concept-009 |
 | `LoadAssetAsync` without `UnloadAsset` | Always pair load/unload; use `using` pattern where possible | TR-concept-010 |
-| `SceneManager.LoadScene(name)` (sync) | `await GameModule.Resource.LoadSceneAsync(name, Additive)` | TR-scene-003 |
+| `SceneManager.LoadScene(name)` (sync) | `await GameModule.Scene.LoadSceneAsync(name, Additive, progressCallBack)` (UPDATED 2026-04-30 — S3-01 D5) | TR-scene-003 |
 | `SceneManager.LoadScene(name, Single)` | Always `LoadSceneMode.Additive` | TR-scene-004 |
 | UI text `"确定"` (hardcoded string) | `LocalizationManager.GetTranslation("btn_confirm")` | TR-ui-021 |
 

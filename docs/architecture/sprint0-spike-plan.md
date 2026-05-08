@@ -8,6 +8,8 @@
 > **引擎**: Unity 2022.3.62f2 LTS
 > **框架**: TEngine 6.0.0 + HybridCLR + YooAsset 2.3.17 + UniTask 2.5.10
 > **Sprint 0 目标**: 消除所有阻塞 Sprint 1 编码启动的技术未知项
+>
+> **⚠️ 历史档说明（2026-04-30）**：本文档 Sprint 0 阶段假设 scene 加载走 `GameModule.Resource.LoadSceneAsync` / `UnloadSceneAsync(SceneHandle)`，已被 SP-011 (Sprint 2) + S3-01 (Sprint 3) 实测验证为 fantasy API。**Authoritative API**：`GameModule.Scene.LoadSceneAsync(name, mode, progress) → UniTask<Scene>` + `GameModule.Scene.UnloadAsync(name) → UniTask<bool>` + `GameModule.Scene.ActivateScene(name)`。SceneManager 不缓存 SceneHandle（S3-01 D5）。文档内容保留以供溯源（Sprint 0 决策上下文），最新设计请见 ADR-009 §Scene Handle Update + ADR-005 §Scene Loading Update + `production/epics/scene-management/story-002` patch v2 + `story-003` patch v2。
 
 ---
 

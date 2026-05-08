@@ -222,8 +222,45 @@ namespace GameLogic
 |-------|---------|---------|
 | `UIWindow` / `UIWidget` | `RegisterEvent()` 中 `AddUIEvent(...)` | 框架 `InternalDestroy` 自动 |
 | 普通 C# 类（System / Manager） | `Init()` 中 `_eventMgr.AddEvent(...)` | `Dispose()` 中 `_eventMgr.Clear()` |
-| 场景级监听（非全局） | 监听 `ISceneEvent.OnSceneUnloadBegin` 显式 `RemoveEventListener` | 同左，必须严格配对 |
+| 场景级监听（非全局） | 监听 `ISceneEvent.OnSceneUnloadBegin` 显式 `RemoveEventListener` | 同左，必须严格配对 + null-out 字段引用（见下方 ⚠️ Framework knowledge fact） |
 | 类整体实现接口作 Listener（整套订阅） | `GameEventHelper.RegisterListener<IXxx>(instance)` | `GameEventHelper.UnregisterListener<IXxx>(instance)` 对称调用 |
+
+> ⚠️ **Framework knowledge fact (2026-04-30 — S3-03 patch v3 PlayMode 实测发现)**: TEngine `GameEvent.RemoveEventListener` **不是** idempotent silent no-op；listener 不存在时**抛 Exception** "Delete handle failed, not exist"。
+>
+> **Required pattern for self-removal + external cleanup**：
+>
+> ```csharp
+> private Action<int> _handler;
+>
+> public void Init()
+> {
+>     _handler = OnSomething;
+>     GameEvent.AddEventListener<int>(IXxxEvent_Event.OnSomething, _handler);
+> }
+>
+> private void OnSomething(int arg)
+> {
+>     // ... business logic ...
+>     GameEvent.RemoveEventListener<int>(IXxxEvent_Event.OnSomething, _handler);
+>     _handler = null;  // ← 关键：null-out 防 Cleanup() 二次 RemoveEventListener
+> }
+>
+> public void Cleanup()
+> {
+>     if (_handler != null)  // ← 关键：null-check guard 防御 TEngine throw
+>     {
+>         GameEvent.RemoveEventListener<int>(IXxxEvent_Event.OnSomething, _handler);
+>         _handler = null;
+>     }
+> }
+> ```
+>
+> **Forbidden anti-patterns**:
+> - Raw double-remove（不带 null-check 的重复 RemoveEventListener）—— 会抛 TEngine exception
+> - Handler 内 RemoveEventListener 之后**不**置 `_handler = null` —— 后续 Cleanup() 会 raw double-remove
+> - 外部 Cleanup() 不做 null-check 直接 RemoveEventListener —— 同上
+>
+> **数据点**：S3-03 patch v3 (2026-04-30) PlayMode P5 FAIL 暴露；patch v3 修订 ~12 min；Type-2 cross-method protocol drift 子类 (c) — Framework behavior assumption drift；ADR-029 第 5 数据点 + V2 候选 #7 触发。
 
 `AddUIEvent` 泛型参数写法示例：
 
@@ -440,3 +477,7 @@ public static void Entrance(object[] objects)
 - **Memory Record**: `src/MyGame/ShadowGame/.claude/memory/problem_2026-04-23_event-protocol-pivot.md`
 - **Implementation Exemplar**: `GameLogic/IEvent/ILoginUI.cs`（已存在的参考实现）
 - **Skill Alignment**: `.claude/skills/tengine-dev/references/event-system.md`（本 ADR 与该文档完全一致）
+
+## Update Log
+
+- **2026-04-30 dusk (S3-03 patch v3 propagation)**: §5 Lifecycle 协议表加 ⚠️ Framework knowledge fact + Required null-out + null-check guard pattern + Forbidden raw double-remove anti-patterns。Source: ADR-029 第 5 数据点（Type-2 子类 (c) Framework behavior assumption drift）；S3-03 PlayMode P5 FAIL 实测发现 TEngine `GameEvent.RemoveEventListener` 不是 idempotent silent no-op，listener 不存在时抛 Exception "Delete handle failed, not exist"。**ROI**：单点更新本 ADR §5 自动覆盖所有引用 ADR-027 的 stories（17 文件中的 listener 自移除模式）+ 0 mass story propagation；预期 future stories 在 Phase 1.5 readiness 阶段直接读到 framework knowledge fact，避免 R3 后再修订（节省 ~10-15 min/story）。

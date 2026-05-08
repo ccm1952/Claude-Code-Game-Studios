@@ -24,33 +24,1555 @@
 #
 # STATUS VALUES: active | deprecated | superseded-by: TR-[system]-NNN
 
-version: 1
-last_updated: ""
+version: 2
+last_updated: "2026-05-06"
+backfilled_from:
+  - docs/architecture/architecture-traceability.md  # 212-TR mapping (v1.0, 2026-04-22)
+  - docs/architecture/phase0-tr-baseline.md         # 212-TR baseline (2026-04-21)
+backfill_session: docs/architecture/architecture-review-2026-05-06.md  # B-3 Option A resolved
 
-requirements: []
+requirements:
 
-# --- EXAMPLE ENTRIES (remove when first real entries are added) ---
-#
-# - id: TR-combat-001
-#   system: combat
-#   gdd: design/gdd/combat-system.md
-#   requirement: "Player takes damage from enemies based on attack power minus defence"
-#   created: 2026-03-10
-#   revised: ""
-#   status: active
-#
-# - id: TR-combat-002
-#   system: combat
-#   gdd: design/gdd/combat-system.md
-#   requirement: "Combo window timing is 0.4 seconds between hits"
-#   created: 2026-03-10
-#   revised: "2026-04-01"
-#   status: active
-#
-# - id: TR-combat-003
-#   system: combat
-#   gdd: design/gdd/combat-system.md
-#   requirement: "Old damage formula using raw stats"
-#   created: 2026-03-10
-#   revised: ""
-#   status: superseded-by: TR-combat-001
+# =============================================================================
+# 1. Input System (18 TRs) — Primary: ADR-010
+# =============================================================================
+- id: TR-input-001
+  system: input
+  gdd: design/gdd/input-system.md
+  requirement: "Three-layer input architecture (raw → gesture → game)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-input-002
+  system: input
+  gdd: design/gdd/input-system.md
+  requirement: "5 gesture types with full lifecycle (Tap / Drag / Rotate / Pinch / LightDrag)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-input-003
+  system: input
+  gdd: design/gdd/input-system.md
+  requirement: "PC input mapping (keyboard + mouse to gesture equivalents)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-input-004
+  system: input
+  gdd: design/gdd/input-system.md
+  requirement: "InputBlocker stack-based (PushBlocker / PopBlocker)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-input-005
+  system: input
+  gdd: design/gdd/input-system.md
+  requirement: "InputFilter whitelist mode (PushFilter / PopFilter)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-input-006
+  system: input
+  gdd: design/gdd/input-system.md
+  requirement: "Priority chain Blocker > Filter > Normal"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-input-007
+  system: input
+  gdd: design/gdd/input-system.md
+  requirement: "DPI-normalized drag threshold (mm-based)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-input-008
+  system: input
+  gdd: design/gdd/input-system.md
+  requirement: "Tap timeout uses unscaledDeltaTime"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-input-009
+  system: input
+  gdd: design/gdd/input-system.md
+  requirement: "Rotation angle delta from finger pair vector"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-input-010
+  system: input
+  gdd: design/gdd/input-system.md
+  requirement: "Pinch scale with safety guard (minFingerDistance)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-input-011
+  system: input
+  gdd: design/gdd/input-system.md
+  requirement: "Single-finger FSM states (Idle / Pressed / Dragging / LightDragging)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-input-012
+  system: input
+  gdd: design/gdd/input-system.md
+  requirement: "Dual-finger FSM mutual exclusion (lock-until-lift)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-input-013
+  system: input
+  gdd: design/gdd/input-system.md
+  requirement: "Maximum 2 simultaneous touch points (slot 0/1 only)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-input-014
+  system: input
+  gdd: design/gdd/input-system.md
+  requirement: "MaxDeltaPerFrame clamp (performance safeguard)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-input-015
+  system: input
+  gdd: design/gdd/input-system.md
+  requirement: "Pause/resume clears touch state (OnApplicationPause handling)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-input-016
+  system: input
+  gdd: design/gdd/input-system.md
+  requirement: "Gesture processing < 0.5 ms per frame"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-input-017
+  system: input
+  gdd: design/gdd/input-system.md
+  requirement: "All thresholds from Luban config (data-driven)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-input-018
+  system: input
+  gdd: design/gdd/input-system.md
+  requirement: "Touch sensitivity multiplier applied at runtime to dragThreshold"
+  created: 2026-04-21
+  revised: ""
+  status: active
+
+# =============================================================================
+# 2. URP Shadow Rendering (23 TRs) — Primary: ADR-002
+# =============================================================================
+- id: TR-render-001
+  system: render
+  gdd: design/gdd/urp-shadow-rendering.md
+  requirement: "URP Forward + SRP Batcher pipeline"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-render-002
+  system: render
+  gdd: design/gdd/urp-shadow-rendering.md
+  requirement: "HDR off, MSAA off, SMAA enabled (mobile)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-render-003
+  system: render
+  gdd: design/gdd/urp-shadow-rendering.md
+  requirement: "Shadow map resolution per quality tier (PC=2048, High=1024, Medium=512)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-render-004
+  system: render
+  gdd: design/gdd/urp-shadow-rendering.md
+  requirement: "Shadow cascades per tier (PC=4, Mobile=2)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-render-005
+  system: render
+  gdd: design/gdd/urp-shadow-rendering.md
+  requirement: "Shadow distance configurable (default 8 m)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-render-006
+  system: render
+  gdd: design/gdd/urp-shadow-rendering.md
+  requirement: "3 quality tiers (PC / High / Medium) with auto-detect"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-render-007
+  system: render
+  gdd: design/gdd/urp-shadow-rendering.md
+  requirement: "WallReceiver custom HLSL shader for shadow projection"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-render-008
+  system: render
+  gdd: design/gdd/urp-shadow-rendering.md
+  requirement: "Shadow contrast ≥ 3:1"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-render-009
+  system: render
+  gdd: design/gdd/urp-shadow-rendering.md
+  requirement: "ShadowSampleCamera + ShadowRT (R8 grayscale render texture)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-render-010
+  system: render
+  gdd: design/gdd/urp-shadow-rendering.md
+  requirement: "AsyncGPUReadback for ShadowRT CPU sampling"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-render-011
+  system: render
+  gdd: design/gdd/urp-shadow-rendering.md
+  requirement: "Shadow effect interfaces (SetShadowGlow / FreezeShadow / etc.)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-render-012
+  system: render
+  gdd: design/gdd/urp-shadow-rendering.md
+  requirement: "5 chapter shadow style presets (per-chapter material config)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-render-013
+  system: render
+  gdd: design/gdd/urp-shadow-rendering.md
+  requirement: "Maximum 2 shadow-casting lights"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-render-014
+  system: render
+  gdd: design/gdd/urp-shadow-rendering.md
+  requirement: "Shadow caster priority ordering"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-render-015
+  system: render
+  gdd: design/gdd/urp-shadow-rendering.md
+  requirement: "Shadow Only rendering mode (narrative support)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-render-016
+  system: render
+  gdd: design/gdd/urp-shadow-rendering.md
+  requirement: "Auto quality degradation (frame time monitoring trigger)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-render-017
+  system: render
+  gdd: design/gdd/urp-shadow-rendering.md
+  requirement: "Draw call budget ≤ 150 total (≤ 40 shadow allocation)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-render-018
+  system: render
+  gdd: design/gdd/urp-shadow-rendering.md
+  requirement: "Shadow memory ≤ 15 MB"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-render-019
+  system: render
+  gdd: design/gdd/urp-shadow-rendering.md
+  requirement: "ShadowRT CPU processing ≤ 1.5 ms"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-render-020
+  system: render
+  gdd: design/gdd/urp-shadow-rendering.md
+  requirement: "NearMatch glow effect must not affect ShadowRT output"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-render-021
+  system: render
+  gdd: design/gdd/urp-shadow-rendering.md
+  requirement: "High-contrast accessibility mode"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-render-022
+  system: render
+  gdd: design/gdd/urp-shadow-rendering.md
+  requirement: "Shadow outline accessibility mode"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-render-023
+  system: render
+  gdd: design/gdd/urp-shadow-rendering.md
+  requirement: "All shadow settings configurable via quality tier config"
+  created: 2026-04-21
+  revised: ""
+  status: active
+
+# =============================================================================
+# 3. Chapter State & Save System (20 TRs) — Primary: ADR-008
+# =============================================================================
+- id: TR-save-001
+  system: save
+  gdd: design/gdd/chapter-state-and-save.md
+  requirement: "5 chapters sequential unlock"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-save-002
+  system: save
+  gdd: design/gdd/chapter-state-and-save.md
+  requirement: "Linear puzzle progression within chapter"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-save-003
+  system: save
+  gdd: design/gdd/chapter-state-and-save.md
+  requirement: "Puzzle completion irreversible (immutable completion flag)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-save-004
+  system: save
+  gdd: design/gdd/chapter-state-and-save.md
+  requirement: "Chapter State module is single authority for chapter/puzzle progress"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-save-005
+  system: save
+  gdd: design/gdd/chapter-state-and-save.md
+  requirement: "IChapterProgress interface decoupling between Save and Chapter State"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-save-006
+  system: save
+  gdd: design/gdd/chapter-state-and-save.md
+  requirement: "Auto-save triggers (5 conditions: puzzle complete / chapter complete / settings change / pause / quit)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-save-007
+  system: save
+  gdd: design/gdd/chapter-state-and-save.md
+  requirement: "Save debounce 1 s (except force-save)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-save-008
+  system: save
+  gdd: design/gdd/chapter-state-and-save.md
+  requirement: "UniTask-based async I/O (zero main-thread blocking)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-save-009
+  system: save
+  gdd: design/gdd/chapter-state-and-save.md
+  requirement: "Single-slot JSON save format"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-save-010
+  system: save
+  gdd: design/gdd/chapter-state-and-save.md
+  requirement: "Atomic write (temp file + rename)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-save-011
+  system: save
+  gdd: design/gdd/chapter-state-and-save.md
+  requirement: "Backup .backup.json file (rollback support)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-save-012
+  system: save
+  gdd: design/gdd/chapter-state-and-save.md
+  requirement: "CRC32 checksum for save file integrity"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-save-013
+  system: save
+  gdd: design/gdd/chapter-state-and-save.md
+  requirement: "Version migration chain for save schema upgrades"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-save-014
+  system: save
+  gdd: design/gdd/chapter-state-and-save.md
+  requirement: "Save file size < 10 KB"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-save-015
+  system: save
+  gdd: design/gdd/chapter-state-and-save.md
+  requirement: "Save < 50 ms; Load < 100 ms"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-save-016
+  system: save
+  gdd: design/gdd/chapter-state-and-save.md
+  requirement: "Replay mode for completed chapters (IsReplayMode flag)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-save-017
+  system: save
+  gdd: design/gdd/chapter-state-and-save.md
+  requirement: "Luban config tables (TbChapter, TbPuzzle)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-save-018
+  system: save
+  gdd: design/gdd/chapter-state-and-save.md
+  requirement: "Save initialization completes before gameplay systems start"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-save-019
+  system: save
+  gdd: design/gdd/chapter-state-and-save.md
+  requirement: "Pause/Quit triggers immediate save (bypass debounce)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-save-020
+  system: save
+  gdd: design/gdd/chapter-state-and-save.md
+  requirement: "Corrupted save fallback chain (primary → backup → new game)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+
+# =============================================================================
+# 4. Scene Management (17 TRs) — Primary: ADR-009
+# =============================================================================
+- id: TR-scene-001
+  system: scene
+  gdd: design/gdd/scene-management.md
+  requirement: "Additive scene architecture (Boot + Main + Chapter)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-scene-002
+  system: scene
+  gdd: design/gdd/scene-management.md
+  requirement: "Maximum 3 scenes loaded in memory simultaneously"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-scene-003
+  system: scene
+  gdd: design/gdd/scene-management.md
+  requirement: "Async scene loading via UniTask (zero sync loads)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-scene-004
+  system: scene
+  gdd: design/gdd/scene-management.md
+  requirement: "Always LoadSceneMode.Additive (forbidden: Single mode)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-scene-005
+  system: scene
+  gdd: design/gdd/scene-management.md
+  requirement: "11-step transition flow (FadeOut → Unload → GC → Load → FadeIn)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-scene-006
+  system: scene
+  gdd: design/gdd/scene-management.md
+  requirement: "Transition mutual exclusion with max queue depth 1"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-scene-007
+  system: scene
+  gdd: design/gdd/scene-management.md
+  requirement: "YooAsset on-demand download integration (ResourcePackage)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-scene-008
+  system: scene
+  gdd: design/gdd/scene-management.md
+  requirement: "Chapter scene memory ~1000 MB ceiling"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-scene-009
+  system: scene
+  gdd: design/gdd/scene-management.md
+  requirement: "Cached scene load < 1 s"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-scene-010
+  system: scene
+  gdd: design/gdd/scene-management.md
+  requirement: "Fade animation maintains 60 fps during loading"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-scene-011
+  system: scene
+  gdd: design/gdd/scene-management.md
+  requirement: "Memory leak detection (5-cycle load/unload test)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-scene-012
+  system: scene
+  gdd: design/gdd/scene-management.md
+  requirement: "Error recovery (retry 2x, fallback to MainMenu)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-scene-013
+  system: scene
+  gdd: design/gdd/scene-management.md
+  requirement: "Startup flow Boot → TEngine → HybridCLR → YooAsset"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-scene-014
+  system: scene
+  gdd: design/gdd/scene-management.md
+  requirement: "8 scene transition GameEvent senders (interface protocol per ADR-027)"
+  created: 2026-04-21
+  revised: "2026-04-23"  # ADR-006 const-int → ADR-027 ISceneEvent supersession
+  status: active
+- id: TR-scene-015
+  system: scene
+  gdd: design/gdd/scene-management.md
+  requirement: "Emotional weight scales fade duration (narrative-heavy transitions)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-scene-016
+  system: scene
+  gdd: design/gdd/scene-management.md
+  requirement: "UnloadUnusedAssets + GC.Collect after every unload"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-scene-017
+  system: scene
+  gdd: design/gdd/scene-management.md
+  requirement: "Chapter scene identity retention via _currentChapterSceneName: string (YooAsset location); framework GameModule.Scene wrapper handles SceneHandle internally"
+  created: 2026-04-21
+  revised: "2026-04-30"  # S3-01 D5 propagation: was "SceneHandle reference retention"
+  status: active
+
+# =============================================================================
+# 5. Object Interaction (22 TRs) — Primary: ADR-013
+# =============================================================================
+- id: TR-objint-001
+  system: objint
+  gdd: design/gdd/object-interaction.md
+  requirement: "Raycast selection on layer mask"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-objint-002
+  system: objint
+  gdd: design/gdd/object-interaction.md
+  requirement: "Selection visual feedback (EaseOutBack scale animation)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-objint-003
+  system: objint
+  gdd: design/gdd/object-interaction.md
+  requirement: "Fat-finger compensation (raw + compensated touch position)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-objint-004
+  system: objint
+  gdd: design/gdd/object-interaction.md
+  requirement: "Drag 1:1 tracking (no acceleration)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-objint-005
+  system: objint
+  gdd: design/gdd/object-interaction.md
+  requirement: "Grid snap formula"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-objint-006
+  system: objint
+  gdd: design/gdd/object-interaction.md
+  requirement: "Snap interpolation EaseOutQuad"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-objint-007
+  system: objint
+  gdd: design/gdd/object-interaction.md
+  requirement: "Rotation snap to 15° increments"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-objint-008
+  system: objint
+  gdd: design/gdd/object-interaction.md
+  requirement: "Distance adjustment along light axis"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-objint-009
+  system: objint
+  gdd: design/gdd/object-interaction.md
+  requirement: "Light source track types (Linear / Arc)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-objint-010
+  system: objint
+  gdd: design/gdd/object-interaction.md
+  requirement: "Light track snap step 0.1"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-objint-011
+  system: objint
+  gdd: design/gdd/object-interaction.md
+  requirement: "InteractionBounds rebound (EaseOutBack)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-objint-012
+  system: objint
+  gdd: design/gdd/object-interaction.md
+  requirement: "Object state machine (6 states)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-objint-013
+  system: objint
+  gdd: design/gdd/object-interaction.md
+  requirement: "Light state machine (Fixed → TrackIdle → TrackDragging → ...)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-objint-014
+  system: objint
+  gdd: design/gdd/object-interaction.md
+  requirement: "ObjectTransformChanged event (interface sender per ADR-027)"
+  created: 2026-04-21
+  revised: "2026-04-23"  # ADR-006 EventId 1100 → ADR-027 IObjectInteractionEvent supersession
+  status: active
+- id: TR-objint-015
+  system: objint
+  gdd: design/gdd/object-interaction.md
+  requirement: "LightPositionChanged event (interface sender per ADR-027)"
+  created: 2026-04-21
+  revised: "2026-04-23"
+  status: active
+- id: TR-objint-016
+  system: objint
+  gdd: design/gdd/object-interaction.md
+  requirement: "PuzzleLock events (lock-all / lock-by-token / unlock)"
+  created: 2026-04-21
+  revised: "2026-04-23"
+  status: active
+- id: TR-objint-017
+  system: objint
+  gdd: design/gdd/object-interaction.md
+  requirement: "Drag response ≤ 16 ms (1 frame at 60 fps)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-objint-018
+  system: objint
+  gdd: design/gdd/object-interaction.md
+  requirement: "All interaction parameters from Luban config"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-objint-019
+  system: objint
+  gdd: design/gdd/object-interaction.md
+  requirement: "10 objects ≥ 55 fps on iPhone 13 Mini"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-objint-020
+  system: objint
+  gdd: design/gdd/object-interaction.md
+  requirement: "Update processing < 1 ms per frame"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-objint-021
+  system: objint
+  gdd: design/gdd/object-interaction.md
+  requirement: "200 ms selection debounce"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-objint-022
+  system: objint
+  gdd: design/gdd/object-interaction.md
+  requirement: "Haptic feedback cross-platform abstraction (iOS UIImpactFeedbackGenerator + Android Vibrator)"
+  created: 2026-04-21
+  revised: ""
+  status: active  # Pending ADR-025 (P2) — only ❌ gap in 212-TR baseline
+
+# =============================================================================
+# 6. UI System (22 TRs) — Primary: ADR-011
+# =============================================================================
+- id: TR-ui-001
+  system: ui
+  gdd: design/gdd/ui-system.md
+  requirement: "All UI built via TEngine UIModule (UIWindow / UIWidget)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-ui-002
+  system: ui
+  gdd: design/gdd/ui-system.md
+  requirement: "5 UI layer levels with 100-interval sorting orders"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-ui-003
+  system: ui
+  gdd: design/gdd/ui-system.md
+  requirement: "Popup/Overlay layers auto push InputBlocker"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-ui-004
+  system: ui
+  gdd: design/gdd/ui-system.md
+  requirement: "HUD layer pass-through to game (no input block)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-ui-005
+  system: ui
+  gdd: design/gdd/ui-system.md
+  requirement: "9 UIWindow panels defined"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-ui-006
+  system: ui
+  gdd: design/gdd/ui-system.md
+  requirement: "GameHUD widgets (5 widgets defined)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-ui-007
+  system: ui
+  gdd: design/gdd/ui-system.md
+  requirement: "Safe area fitting (SetUISafeFitHelper)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-ui-008
+  system: ui
+  gdd: design/gdd/ui-system.md
+  requirement: "Popup queue (FIFO, max 1 visible)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-ui-009
+  system: ui
+  gdd: design/gdd/ui-system.md
+  requirement: "TimeScale = 0 on PauseMenu open"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-ui-010
+  system: ui
+  gdd: design/gdd/ui-system.md
+  requirement: "PuzzleCompletePanel auto-close after 2.5 s"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-ui-011
+  system: ui
+  gdd: design/gdd/ui-system.md
+  requirement: "Typewriter text effect widget"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-ui-012
+  system: ui
+  gdd: design/gdd/ui-system.md
+  requirement: "ChapterTransition 4-phase animation"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-ui-013
+  system: ui
+  gdd: design/gdd/ui-system.md
+  requirement: "Gaussian blur fallback (performance tier branching)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-ui-014
+  system: ui
+  gdd: design/gdd/ui-system.md
+  requirement: "Animation scale accessibility setting"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-ui-015
+  system: ui
+  gdd: design/gdd/ui-system.md
+  requirement: "HintButton opacity ramp"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-ui-016
+  system: ui
+  gdd: design/gdd/ui-system.md
+  requirement: "UI animations maintain 60 fps"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-ui-017
+  system: ui
+  gdd: design/gdd/ui-system.md
+  requirement: "Gaussian blur < 2 ms"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-ui-018
+  system: ui
+  gdd: design/gdd/ui-system.md
+  requirement: "UI prefab memory < 5 MB total"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-ui-019
+  system: ui
+  gdd: design/gdd/ui-system.md
+  requirement: "Touch target ≥ 44×44 pt (Apple HIG)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-ui-020
+  system: ui
+  gdd: design/gdd/ui-system.md
+  requirement: "Font size presets (small / medium / large / x-large)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-ui-021
+  system: ui
+  gdd: design/gdd/ui-system.md
+  requirement: "All text via I2 Localization keys (no hardcoded strings)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-ui-022
+  system: ui
+  gdd: design/gdd/ui-system.md
+  requirement: "Android back button handling"
+  created: 2026-04-21
+  revised: ""
+  status: active
+
+# =============================================================================
+# 7. Audio System (15 TRs) — Primary: ADR-017
+# =============================================================================
+- id: TR-audio-001
+  system: audio
+  gdd: design/gdd/audio-system.md
+  requirement: "3 mix layers (Ambient / SFX / Music)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-audio-002
+  system: audio
+  gdd: design/gdd/audio-system.md
+  requirement: "Volume formula with 4 multipliers (master × layer × bus × ducking)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-audio-003
+  system: audio
+  gdd: design/gdd/audio-system.md
+  requirement: "SFX variant + pitch randomization"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-audio-004
+  system: audio
+  gdd: design/gdd/audio-system.md
+  requirement: "3D spatial audio for SFX (AudioSource positioning)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-audio-005
+  system: audio
+  gdd: design/gdd/audio-system.md
+  requirement: "maxConcurrent per SFX with oldest-cull policy"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-audio-006
+  system: audio
+  gdd: design/gdd/audio-system.md
+  requirement: "Music crossfade 1-5 s"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-audio-007
+  system: audio
+  gdd: design/gdd/audio-system.md
+  requirement: "Audio ducking system (event-driven)"
+  created: 2026-04-21
+  revised: "2026-04-23"  # ADR-006 Evt_AudioDuckingRequest → ADR-027 IAudioEvent
+  status: active
+- id: TR-audio-008
+  system: audio
+  gdd: design/gdd/audio-system.md
+  requirement: "SFX latency ≤ 1 frame"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-audio-009
+  system: audio
+  gdd: design/gdd/audio-system.md
+  requirement: "Ambient layer starts within 2 s of scene load"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-audio-010
+  system: audio
+  gdd: design/gdd/audio-system.md
+  requirement: "Ambient occasional sounds (randomized interval)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-audio-011
+  system: audio
+  gdd: design/gdd/audio-system.md
+  requirement: "Audio CPU < 1 ms with 10 concurrent sources"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-audio-012
+  system: audio
+  gdd: design/gdd/audio-system.md
+  requirement: "Audio memory < 30 MB total"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-audio-013
+  system: audio
+  gdd: design/gdd/audio-system.md
+  requirement: "App pause/resume audio state (resume at exact position)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-audio-014
+  system: audio
+  gdd: design/gdd/audio-system.md
+  requirement: "Music continues during PauseMenu (ignores TimeScale)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-audio-015
+  system: audio
+  gdd: design/gdd/audio-system.md
+  requirement: "All SFX config from Luban (data-driven)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+
+# =============================================================================
+# 8. Shadow Puzzle System (14 TRs) — Primary: ADR-012, ADR-014
+# =============================================================================
+- id: TR-puzzle-001
+  system: puzzle
+  gdd: design/gdd/shadow-puzzle-system.md
+  requirement: "Multi-anchor weighted scoring algorithm"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-puzzle-002
+  system: puzzle
+  gdd: design/gdd/shadow-puzzle-system.md
+  requirement: "Per-anchor multiplicative score (pos × dir × vis)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-puzzle-003
+  system: puzzle
+  gdd: design/gdd/shadow-puzzle-system.md
+  requirement: "NearMatch hysteresis thresholds (0.40 / 0.35)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-puzzle-004
+  system: puzzle
+  gdd: design/gdd/shadow-puzzle-system.md
+  requirement: "PerfectMatch threshold 0.85 (configurable per puzzle)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-puzzle-005
+  system: puzzle
+  gdd: design/gdd/shadow-puzzle-system.md
+  requirement: "Puzzle state machine (full FSM)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-puzzle-006
+  system: puzzle
+  gdd: design/gdd/shadow-puzzle-system.md
+  requirement: "AbsenceAccepted state for Chapter 5"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-puzzle-007
+  system: puzzle
+  gdd: design/gdd/shadow-puzzle-system.md
+  requirement: "matchScore temporal smoothing (0.2 s sliding window)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-puzzle-008
+  system: puzzle
+  gdd: design/gdd/shadow-puzzle-system.md
+  requirement: "Tutorial grace period (puzzle pause)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-puzzle-009
+  system: puzzle
+  gdd: design/gdd/shadow-puzzle-system.md
+  requirement: "PerfectMatch snap animation (EaseOutBack 0.3-0.8 s)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-puzzle-010
+  system: puzzle
+  gdd: design/gdd/shadow-puzzle-system.md
+  requirement: "Shadow match calculation < 2 ms per frame"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-puzzle-011
+  system: puzzle
+  gdd: design/gdd/shadow-puzzle-system.md
+  requirement: "60 fps with < 150 draw calls during puzzle"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-puzzle-012
+  system: puzzle
+  gdd: design/gdd/shadow-puzzle-system.md
+  requirement: "Collectibles do not affect puzzle scoring (decoration only)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-puzzle-013
+  system: puzzle
+  gdd: design/gdd/shadow-puzzle-system.md
+  requirement: "Chapter-difficulty parameter matrix"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-puzzle-014
+  system: puzzle
+  gdd: design/gdd/shadow-puzzle-system.md
+  requirement: "Per-puzzle config via Luban TbPuzzle"
+  created: 2026-04-21
+  revised: ""
+  status: active
+
+# =============================================================================
+# 9. Hint System (17 TRs) — Primary: ADR-015
+# =============================================================================
+- id: TR-hint-001
+  system: hint
+  gdd: design/gdd/hint-system.md
+  requirement: "3-tier progressive hints (L1 / L2 / L3)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-hint-002
+  system: hint
+  gdd: design/gdd/hint-system.md
+  requirement: "Trigger score formula"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-hint-003
+  system: hint
+  gdd: design/gdd/hint-system.md
+  requirement: "L1/L2 idle thresholds (configurable per chapter)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-hint-004
+  system: hint
+  gdd: design/gdd/hint-system.md
+  requirement: "Cooldown with matchScore modifier formula"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-hint-005
+  system: hint
+  gdd: design/gdd/hint-system.md
+  requirement: "L3 maximum 3 uses per puzzle (non-renewable)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-hint-006
+  system: hint
+  gdd: design/gdd/hint-system.md
+  requirement: "Target selection argmin(anchorScore) with tie-breaking"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-hint-007
+  system: hint
+  gdd: design/gdd/hint-system.md
+  requirement: "Read-only query to puzzle system (IHintService interface)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-hint-008
+  system: hint
+  gdd: design/gdd/hint-system.md
+  requirement: "1 s polling interval"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-hint-009
+  system: hint
+  gdd: design/gdd/hint-system.md
+  requirement: "Pause hint timers during tutorial"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-hint-010
+  system: hint
+  gdd: design/gdd/hint-system.md
+  requirement: "hintDelayOverride per chapter via Luban"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-hint-011
+  system: hint
+  gdd: design/gdd/hint-system.md
+  requirement: "L1 zero additional draw calls (material animation only)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-hint-012
+  system: hint
+  gdd: design/gdd/hint-system.md
+  requirement: "L2 rendering < 0.5 ms"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-hint-013
+  system: hint
+  gdd: design/gdd/hint-system.md
+  requirement: "Total update < 0.5 ms per frame"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-hint-014
+  system: hint
+  gdd: design/gdd/hint-system.md
+  requirement: "Absence puzzle hint text (Chapter 5 special case)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-hint-015
+  system: hint
+  gdd: design/gdd/hint-system.md
+  requirement: "Timer deltaTime capped at 1.0 s (frame spike protection)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-hint-016
+  system: hint
+  gdd: design/gdd/hint-system.md
+  requirement: "App pause: timers pause; reset after 5 minutes background"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-hint-017
+  system: hint
+  gdd: design/gdd/hint-system.md
+  requirement: "Stagnation detection (matchScore in 0.30-0.40 range)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+
+# =============================================================================
+# 10. Narrative Event System (12 TRs) — Primary: ADR-016
+# =============================================================================
+- id: TR-narr-001
+  system: narr
+  gdd: design/gdd/narrative-event-system.md
+  requirement: "11 atomic effect types"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-narr-002
+  system: narr
+  gdd: design/gdd/narrative-event-system.md
+  requirement: "Time-sorted parallel effects (sequencer architecture)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-narr-003
+  system: narr
+  gdd: design/gdd/narrative-event-system.md
+  requirement: "Config-table driven sequences (Luban integration)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-narr-004
+  system: narr
+  gdd: design/gdd/narrative-event-system.md
+  requirement: "PuzzleLockAll + InputBlocker event cascade"
+  created: 2026-04-21
+  revised: "2026-04-23"  # ADR-027 supersession
+  status: active
+- id: TR-narr-005
+  system: narr
+  gdd: design/gdd/narrative-event-system.md
+  requirement: "Absence puzzle Chapter 5 sequence (special parameters)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-narr-006
+  system: narr
+  gdd: design/gdd/narrative-event-system.md
+  requirement: "Chapter transition Timeline (21:9 letterbox)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-narr-007
+  system: narr
+  gdd: design/gdd/narrative-event-system.md
+  requirement: "Chapter-final merged sequence (PerfectMatch + transition)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-narr-008
+  system: narr
+  gdd: design/gdd/narrative-event-system.md
+  requirement: "Queue maximum 3 pending sequences (drop oldest policy)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-narr-009
+  system: narr
+  gdd: design/gdd/narrative-event-system.md
+  requirement: "Resource load failure resilience (skip + log + continue)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-narr-010
+  system: narr
+  gdd: design/gdd/narrative-event-system.md
+  requirement: "Timeline asset paths via config (no hardcoded paths)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-narr-011
+  system: narr
+  gdd: design/gdd/narrative-event-system.md
+  requirement: "TextureVideo 3-phase alpha (fadeIn → hold → fadeOut)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-narr-012
+  system: narr
+  gdd: design/gdd/narrative-event-system.md
+  requirement: "SequenceComplete event sender (interface protocol per ADR-027)"
+  created: 2026-04-21
+  revised: "2026-04-23"  # ADR-006 EventId 1500 → ADR-027 INarrativeEvent
+  status: active
+
+# =============================================================================
+# 11. Tutorial & Onboarding (10 TRs) — Primary: ADR-019 (P2, pending)
+# =============================================================================
+- id: TR-tutor-001
+  system: tutor
+  gdd: design/gdd/tutorial-onboarding.md
+  requirement: "TutorialStep config structure"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-tutor-002
+  system: tutor
+  gdd: design/gdd/tutorial-onboarding.md
+  requirement: "InputFilter integration (PushFilter / PopFilter)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-tutor-003
+  system: tutor
+  gdd: design/gdd/tutorial-onboarding.md
+  requirement: "Filtered gestures silent discard (no feedback)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-tutor-004
+  system: tutor
+  gdd: design/gdd/tutorial-onboarding.md
+  requirement: "5 tutorial steps defined"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-tutor-005
+  system: tutor
+  gdd: design/gdd/tutorial-onboarding.md
+  requirement: "tutorialCompleted flag in save data"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-tutor-006
+  system: tutor
+  gdd: design/gdd/tutorial-onboarding.md
+  requirement: "Tutorial pauses hint timers (cross-system rule)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-tutor-007
+  system: tutor
+  gdd: design/gdd/tutorial-onboarding.md
+  requirement: "Priority cascade: Narrative > Tutorial > Hint"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-tutor-008
+  system: tutor
+  gdd: design/gdd/tutorial-onboarding.md
+  requirement: "Tutorial step prompt UI"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-tutor-009
+  system: tutor
+  gdd: design/gdd/tutorial-onboarding.md
+  requirement: "Steps from Luban config"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-tutor-010
+  system: tutor
+  gdd: design/gdd/tutorial-onboarding.md
+  requirement: "Operation Guide replay accessible from Settings"
+  created: 2026-04-21
+  revised: ""
+  status: active
+
+# =============================================================================
+# 12. Settings & Accessibility (8 TRs) — Primary: ADR-020 / ADR-022 (P2, pending)
+# =============================================================================
+- id: TR-settings-001
+  system: settings
+  gdd: design/gdd/settings-accessibility.md
+  requirement: "8 player settings"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-settings-002
+  system: settings
+  gdd: design/gdd/settings-accessibility.md
+  requirement: "PlayerPrefs storage (separated from save JSON)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-settings-003
+  system: settings
+  gdd: design/gdd/settings-accessibility.md
+  requirement: "Real-time apply (no restart required) — interface event protocol per ADR-027"
+  created: 2026-04-21
+  revised: "2026-04-23"
+  status: active
+- id: TR-settings-004
+  system: settings
+  gdd: design/gdd/settings-accessibility.md
+  requirement: "Touch sensitivity multiplier (dragThreshold modifier)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-settings-005
+  system: settings
+  gdd: design/gdd/settings-accessibility.md
+  requirement: "Language auto-detect with fallback chain"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-settings-006
+  system: settings
+  gdd: design/gdd/settings-accessibility.md
+  requirement: "Language hot-switch at runtime"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-settings-007
+  system: settings
+  gdd: design/gdd/settings-accessibility.md
+  requirement: "Frame rate toggle 30 / 60 fps (Application.targetFrameRate)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-settings-008
+  system: settings
+  gdd: design/gdd/settings-accessibility.md
+  requirement: "Ambient volume independent of sfx_enabled flag"
+  created: 2026-04-21
+  revised: ""
+  status: active
+
+# =============================================================================
+# 13. Cross-Cutting / Concept (14 TRs) — Multiple ADRs
+# =============================================================================
+- id: TR-concept-001
+  system: concept
+  gdd: design/gdd/game-concept.md
+  requirement: "Mobile primary platform, PC secondary"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-concept-002
+  system: concept
+  gdd: design/gdd/game-concept.md
+  requirement: "60 fps target, 16.67 ms frame budget"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-concept-003
+  system: concept
+  gdd: design/gdd/game-concept.md
+  requirement: "Draw calls < 150 mobile / < 300 PC"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-concept-004
+  system: concept
+  gdd: design/gdd/game-concept.md
+  requirement: "Memory ceiling 1.5 GB mobile / 4 GB PC"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-concept-005
+  system: concept
+  gdd: design/gdd/game-concept.md
+  requirement: "Forbidden: synchronous asset loading (YooAsset async only)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-concept-006
+  system: concept
+  gdd: design/gdd/game-concept.md
+  requirement: "Forbidden: Coroutines (UniTask mandated)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-concept-007
+  system: concept
+  gdd: design/gdd/game-concept.md
+  requirement: "Forbidden: direct GetModule calls (use GameModule.XXX accessors)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-concept-008
+  system: concept
+  gdd: design/gdd/game-concept.md
+  requirement: "Forbidden: hardcoded gameplay values (Luban config required)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-concept-009
+  system: concept
+  gdd: design/gdd/game-concept.md
+  requirement: "Forbidden: GameObject.Find at runtime"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-concept-010
+  system: concept
+  gdd: design/gdd/game-concept.md
+  requirement: "Forbidden: resource leaks (Load/Unload pairing)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-concept-011
+  system: concept
+  gdd: design/gdd/game-concept.md
+  requirement: "Unity Test Framework with 70% coverage target"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-concept-012
+  system: concept
+  gdd: design/gdd/game-concept.md
+  requirement: "Assembly structure: 3 assemblies (Default / GameLogic / GameProto)"
+  created: 2026-04-21
+  revised: ""
+  status: active
+- id: TR-concept-013
+  system: concept
+  gdd: design/gdd/game-concept.md
+  requirement: "Event-driven cross-module communication via [EventInterface] interface protocol per ADR-027"
+  created: 2026-04-21
+  revised: "2026-04-23"  # ADR-006 const-int superseded by ADR-027
+  status: active
+- id: TR-concept-014
+  system: concept
+  gdd: design/gdd/game-concept.md
+  requirement: "HybridCLR: GameLogic assembly is hot-reload boundary"
+  created: 2026-04-21
+  revised: ""
+  status: active
+
+# =============================================================================
+# Total: 212 TRs (Input 18 + Render 23 + Save 20 + Scene 17 + Object 22 + UI 22 +
+#                 Audio 15 + Puzzle 14 + Hint 17 + Narrative 12 + Tutor 10 +
+#                 Settings 8 + Concept 14 = 212)
+# Backfilled 2026-05-06 from architecture-traceability.md (v1.0, 2026-04-22)
+# Coverage status: 124 ✅ Covered / 87 ⚠️ Partial / 1 ❌ Gap (TR-objint-022)
+# =============================================================================

@@ -5,6 +5,7 @@
 > **Engine**: Unity 2022.3.62f2 LTS
 > **Framework**: TEngine 6.0.0 + HybridCLR + YooAsset 2.3.17 + UniTask 2.5.10
 > **Generated**: 2026-04-22
+> **Revision**: 2026-04-24 — §2.4 + §2.5 + §3 Scene epic ADR-006 → ADR-027 清理 + S2-05 两条新规（`UnitySceneManager` 别名；`AdvanceStateForTest` 测试 seam 约定）；§2.6 Auto-save spec 接口名迁移 + 实装状态追踪（S2-04 subset）；§2.7 + §4.1 Performance & Tutorial 残留 `Evt_*` 加 legacy 注解 + ADR-027 待迁移 owner 标注
 > **Authority**: Technical Director
 
 This is the single authoritative rules sheet for all programmers. Every rule traces to a specific ADR, technical preference, or Sprint 0 finding. When in doubt, this document wins.
@@ -203,7 +204,7 @@ SP-001 (GameEvent Payload) · SP-002 (UIWindow Lifecycle) · SP-003 (YooAsset Pa
 - **Single ResourcePackage strategy for MVP** (`"DefaultPackage"`) — source: ADR-005, SP-003
 - **Handle-ownership: the system that calls `LoadAssetAsync` owns the handle and is solely responsible for calling `Release()`** — source: ADR-005
 - **Null-check handles before `Release()`; set to `null` immediately after release** — source: ADR-005
-- **Scene Transition Cleanup Sequence (mandatory, in order)**: (1) notify systems via `Evt_SceneUnloadBegin`, (2) each system releases owned AssetHandles, (3) Scene Manager releases SceneHandle via `UnloadSceneAsync()`, (4) `Resources.UnloadUnusedAssets()`, (5) `GC.Collect()`, (6) load next scene — source: ADR-005
+- **Scene Transition Cleanup Sequence (mandatory, in order)**: (1) notify systems via `GameEvent.Get<ISceneEvent>().OnSceneUnloadBegin(int chapterId)`, (2) `await UniTask.Yield()` one frame for handlers to release owned AssetHandles, (3) Scene Manager calls `await GameModule.Scene.UnloadAsync(_currentChapterSceneName)` and immediately invokes `ClearCurrentChapterSceneName()` (S3-01 D5 setter), (4) `await Resources.UnloadUnusedAssets().ToUniTask()`, (5) `GC.Collect()` (synchronous; runs behind fade overlay), (6) advance FSM to Loading state for next scene load — source: ADR-005 + ADR-027 + S3-01 D5 patch (2026-04-30)
 - **Commonly loaded assets (UI prefabs) held by independent handles, not tied to scene handles** — source: SP-003
 
 #### Forbidden Approaches
@@ -214,29 +215,39 @@ SP-001 (GameEvent Payload) · SP-002 (UIWindow Lifecycle) · SP-003 (YooAsset Pa
 - **Never share handles across systems** — only the loading system may release — source: ADR-005
 - **Never skip `UnloadUnusedAssets()` + `GC.Collect()` between scene transitions** — source: ADR-005, ADR-009
 
-### 2.5 Scene Lifecycle (ADR-009)
+### 2.5 Scene Lifecycle (ADR-009 + ADR-027)
 
 #### Required Patterns
 
 - **Additive-only scene loading** — `LoadSceneMode.Additive` exclusively — source: ADR-009
+- **Scene loading goes through `GameModule.Scene.LoadSceneAsync(string sceneName, LoadSceneMode, Action<float> progressCallBack)` returning `UniTask<Scene>`** (Unity native struct; **NOT** YooAsset `SceneHandle`); use `scene.IsValid()` + `scene.isLoaded` double-assertion — source: S3-01 D5 patch (2026-04-30) supersedes ADR-009 §SceneHandle Ownership
+- **Scene unloading goes through `GameModule.Scene.UnloadAsync(string sceneName)` returning `UniTask<bool>`**; the SceneManager identifies the scene by location string (`_currentChapterSceneName`), not by handle reference — source: S3-01 D5 patch (2026-04-30)
+- **Scene activation goes through `GameModule.Scene.ActivateScene(string sceneName)`** (false return is a warning, not an error) — source: S3-01 D5 patch (2026-04-30)
+- **SceneManager state field for current chapter is `_currentChapterSceneName: string` (YooAsset location)** — never cache `SceneHandle` / `Scene` reference fields; clear via `ClearCurrentChapterSceneName()` setter only — source: S3-01 D5 patch (2026-04-30)
 - **MainScene loaded once at boot, never unloaded** — holds all managers, UI, audio, camera — source: ADR-009
 - **One chapter scene active at a time** — previous chapter fully unloaded before next loads — source: ADR-009
-- **After loading chapter scene, call `SceneManager.SetActiveScene()` on the new scene** for lighting settings — source: ADR-009
-- **Scene transitions triggered exclusively via `GameEvent.Send(Evt_RequestSceneChange, payload)`** — external systems never call Scene Manager methods directly — source: ADR-009
+- **After loading chapter scene, call `UnitySceneManager.SetActiveScene()` on the new scene** for lighting settings — source: ADR-009（注：`UnitySceneManager` 为 `UnityEngine.SceneManagement.SceneManager` 的别名，见下方 §2.5 新规）
+- **Scene transitions triggered exclusively via `GameEvent.Get<ISceneEvent>().OnRequestSceneChange(int targetChapterId)`** — external systems never call `GameLogic.SceneManager` methods directly — source: ADR-009 + ADR-027
 - **Scene Manager uses state machine: Idle → TransitionOut → Unloading → Loading → TransitionIn → Idle (+ Error)** — source: ADR-009
 - **11-step transition flow is the binding contract** — no step may be skipped — source: ADR-009
-- **8 scene lifecycle events (IDs 1400-1407) fired in deterministic order** — source: ADR-009
+- **`ISceneEvent` 9 interface methods define the scene contract (1 command + 8 lifecycle)** — signatures frozen by S2-05; senders implemented across S2-05 (2) + S2-17 (7) — source: ADR-027
 - **Scene name ↔ chapter ID mapping from Luban `TbChapter.sceneId`** — no hardcoded scene names — source: ADR-009
 - **Transition mutex: only one transition at a time; max 1 queued request** — source: ADR-009
+- **引用 Unity 原生 `UnityEngine.SceneManagement.SceneManager` 的 HotFix 代码必须使用 `using UnitySceneManager = UnityEngine.SceneManagement.SceneManager;` 别名** — 避免与 `GameLogic.SceneManager`（S2-05 新建状态机）符号冲突；Editor / TEngine Runtime asmdef 不受此约束 — source: S2-05 Implementation Log (2026-04-24)
+- **`GameLogic.SceneManager.AdvanceStateForTest(...)` / `PendingTargetChapterIdForTest` 为测试 seam**，仅供 EditMode tests 与 Story 002 内部状态推进调用；生产代码走 `ISceneEvent.OnRequestSceneChange` — source: S2-05 Implementation Log (2026-04-24)
 
 #### Forbidden Approaches
 
 - **Never use `LoadSceneMode.Single`** — destroys MainScene — source: ADR-009
-- **Never use direct `SceneManager.LoadSceneAsync()`** — use `GameModule.Resource.LoadSceneAsync()` — source: ADR-009
+- **Never use direct `UnitySceneManager.LoadSceneAsync()`** — use `GameModule.Scene.LoadSceneAsync()` (framework wrapper) — source: ADR-009 + S3-01 D5 patch（别名同上）
+- **Never call `GameModule.Resource.LoadSceneAsync` / `UnloadSceneAsync`** — these APIs do not exist; the scene wrapper lives on `GameModule.Scene`, not `GameModule.Resource` — source: ADR-029 R2 + S3-01 D5 patch (2026-04-30)
+- **Never cache `SceneHandle` / `Scene` reference fields on SceneManager** — only the location string `_currentChapterSceneName`; do not write the field directly, use `ClearCurrentChapterSceneName()` setter — source: S3-01 D5 patch (2026-04-30) supersedes ADR-005 / ADR-009 §SceneHandle Ownership
 - **Never skip cleanup between scenes** — mandatory `UnloadUnusedAssets()` + `GC.Collect()` — source: ADR-009
 - **Never use `DontDestroyOnLoad` in chapter scene objects** — source: ADR-009
 - **Never load multiple chapter scenes simultaneously** — source: ADR-009
 - **Never hardcode scene names** — resolve from Luban `TbChapter.sceneId` — source: ADR-009
+- **Never define `public const int Evt_Scene*` or `XxxPayload` struct** for Scene events — use `ISceneEvent` interface methods exclusively — source: ADR-027 (supersedes ADR-006 §2 for Scene domain)
+- **Never call `GameLogic.SceneManager` public methods from outside the Scene module** (including tests outside `SceneStateMachineTests`) — go through `ISceneEvent` — source: ADR-027 §1
 
 ### 2.6 Save System (ADR-008)
 
@@ -246,7 +257,8 @@ SP-001 (GameEvent Payload) · SP-002 (UIWindow Lifecycle) · SP-003 (YooAsset Pa
 - **File location: `Application.persistentDataPath/` with `save.json`, `save.crc`, `save.backup.json`, `save.backup.crc`** — source: ADR-008
 - **Load fallback chain: primary → backup → fresh start** — source: ADR-008
 - **Version migration: sequential chain (`v1 → v2 → v3 → vCurrent`)** via `ISaveMigration` — source: ADR-008
-- **Auto-save triggers: `Evt_PuzzleStateChanged` (1s debounce), `Evt_ChapterComplete` (immediate), collectible pickup (1s debounce), `OnApplicationPause(true)` (immediate), `OnApplicationQuit` (immediate)** — source: ADR-008
+- **Auto-save triggers (spec)**: `IChapterStateEvent.OnPuzzleStateChanged` (1s debounce), `IChapterStateEvent.OnChapterComplete` (immediate), collectible pickup (1s debounce), `OnApplicationPause(true)` (immediate), `OnApplicationQuit()` (immediate) — source: ADR-008 + ADR-027
+- **Implementation status (2026-04-24)**: `AutoSaveTrigger` subscribes to `IChapterStateEvent.OnChapterComplete` + `IChapterStateEvent.OnGameComplete` (both immediate, no debounce). `OnPuzzleStateChanged` 有意未订（每帧可能触发 → I/O 抖动，待 debounce 机制落地再接）；`Collectible pickup` / `OnApplicationPause(true)` / `OnApplicationQuit()` 待对应系统 / MonoBehaviour 宿主实装 —— 全部排 Vertical-Slice Polish 阶段 — source: S2-04 Story 005 (`AutoSaveTrigger.cs`)
 - **All save I/O via UniTask — no synchronous file I/O** — source: ADR-008
 - **Atomic write: write to `.tmp` → verify CRC → rename to `.json`** — source: ADR-008
 - **Settings (8 items) stored separately via `PlayerPrefs`** — NOT in save file — source: ADR-008
@@ -268,7 +280,7 @@ SP-001 (GameEvent Payload) · SP-002 (UIWindow Lifecycle) · SP-003 (YooAsset Pa
 - **Recovery trigger: 60 consecutive frames < 12ms → attempt one-level upgrade** — source: ADR-018
 - **Recovery has a 30-frame verification window at 14ms threshold** — failed verification reverts and doubles recovery requirement — source: ADR-018
 - **5-level degradation cascade: Normal → Mild → Moderate → Severe → Critical** — source: ADR-018
-- **Quality tier changes broadcast via `Evt_QualityTierChanged` GameEvent** — all systems listen and respond — source: SP-010
+- **Quality tier changes broadcast via a `GameEvent`** (legacy name `Evt_QualityTierChanged`; 迁移待 Performance Monitor epic 落地时由 Architect 定 ADR-027 接口命名) — all systems listen and respond — source: SP-010 + ADR-027
 - **Settings UI and auto-degradation share the same quality state** — `PerformanceMonitor` is the single owner — source: SP-010
 - **Manual quality selection via Settings disables auto-degradation** — source: SP-010
 
@@ -342,8 +354,8 @@ SP-001 (GameEvent Payload) · SP-002 (UIWindow Lifecycle) · SP-003 (YooAsset Pa
 - **No physics simulation: objects follow finger directly — no rigidbody, no inertia** — source: ADR-013
 - **PuzzleLockAll uses `HashSet<string>` token-based locking** — objects locked when set non-empty; unlocked only when set empty — source: SP-006
 - **Legal locker IDs as predefined constants**: `InteractionLockerId.ShadowPuzzle = "shadow_puzzle"`, `InteractionLockerId.Narrative = "narrative"`, `InteractionLockerId.Tutorial = "tutorial"` — source: SP-006
-- **Unlock with unknown token is a no-op with warning log** — source: ADR-006, SP-006
-- **On `Evt_SceneUnloadBegin`, lock token set is force-cleared** — source: ADR-006
+- **Unlock with unknown token is a no-op with warning log** — source: ADR-027, SP-006
+- **On `ISceneEvent.OnSceneUnloadBegin`, lock token set is force-cleared** — source: ADR-027
 - **All parameters (gridSize, rotationStep, snapSpeed, bounds) from Luban config** — source: ADR-013
 - **Haptic feedback gated by `Settings.haptic_enabled`** — source: ADR-013
 
@@ -395,7 +407,7 @@ SP-001 (GameEvent Payload) · SP-002 (UIWindow Lifecycle) · SP-003 (YooAsset Pa
 - **Read matchScore/anchorScores from Shadow Puzzle as read-only queries at 1s polling interval** — NOT per-frame — source: ADR-015
 - **Layer 3: player-triggered only (button press), max 3 uses per puzzle** — source: ADR-015
 - **Hint target selection: `argmin(anchorScore_i)` where `anchorWeight_i >= minWeight`** — source: ADR-015
-- **Tutorial integration: pause all hint timers on `Evt_TutorialStepStarted`; reset to 0 on `Evt_TutorialStepCompleted`** — source: ADR-015
+- **Tutorial integration: pause all hint timers on tutorial-step-started event; reset to 0 on tutorial-step-completed event** (legacy names `Evt_TutorialStepStarted` / `Evt_TutorialStepCompleted`; 迁移待 Tutorial/Onboarding epic 落地时由 Architect 定 ADR-027 接口命名) — source: ADR-015 + ADR-027
 - **Per-chapter `hintDelayOverride` scaling**: Ch.1-2 = 1.0, Ch.3 = 1.3, Ch.4-5 = 1.5 — source: ADR-015
 - **All parameters from Luban `TbHintConfig`** — source: ADR-015
 
@@ -443,7 +455,7 @@ SP-001 (GameEvent Payload) · SP-002 (UIWindow Lifecycle) · SP-003 (YooAsset Pa
 - **3 quality tiers: High (2048 shadow map, 4 cascades, soft shadows), Medium (1024, 2 cascades, soft), Low (512, 1 cascade, hard)** — source: ADR-002
 - **Chapter visual style presets via Luban config — transition via DOTween lerp 1.2s** — source: ADR-002
 - **ShadowSampleCamera uses `CameraType.Game` + independent render target — not added to Camera Stack** — source: ADR-002
-- **Shadow quality tier is a passive listener of `Evt_QualityTierChanged`** — does not self-manage frame timing — source: SP-010
+- **Shadow quality tier is a passive listener of the Quality-tier GameEvent** (legacy name `Evt_QualityTierChanged`; 接口形态与 L277 同步，待 Performance Monitor epic 落地时定义) — does not self-manage frame timing — source: SP-010 + ADR-027
 - **WallReceiver shader must be SRP Batcher compatible (use CBUFFER declarations)** — source: ADR-002
 - **WallReceiver shader `#include` uses URP package relative paths** — source: ADR-002
 

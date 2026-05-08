@@ -1,0 +1,63 @@
+# 该文件由Cursor 自动生成
+name: Automated Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-editmode:
+    name: Run EditMode Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Run Edit Mode Tests
+        uses: game-ci/unity-test-runner@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+        with:
+          projectPath: src/MyGame/ShadowGame
+          testMode: editmode
+          artifactsPath: test-results/editmode
+          unityVersion: 2022.3.62f1
+
+      - name: Upload EditMode Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: editmode-results
+          path: test-results/editmode/
+
+  test-playmode:
+    name: Run PlayMode Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Run Play Mode Tests
+        uses: game-ci/unity-test-runner@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+        with:
+          projectPath: src/MyGame/ShadowGame
+          testMode: playmode
+          artifactsPath: test-results/playmode
+          unityVersion: 2022.3.62f1
+
+      - name: Upload PlayMode Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playmode-results
+          path: test-results/playmode/

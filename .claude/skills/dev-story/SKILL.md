@@ -38,6 +38,73 @@ If not found, ask: "Which story are we implementing?" Glob
 
 ---
 
+## Phase 1.5: ADR-029 5-Minute Readiness Self-Check (BLOCKING)
+
+Before loading full context or spawning any programmer agent, run the **R1/R2/R3 implementation-notes verification** mandated by [`docs/architecture/adr-029-story-impl-notes-verification.md`](../../../docs/architecture/adr-029-story-impl-notes-verification.md). This is a 5-minute hard gate that prevents "fantasy API" drift — historically responsible for ~30 min of mid-implementation revision per story (see `/.claude/memory/problem_2026-04-29_story-impl-notes-vs-framework-drift.md`).
+
+Execute the three checks **in order**:
+
+### R1 — Per-event listener pattern grep
+
+```bash
+rg "AddEventListener<I\w+Event>\(this\)" [story-file]
+rg "class \w+\s*:\s*\w+,\s*I\w+Event" [story-file]
+```
+Both must return 0 hits. If either has hits, the story's `Implementation Notes` proposes the forbidden integer-interface subscription mode.
+
+**On failure**: rewrite the listener registration to per-event mode (`GameEvent.AddEventListener<TArg>(IXxxEvent_Event.OnYyy, handler)`) **before continuing**. Update the story file and surface the rewrite to the user. Do not start implementation until the story file is corrected.
+
+### R2 — Cross-component API existence grep
+
+For each cross-component API call referenced in `## Implementation Notes` (e.g., `obj.SetXxx(...)`, `Manager.YyyConfig`, `Provider.RegisterZzz(...)`):
+
+```bash
+rg "public .* MethodName\(" Assets/GameScripts/HotFix/
+rg "public .* FieldName" Assets/GameScripts/HotFix/
+```
+
+**Required**: ≥ 1 hit per called API.
+
+**On failure**:
+- If the story's `## Engine Notes` contains an explicit `**Required Framework Extension**: ...` flag (story-readiness `DEFICIENCY-FLAGGED` path) — implement the framework extension as the first concrete step, then proceed with the rest of the story.
+- If no deficiency flag is present — **STOP**. The story file is silently inventing a non-existent API. Surface to user: "Story `Implementation Notes` references `<API>` which does not exist in the framework. Either (a) revise the story to use an existing API, or (b) add `**Required Framework Extension**` flag to `## Engine Notes` and proceed to extend the framework first." Do not write code until resolved.
+
+### R3 — Stub data type constructor signature grep
+
+For each stub data type used in tests:
+
+```bash
+rg "public XxxConfig\(" Assets/GameScripts/HotFix/
+rg "public sealed class XxxConfig" Assets/GameScripts/HotFix/ -A 25 | rg "readonly"
+rg "public interface IXxxConfig" Assets/GameScripts/HotFix/ -A 30
+```
+
+**Verify**:
+- The constructor signature matches what the story's tests construct
+- For `sealed class + readonly` types: tests must use constructor (`new XxxConfig(id: 1, ...)`) — not object initializer (`new XxxConfig { ... }`)
+- For interface stubs: every interface property is implementable on the test stub
+
+**On failure**: surface the mismatch and revise the story's `Implementation Notes` test code skeleton to match the actual constructor signature. The S2-13 PuzzleConfig case (CS7036/CS0191 ×3) is the canonical example of the failure mode this prevents.
+
+### R-Check Summary
+
+After running R1/R2/R3, surface a summary to the user:
+
+```
+ADR-029 5-Minute Readiness Check:
+  R1 per-event listener:        ✅ / ❌
+  R2 cross-component API:       ✅ / DEFICIENCY-FLAGGED (extend first) / ❌ STOP
+  R3 stub type construction:    ✅ / ❌
+
+Verdict: [PASS / DEFICIENCY-FLAGGED-PROCEED / STOP]
+```
+
+Only `PASS` and `DEFICIENCY-FLAGGED-PROCEED` allow advancing to Phase 2.
+
+If the story already passed `/story-readiness` with ADR-029 verdict = PASS, this 5-minute check is fast (the story's notes are already verified). If it shows new failures here, that means the framework drifted between story-readiness and dev-story — log this as a `drift revision time > 0` data point in the sprint retrospective.
+
+---
+
 ## Phase 2: Load Full Context
 
 **Before loading any context, verify required files exist.** Extract the ADR path from the story's `ADR Governing Implementation` field, then check:
