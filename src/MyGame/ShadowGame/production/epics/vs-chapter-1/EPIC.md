@@ -64,14 +64,17 @@ S5-02 端到端串通 5 个 P1 系统使用本 epic 提供的 scene + boot 接�
 
 | TR-ID | Requirement | ADR Coverage | Story |
 |-------|-------------|:------------:|-------|
-| TR-scene-001 | Additive scene 架构 (BootScene + MainScene + 1 章节) | ADR-009 ✅ | story-001 |
+| TR-scene-001 | Additive scene 架构 (BootScene + MainScene + 1 章节) | ADR-009 ✅ | story-001 + story-001b |
 | TR-scene-002 | 章节 scene name = `Chapter_0X_Xxxx` (per scene-management.md line 67) | ADR-009 ✅ | story-001 |
-| TR-scene-015 | `_chapterDataProvider` 注入；no hardcoded scene names (Sprint 2 S2-07 落地) | ADR-009 + ADR-007 ✅ | story-001b |
+| TR-scene-005 | 11-step transition flow（FadeOut → Unload → GC → Load → FadeIn） | ADR-009 ✅ | story-001b |
+| TR-scene-013 | Startup flow Boot → TEngine → HybridCLR → YooAsset | ADR-009 ✅ | story-001b |
 | TR-art-bible-001 | Chapter 1 色温 4000-4500K 柔象牙 + 淡暖黄 (art-bible line 53) | (Art layer constraint) | story-001 |
 | TR-objint-002 | Chapter 1 仅 2 个可操作物件 + 1 个固定光源 (object-interaction line 86; concept line 106) | (Design constraint) | story-001 |
 | TR-puzzle-001 | 第一章不引入光源操作 (shadow-puzzle-system line 42) | (Design constraint) | story-001 |
 | TR-narr-trigger-stub | Chapter 1 ≥1 narrative trigger zone stub (sprint-status notes) | ADR-016 ⚠️ stub only | story-001 |
-| TR-scene-load-fixture | fixture ChapterDataProvider 在 boot pipeline 注册；LoadChapterSceneAsync(1) 可成功执行 | ADR-009 + ADR-007 ⚠️ | story-001b |
+| TR-scene-load-fixture | fixture ChapterDataProvider 在 boot pipeline 注册；LoadChapterSceneAsync(1) 可成功执行 | ADR-009 + ADR-007 ⚠️ deficiency-flagged | story-001b |
+
+> **2026-05-09 readiness doc-fix**: 原表内 `TR-scene-015` (`_chapterDataProvider` 注入) 与 `tr-registry.yaml:576` 实际 requirement (`Emotional weight scales fade duration`) 语义不符；改用 TR-scene-001 / TR-scene-005 / TR-scene-013 真实贴合 boot pipeline 接入工作。`TR-scene-load-fixture` 仍未在 registry 注册，按 ADR-029 V2.0 deficiency-flag 协议显式标记，待下次 `/architecture-review` 落册。
 
 ---
 
