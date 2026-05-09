@@ -1185,6 +1185,14 @@ sprint_5_adr_029_v3_watch_list:
     sprint_4_baseline: "0 (单 spike 模式持续有效)"
     sprint_5_status: "monitoring"
 
+  # V3 candidate Type-6 — 2026-05-09 Sprint 5 S5-1c 实战首次触发；Sprint 5 retro 评估 promote
+  - trigger: "Spike subscribe race after listener-path sync-fire event (production handler 同步 fire ≥1 event 在 spike subscribe 之前)"
+    sprint_4_baseline: "N/A (Sprint 4 无 listener-path R3 spike)"
+    sprint_5_status: "TRIGGERED 2026-05-09 (S5-1c dev-story) — S5-1c first-boot P1 case 漏 capture OnSceneTransitionBegin (production listener-path SceneManager.OnRequestSceneChange handler 同步 fire OnSceneTransitionBegin 在 spike Start() subscribe 之前)；修复 (a) spike subscribe 提前到 Awake() (b) DevTestState.OnEnter 顺序 RunRequested → OnRequestSceneChange 派发；reactive cost ~30 min (race 定位 20 min + 修复 10 min)；2 修复后 5/5 PASS。Lessons memo: problem_2026-05-09_spike-sync-subscribe-race.md。Sprint 5 retro proposal: 评估 promote 为 V3 candidate Type-6 'spike subscribe race after sync-fire listener event'"
+    data_points:
+      - dp1_S5_1c_2026_05_09: "S5-1c R3 P1 first-boot ListenerPathFirstBoot — spike Start() subscribe 太晚漏 OnSceneTransitionBegin；解法：Awake() subscribe + DevTestState 调用顺序前置；S3-01..03 / S5-1b 4 个 spike 都没撞过此 race（之前都是 spike 直调 await BeginTransitionAsync 异步路径，跨多帧 yield，spike Start 早跑完）；S5-1c 是首个 listener-path 同步 fire 路径 R3 spike"
+    sprint_5_retro_action_item: "(planned) 评估是否 promote 为 V3 candidate Type-6 'spike subscribe race after sync-fire listener event'；如 Sprint 5 后续 / Sprint 6 R3 spike 再发生 ≥1 次同类 race → promote；候选 R3 spike playbook 文档（与 M1 dual-layer 合并，ROI 阈值 ≥6 次实战触发）"
+
   - trigger: "VS-skip path Sprint 6 gate-check rerun rate < 100% (per ADR-029 V2.0 §V2-7 + ADR-030)"
     sprint_4_baseline: "N/A (Sprint 6 才 due)"
     sprint_5_status: "monitoring"
