@@ -408,6 +408,27 @@ namespace GameLogic
 
 ### B. ADR-028 §1 AudioModule Activation Gate (本 ADR 解锁)
 
+> 🔧 **Amendment 2026-05-09 (post Sprint 5 S5-06 done)**：本 §B 全节中 `GameModule.Audio.Activate()` 调用与"activation gate"是 v1 设计假设，已被 **drift-v2-(a) supersede**。
+>
+> **真实 framework 行为**：`AudioModule.OnInit()` 框架内已自动调用 `Initialize(Settings.AudioSetting.audioGroupConfigs)`（详见 `Assets/TEngine/Runtime/Module/AudioModule/AudioModule.cs:322-326`）。**业务侧禁止**手动调用：
+> - ❌ `GameModule.Audio.Activate()` — IAudioModule 接口不存在此 API
+> - ❌ `GameModule.Audio.Initialize(...)` — 重复 init，业务侧不应再调
+>
+> **业务侧 GameApp.Entrance 真实写法**：仅调 `AudioManager.Instance.Initialize()`（项目层 facade，订阅 IAudioEvent / ISettingsEvent listeners）。
+>
+> **演化链**（保留作决策史）：
+> 1. v1 设计（本 §B 原文）：`GameModule.Audio.Activate()` 占位 — 假设 framework 有 activation gate 概念
+> 2. drift-v1（Sprint 5 S5-06 readiness check #2 / 2026-05-06）：实测发现 IAudioModule 不存在 `Activate()`，真接入是 `Initialize(AudioGroupConfig[], Transform, AudioMixer)` — ADR-028 line 103 已记录
+> 3. drift-v2-(a)（Sprint 5 S5-06 dev-story v3 / 2026-05-08）：实测 `AudioModule.OnInit()` 已自动 Initialize，业务侧禁止手动 Initialize — 当前现行约束
+>
+> **真相源**：
+> - `src/MyGame/ShadowGame/.claude/skills/tengine-dev/references/modules.md` 「drift-v2-(a) ✅ 现行约定」
+> - `src/MyGame/ShadowGame/Assets/GameScripts/HotFix/GameLogic/GameApp.cs:35-37`（实际代码）
+> - `production/qa/playmode-audio-mix-architecture-2026-05-08.md`（PlayMode 10/10 实证）
+> - `.cursor/rules/shadowgame-tengine.mdc`（无相关硬规则；framework 自动 init 不需要 vendor patch 红线兜底）
+>
+> 本 §B 原文（含 line 421 `Activate()` 调用、line 488 R3 P8 case 描述）保留作决策史 audit，不修改原文以维护 ADR 决策史完整性。
+
 ADR-028 §1 explicitly defers AudioModule activation 到 "ADR-017 Accept + Audio Sprint 接入"。**ADR-017 已 Accepted 2026-05-06**；本节是 ADR-028 §1 gate 解锁 reference：
 
 ```csharp

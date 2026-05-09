@@ -118,6 +118,26 @@ Technical Director, Lead Programmer
 | `Material` | **X** | Unity 原生 + `ADR-002` 自研 URP shadow rendering 覆盖；本 ADR 显式排除 |
 | `Unity` (`Utility.Unity`) | **M** | `GameApp` `Utility.Unity.AddDestroyListener(Release)` 已在用 |
 
+> 🔧 **Amendment 2026-05-09 (post Sprint 5 S5-06 dev-story done 2026-05-08)**：本 §1 表格中 AudioModule 行 (line 103) 标注的 "**真接入 API**: `GameModule.Audio.Initialize(AudioGroupConfig[], Transform, AudioMixer)`" 已被 **drift-v2-(a) supersede**。
+>
+> **当前现行约束**（Sprint 5 S5-06 dev-story v3 / 2026-05-08 实证）：
+> - `AudioModule.OnInit()` 框架内已自动 `Initialize(Settings.AudioSetting.audioGroupConfigs)`（`AudioModule.cs:322-326`）
+> - 业务侧 `GameApp.Entrance` **禁止**手动调 `GameModule.Audio.Activate()` 或 `GameModule.Audio.Initialize(...)`
+> - 业务侧仅调 `AudioManager.Instance.Initialize()`（项目层 facade）
+>
+> **演化链**（双重 supersede，保留作决策史）：
+> 1. v1（ADR-028 §1 + ADR-017 §B 原文）：`Activate()` 假设
+> 2. drift-v1（line 103 当前文字）：纠正为 `Initialize(AudioGroupConfig[], ...)` 真接入 API
+> 3. **drift-v2-(a)（本 Amendment）**：进一步纠正为 framework 自动 OnInit-Initialize，业务侧禁止手动 Initialize
+>
+> **table line 103 末尾原本挂的"待修订全文"待办本次闭环**：表格原文不动（保留决策史），Amendment 为现行权威约束；ADR-017 §B 同步加 Amendment。
+>
+> **真相源**：
+> - `src/MyGame/ShadowGame/.claude/skills/tengine-dev/references/modules.md` 「drift-v2-(a) ✅ 现行约定」
+> - `src/MyGame/ShadowGame/Assets/GameScripts/HotFix/GameLogic/GameApp.cs:35-37`
+> - `src/MyGame/ShadowGame/.claude/skills/tengine-dev/references/hotfix-development.md` 「热更入口 GameApp」节（已对齐 2026-05-09）
+> - PlayMode 实证：`production/qa/playmode-audio-mix-architecture-2026-05-08.md`
+
 ### §2. `GameModule` Facade 强制约定
 
 - **范围限定**：本约定**仅适用于 `Assets/GameScripts/HotFix/` 子树**（即热更程序集 `GameLogic` / `GameProto`）。主包程序集（`Assets/GameScripts/Main/` 的 `GameEntry.Awake` + `Procedure*` 启动流程）按 TEngine 框架原生模式合法直调 `ModuleSystem.GetModule<IXxxModule>()`（参见 `tengine-dev/references/architecture.md` §"启动流程"），**不**在本约定范围内。
