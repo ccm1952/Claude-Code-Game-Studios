@@ -421,22 +421,27 @@ Log.Assert(bool, string);  // 断言失败时输出
 
 > Sprint 5 实施过程发现的 ADR-028 vs 实际 framework API 偏差，待 Sprint 5 retro 时 batch 入 ADR；先在此 reference 标注真实 API。
 
-### drift-v1: AudioModule 初始化签名
+### drift-v1: AudioModule 初始化签名 ⚠️ 已被 drift-v2-(a) supersede（保留作历史记录）
 
-ADR-028 §1 原描述用了 `Activate()` 空参签名，实测真实 API：
+> **状态**：`OBSOLETE` — 请直接看 drift-v2-(a)。本节仅保留作 ADR-028 决策史的审计追溯。
+>
+> **当时（Sprint 5 dev-story v2）的发现**：ADR-028 §1 原描述用了 `Activate()` 空参签名，实测 IAudioModule 接口**不存在** `Activate()` 方法，真实 API 是 `Initialize(AudioGroupConfig[], Transform, AudioMixer)`。
+>
+> ```csharp
+> // ⚠️ 当时方案（已 obsolete，禁止照抄）
+> GameModule.Audio.Initialize(Settings.AudioSetting.audioGroupConfigs);
+> ```
+>
+> **2026-05-08 dev-story 实施期间发现**：上述手动调用是**不必要**的（且可能造成双重 init）—— 见 drift-v2-(a)。
+
+### drift-v2-(a) ✅ 现行约定: AudioModule 自动 Initialize 已生效
+
+> **此为现行规则。新代码必须遵守。**
+
+`AudioModule.OnInit()` 框架内部已自动调用 `Initialize(Settings.AudioSetting.audioGroupConfigs)`，**业务侧禁止再次手动 Initialize**：
 
 ```csharp
-GameModule.Audio.Initialize(Settings.AudioSetting.audioGroupConfigs);
-```
-
-入参是 `AudioGroupConfig[]`（音频组配置数组）。框架**没有**空参 `Activate()` 重载。
-
-### drift-v2-(a): AudioModule 自动 Initialize 已生效
-
-`AudioModule.OnInit()` 框架内部已自动调用 `Initialize(Settings.AudioSetting.audioGroupConfigs)`，业务侧**不需要**再次手动调用：
-
-```csharp
-// AudioModule.OnInit 框架内部：
+// AudioModule.OnInit 框架内部（AudioModule.cs:322-326）：
 public override void OnInit()
 {
     Initialize(Settings.AudioSetting.audioGroupConfigs);
@@ -444,4 +449,14 @@ public override void OnInit()
 }
 ```
 
-业务侧直接 `GameModule.Audio.Play(...)` 即可。重复 `Initialize` 是无害的（idempotent）但徒增噪音。
+业务侧（`GameApp.Entrance` 内）直接：
+
+```csharp
+// ✅ 正确：framework 已自动 Initialize，业务侧只需要项目 facade 初始化
+AudioManager.Instance.Initialize();   // 项目层 audio facade（订阅 IAudioEvent / ISettingsEvent listeners）
+
+// ❌ 错误：重复 Initialize（drift-v1 时代的旧写法，2026-05-08 后禁止）
+// GameModule.Audio.Initialize(Settings.AudioSetting.audioGroupConfigs);
+```
+
+> 重复 `Initialize` 在 framework 实测 idempotent（不会崩），但会重新分配 `AudioAgentHelper` 池，徒增噪音 + 模糊"谁是 owner"——禁止照抄 drift-v1 的代码块。

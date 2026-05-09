@@ -320,15 +320,17 @@ protected override void RegisterEvent()
 
 ```csharp
 // ❌ 错误：忘记初始化，所有 GameEvent.Get<T>().Method() 调用均无响应
-public static void Entrance(Assembly[] assemblies) { /* ... */ }
+public static void Entrance(object[] objects) { /* ... */ }
 
 // ✅ 正确：必须在 Entrance 第一行调用
-public static void Entrance(Assembly[] assemblies)
+public static void Entrance(object[] objects)
 {
     GameEventHelper.Init();  // 必须！Source Generator 生成，自动包含所有接口
     // ...
 }
 ```
+
+> **签名修订（2026-05-09）**：Entrance 真签名是 `object[] objects`，不是 `Assembly[]` 也不是 `List<Assembly>`。详见 `hotpatch-management.md` 的 GameApp.Entrance 真签名节。
 
 **5. 发送与监听的参数类型不匹配**
 

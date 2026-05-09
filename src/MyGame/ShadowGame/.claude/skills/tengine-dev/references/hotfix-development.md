@@ -48,56 +48,83 @@ GameLogic → TEngine.Runtime
 
 `GameApp.cs` 是整个热更域的主入口，由主包的 `ProcedureStartGame` 通过反射调用。
 
+> **本节 2026-05-09 修订**：对齐 ShadowGame `GameScripts/HotFix/GameLogic/GameApp.cs` 真实签名与结构。`partial class` 拓展模式详见 `hotpatch-management.md` 的 GameApp.Entrance 真签名节。
+
 ```csharp
 // GameScripts/HotFix/GameLogic/GameApp.cs
-public class GameApp
+#if ENABLE_OBFUZ
+[ObfuzIgnore(ObfuzScope.TypeName | ObfuzScope.MethodName)]
+#endif
+public partial class GameApp                                  // ← partial：可分多个 .cs 文件拓展
 {
+    private static List<Assembly> _hotfixAssembly;
+
     /// <summary>
-    /// 热更主入口，由主包 ProcedureStartGame 调用
+    /// 热更主入口，由主包 ProcedureStartGame 反射调用
     /// </summary>
-    /// <param name="assemblies">已加载的热更程序集列表</param>
-    public static void Entrance(Assembly[] assemblies)
+    /// <param name="objects">objects[0] = List&lt;Assembly&gt; 热更程序集列表</param>
+    public static void Entrance(object[] objects)             // ← 真签名：object[]，不是 Assembly[]
     {
-        // 1. 初始化接口事件代理（必须最先调用）
-        GameEventHelper.Init();
+        GameEventHelper.Init();                                // 1. 必须最先调用（Source Generator 注册）
+        _hotfixAssembly = (List<Assembly>)objects[0];          // 2. 保存热更程序集（强转）
+        Log.Info("======= GameApp Entrance =======");
+        ConfigSystem.Instance.Load();                          // 3. 加载 Luban 配置表
+        Utility.Unity.AddDestroyListener(Release);             // 4. 注册销毁回调
 
-        // 2. 注册所有业务系统
-        GameApp_RegisterSystem.Register();
+        // 5. 业务 facade 初始化（按需）
+        AudioManager.Instance.Initialize();                    // 项目层 audio facade
 
-        // 3. 启动游戏主流程
-        var procedure = ModuleSystem.GetModule<IProcedureModule>();
-        procedure.ChangeState<ProcedureLogin>();
+        StartGameLogic();                                      // 6. 启动业务 FSM
+    }
+
+    private static void Release()
+    {
+        GameModule.Fsm.DestroyFsm<IFsmModule>(GameFlowDef.FsmName);
+        SingletonSystem.Release();
     }
 }
 ```
 
-**注意**：`GameEventHelper.Init()` 必须在任何 `GameEvent.Get<T>()` 调用之前执行。
+**关键约束**：
+
+| 步骤 | 必须性 | 原因 |
+|-----|------|------|
+| `GameEventHelper.Init()` 第一行 | MUST | 必须早于任何 `GameEvent.Get<T>()` 调用，否则接口事件代理为 null |
+| `_hotfixAssembly = (List<Assembly>)objects[0]` | MUST | 后续反射查找类型时需要；不强转 `object[0]` 会 InvalidCastException |
+| `Utility.Unity.AddDestroyListener(Release)` | MUST | 应用退出时清理 FSM + 单例，否则会 Restart 残留旧引用 |
+| `AudioModule` 不再手动 Initialize | NEVER | 框架 `AudioModule.OnInit()` 已自动 `Initialize(Settings.AudioSetting.audioGroupConfigs)`（详见 `modules.md` drift-v2-(a)）|
 
 ---
 
-## 系统注册
+## 系统注册（partial class 拓展模式）
+
+ShadowGame 实际不用独立的 `static class GameApp_RegisterSystem`，而是用 `partial class GameApp` 在多个 `.cs` 文件里拓展（避免单文件过大）：
 
 ```csharp
 // GameScripts/HotFix/GameLogic/GameApp_RegisterSystem.cs
-public static class GameApp_RegisterSystem
+public partial class GameApp
 {
-    public static void Register()
+    private static void RegisterSystems()
     {
         // 注册各业务系统（单例系统、服务等）
-        RegisterLoginSystem();
-        RegisterBattleSystem();
-        // ...
+        // 例：RegisterBattleSystem(); RegisterInventorySystem(); ...
     }
+}
 
-    private static void RegisterLoginSystem()
+// GameScripts/HotFix/GameLogic/GameApp_RegisterEvent.cs
+public partial class GameApp
+{
+    private static void RegisterEvents()
     {
-        // 注册事件监听实现
+        // 注册接口事件监听实现
         GameEventHelper.RegisterListener<ILoginUI>(LoginSystem.Instance);
-        // 初始化系统
-        LoginSystem.Instance.Initialize();
     }
 }
 ```
+
+`Entrance` 内按需调用 `RegisterSystems()` / `RegisterEvents()`。
+
+> 选择 partial class 而非 `static class GameApp_RegisterSystem`：好处是 IDE 跳转方便（`GameApp.RegisterSystems` vs `GameApp_RegisterSystem.Register`），且统一在 `GameApp` 类下管理生命周期。
 
 ---
 

@@ -1,5 +1,14 @@
 # AI 开发工作流指南
 
+> ⚠️ **ShadowGame 项目注**（2026-05-09）：本文档是上游 TEngine 官方教程的 vendor 副本，所述 `wiki-query-agent` 子代理工作流**已于上游 6.2.1 中废弃**（被 `tengine-dev` skill 取代），ShadowGame 同步删除。本文档保留作上游历史参考，**ShadowGame 项目内禁止据此实施**。
+>
+> ShadowGame 实际工作流以以下为准：
+> - [`src/MyGame/ShadowGame/CLAUDE.md`](../ShadowGame/CLAUDE.md)（L1-L4 任务等级 + 三级阅读策略）
+> - [`src/MyGame/ShadowGame/.claude/skills/tengine-dev/SKILL.md`](../ShadowGame/.claude/skills/tengine-dev/SKILL.md)（导航表）
+> - [`.cursor/rules/shadowgame-tengine.mdc`](../../../.cursor/rules/shadowgame-tengine.mdc)（Cursor 硬规则）
+>
+> 关键差异：L-2 深度查询不再走 subagent，改为 `SemanticSearch` / `Grep` / `Read` 直接查 `repowiki/zh/content/`。
+
 > 本文档介绍 TEngine 项目完整的 AI 辅助开发工作流，包含 wiki-query-agent 上下文隔离架构、任务等级分级机制、会话缓存策略，以及与 openspec / tengine-dev 的集成使用方式。
 
 **更新时间**: 2026-04-01

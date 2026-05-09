@@ -1,5 +1,15 @@
 # TEngine
 
+> ⚠️ **ShadowGame 项目注**（2026-05-09）：本 README 是上游 [TEngine 官方仓库](https://github.com/Alex-Rachel/TEngine) 的 vendor 副本，描述的 AI 工作流（`wiki-query-agent` 上下文隔离架构、`/wiki:sync` 自愈闭环）与 ShadowGame 当前实际配置存在偏差：
+>
+> - **`wiki-query-agent` 子代理**：ShadowGame 已于 2026-05-09 同步上游 6.2.1 时**删除**（上游已用 `tengine-dev` skill 取代）
+> - **启动流程链路**：本工程实际是 `Splash → ProcedureGetVersion → InitPackage`，**没有** `ProcedureUpdateVersion` / `ProcedureUpdateManifest` 节点
+>
+> ShadowGame 项目内开发请以以下为单一真相源：
+> - [`src/MyGame/ShadowGame/CLAUDE.md`](ShadowGame/CLAUDE.md)（核心协议）
+> - [`src/MyGame/ShadowGame/.claude/skills/tengine-dev/`](ShadowGame/.claude/skills/tengine-dev/)（skill references）
+> - [`.cursor/rules/shadowgame-tengine.mdc`](../../.cursor/rules/shadowgame-tengine.mdc)（Cursor 硬规则）
+
 <div align="center">
 
 ![TEngine Logo](Books/src/TEngine.png)

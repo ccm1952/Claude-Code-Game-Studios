@@ -117,7 +117,7 @@
 - **Shader Specialist**: Unity URP Shader Specialist — Shadow projection shaders, light/shadow rendering, mobile shader optimization
 - **UI Specialist**: Unity UGUI / TEngine UIModule Specialist — UIWindow lifecycle, UIWidget binding, safe area fitting
 - **Additional Specialists**: Luban Config Specialist (table schema & code generation), YooAsset Build Specialist (asset bundling & hot-update)
-- **Routing Notes**: All gameplay code routes through TEngine conventions; wiki-query-agent should be consulted for TEngine API usage (L2+ tasks per ShadowGame CLAUDE.md)
+- **Routing Notes**: All gameplay code routes through TEngine conventions; the `tengine-dev` skill (L-0 SKILL.md + L-1 references in `src/MyGame/ShadowGame/.claude/skills/tengine-dev/`) is the source of truth for TEngine API usage on L2+ tasks per ShadowGame CLAUDE.md. Note: the legacy `wiki-query-agent` subagent was retired on 2026-05-09 when the ShadowGame TEngine vendor copy was synced to upstream 6.2.1; deep queries beyond what references cover should use `SemanticSearch` / `Grep` / `Read` against `repowiki/zh/content/`.
 
 ### File Extension Routing
 
