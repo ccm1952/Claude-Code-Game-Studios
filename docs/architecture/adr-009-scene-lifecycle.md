@@ -563,6 +563,16 @@ This is a greenfield architecture — no existing scene management system requir
 
 ---
 
+## History
+
+| 日期 | 改动 | 触发 |
+|------|------|------|
+| 2026-04-22 | ADR initial Accepted — additive-only / 11-step / 6-state machine / mandatory cleanup / MainScene persistence | Sprint 2 architecture phase |
+| 2026-04-30 | §SceneHandle Ownership superseded by S3-01 D5 (string instead of struct/handle) | S3-01 PlayMode CORE PASSED + SP-011 spike |
+| **2026-05-09 dusk** | **Implementation alignment fix (story-001c)** — `SceneManager.OnRequestSceneChange` handler 与 `DrainPending` 末尾添加 internal `DriveTransitionAsync(targetChapterId).Forget()` tail，移除 line 345 inline comment `// Story 002 接管后续 11 步流程` placeholder。**ADR §Decision 段（"Scene Manager subscribes to OnRequestSceneChange and orchestrates the entire 11-step flow internally"）现在与 implementation 1:1 alignment**。Verified by story-001c R3 PlayMode 5/5 PASS。S5-1b 临时 F4 dev-only stub (`DevTestState.DriveProductionSceneTransitionAsync` via reflection) 已移除。**No spec changes** — 仅 implementation 补齐（ADR §Decision 一直 authoritative，S5-1b dev-story 暴露的是 spec ↔ impl gap 而非 spec gap）。Lessons memo 已沉淀 `.claude/memory/problem_2026-05-09_adr009-listener-path-driver-missing.md`。 | story-001c (2026-05-09) Phase B |
+
+---
+
 ## Related
 
 - **Depends On**: ADR-001 (TEngine 6.0 Framework) — `GameModule.Scene` and `GameModule.Resource` wrappers provide the underlying scene loading capability
