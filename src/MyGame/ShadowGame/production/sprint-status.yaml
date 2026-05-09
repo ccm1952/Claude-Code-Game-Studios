@@ -8,7 +8,7 @@ goal: "VS Chapter 1 Build 启动 (per ADR-030 Sprint 5-6 双 sprint commitment) 
 start: "2026-05-06"
 end: "2026-05-20"
 generated: "2026-05-06"
-updated: "2026-05-09 (Session 25 #2 — S5-1b Track A 第 2 story DONE ✅ Sprint 5 ADR-030 §VS Build commitment 第 1 项 ~75% 进度; story-001b SceneManager boot pipeline 接入 + fixture ChapterDataProvider; PlayMode R3 5/5 PASS + 22/22 asserts 1st-try; 10/10 AC PASS; M1 dual-layer spike strategy (P1-P3 production reflection + P4-P5 isolated local SceneManager) 实战首测; F4 dev-only driver in DevTestState 临时模拟 ADR-009 production 端 listener-path driver — surface architectural deficiency 待 follow-up story; R1 fix S5-01 chapter scene path 错位 (Assets/Scenes/ → Assets/AssetRaw/Scenes/ via git mv) + S5-01 evidence doc amendment 待 doc-fix; S5-01 chapter scene MainCamera 残留 AudioListener 与 main.unity 冲突 — warning-only deficiency 待 follow-up doc-fix; evidence: production/qa/playmode-bootscene-load-2026-05-09.md §10 deficiencies surface)"
+updated: "2026-05-09 (Session 25 #3 — S5-1c Track A 第 3 story DONE ✅ Sprint 5 ADR-030 §VS Build commitment 第 1 项 ~85% 进度; story-001c ADR-009 spec ↔ impl 1:1 alignment fix; SceneManager.cs +DriveTransitionAsync UniTaskVoid 自闭环 listener-path driver; DevTestState F4 dev-only stub 永久移除; ADR-009 §History 2026-05-09 dusk amendment entry; PlayMode R3 5/5 PASS + 24/24 asserts; 10/10 AC PASS; M1 dual-layer 第 2 次实战 (P1-P3 production reflection + P4-P5 isolated local SceneManager); V2-5 listener self-removal pattern 第 4 次实战 (S5-03/S5-05/S5-06/S5-1b/S5-1c); Watch List Hooks V3 Type-2(c) candidate 实战触发: sync-subscribe race after F4 stub removal (DevTestState.OnEnter 调用顺序 + spike subscribe Awake() vs Start() 时机) — Sprint 5 retro 评估 promote 为 V3 candidate Type-6 'spike subscribe race'; Phase A 清理收口 (S5-1b 尾巴) 两 commit (1a858f9 α + c0cfc20 β) clean — S5-01 evidence amendment + chapter scene MainCamera AudioListener removal; evidence: production/qa/playmode-listener-path-driver-2026-05-09.md)"
 
 # ========================================
 # Sprint 4 Final Result Reference（详见 sprint-4-retrospective.md）
@@ -840,7 +840,42 @@ sprint_5_stories:
         3. **S5-01 production gap (residual, unresolved)**: chapter scene MainCamera 留 AudioListener 与 main.unity 冲突, console 反复 warning `There are 2 audio listeners in the scene`; **待 follow-up doc-fix / S5-1c story** 删除 chapter scene MainCamera AudioListener 或 disable
       Track A pattern 第 4 次复用 (S4-01/S4-02/S4-03/S5-1b)；Sprint 5 ADR-029 V3 watch list 5/5 PASS (无新 drift type 出现, V3 #8 dp continued evolution)。
       Unlocks: S5-02 end-to-end 5 系统串通可玩 (chapter 1 boot 路径 ready)
-    notes: "S5-01 scope split 后接续 story；GameApp.Entrance: new SceneManager() + Init() + RegisterChapterDataProvider(fixture lambda) + RegisterFadeOverlay (NoOp 兜底) + Dispose 挂 Release. R3 PlayMode probe MANDATORY (framework boundary). M1 dual-layer (P1-P3 production reflection + P4-P5 isolated local). F4 driver dev-only 临时 stub 待 ADR-009 follow-up. Luban TbChapter 真接入 deferred to post-VS. Evidence: production/qa/playmode-bootscene-load-2026-05-09.md."
+    notes: "S5-01 scope split 后接续 story；GameApp.Entrance: new SceneManager() + Init() + RegisterChapterDataProvider(fixture lambda) + RegisterFadeOverlay (NoOp 兜底) + Dispose 挂 Release. R3 PlayMode probe MANDATORY (framework boundary). M1 dual-layer (P1-P3 production reflection + P4-P5 isolated local). F4 driver dev-only 临时 stub 待 ADR-009 follow-up (S5-1c). Luban TbChapter 真接入 deferred to post-VS. Evidence: production/qa/playmode-bootscene-load-2026-05-09.md."
+
+  - id: "S5-1c"
+    epic: "vs-chapter-1"
+    name: "ADR-009 production listener-path driver 接入（移除 S5-1b F4 dev-only stub）"
+    file: "production/epics/vs-chapter-1/story-001c-adr009-listener-path-driver.md"
+    priority: must-have
+    status: done
+    owner: "AI"
+    complexity_points: 2
+    type: Logic / Integration (production C# 修改 SceneManager + 移除 DevTestState dev stub)
+    depends_on: ["S5-1b ✅ DONE", "S3-01..03 ✅ CORE PASSED", "S2-05/S2-07 ✅", "ADR-009 §Decision line 386 + ADR-029 V2.0 R3"]
+    blocker: ""
+    completed: "2026-05-09"
+    evidence: "production/qa/playmode-listener-path-driver-2026-05-09.md"
+    closure_summary: |
+      Sprint 5 Track A 第 3 story DONE 2026-05-09 — ADR-009 spec ↔ impl 1:1 对齐 + F4 dev-only stub 永久移除 + ADR-030 §VS Build Commitment 第 1 项 ~85% 进度（剩 S5-02 end-to-end 5 系统串通）。
+      Production code 改动：
+        - SceneManager.cs: +1 private method `DriveTransitionAsync(int targetChapterId) : UniTaskVoid`（async-void listener pattern: try { await BeginTransitionAsync(targetChapterId); } catch (Exception ex) { Log.Error($"[Scene] DriveTransitionAsync failed: {ex}"); }）。`OnRequestSceneChange` handler line ~351 在 `TransitionTo(SceneManagerState.TransitionOut);` 后加 `DriveTransitionAsync(targetChapterId).Forget();` tail。`DrainPending` line ~388 同协议加 `DriveTransitionAsync(next).Forget();` tail。原 line 345 inline comment "// Story 002 接管后续 11 步流程" placeholder 移除。
+        - DevTestState.cs: 删除 `DriveProductionSceneTransitionAsync(targetChapterId, delayMs)` 方法（~28 lines reflection-based F4 stub）+ 删除 `using System.Reflection;` + `OnEnter` 调用顺序调整为 `DevBootstrap.RunRequested()` → `OnRequestSceneChange(1)`（解决 sync-subscribe race，详 Watch List Hooks）。
+      ADR-009 §History 添加 2026-05-09 dusk entry: "Implementation alignment fix (story-001c) ... No spec changes — 仅 implementation 补齐"。
+      Spike: Assets/GameScripts/HotFix/GameLogic/DevTest/Spikes/S5-1c_ListenerPathDriver.cs（1 file + 3 inner class per S5-1b precedent；M1 dual-layer strategy reuse）。
+      M1 dual-layer 策略：
+        - P1 listener-path first-boot ✅ — production reflection (GameApp._sceneManager) + listener subscribe in `S51cRuntime.Awake()` 抢在 `OnRequestSceneChange(1)` 同步 dispatch 前 + capture 8 lifecycle event sequence (TransitionBegin→UnloadBegin/skip→LoadProgress×N→LoadComplete→SceneReady→TransitionEnd)
+        - P2 in-flight dedupe ✅ — production reflection (P1 後再 OnRequestSceneChange(1) → guard (b) inflight match → Log.Info "ignored, target=1, inflight=1")
+        - P3 unknown chapter fail-loud ✅ — production reflection (P2 后 OnRequestSceneChange(99) → SceneManager.TryResolveOrFail Log.Warning + OnSceneLoadFailed dispatch + state=Error)
+        - P4 Error state drop + RecoverToIdle ✅ — isolated local SceneManager + LoadChapterSceneAsync(bad-asset) → Log.Error + state=Error → 后续 OnRequestSceneChange(1) silent drop guard (a) → RecoverToIdleForTest() → 二次 OnRequestSceneChange(1) 正常驱动 11 步
+        - P5 listener self-removal × 5 cycles ✅ — isolated local SceneManager + 5× (Init+Subscribe / Trigger+Wait / Shutdown+Unsubscribe) 无 leak（V2-5 第 4 次实战 S5-03/S5-05/S5-06/S5-1c）
+      AC matrix: 10/10 PASS（详 evidence §4）
+      R3 PlayMode 5/5 case PASS / 24/24 asserts PASS (after 1 sync-subscribe race iteration fix)
+      Console: 0 unexpected error（P3 expected `Log.Warning` "TryResolveOrFail" + P4(a) expected `Log.Error` "bad-asset" 用 LogAssert.Expect 标记）
+      JSON evidence: ~/Library/Application Support/<company>/<product>/S5-1c_Result.json all_passed=true
+      Watch List Hooks: V3 Type-2(c) candidate 实战触发 — sync-subscribe race after F4 stub removal (DevTestState.OnEnter 调用顺序 + spike subscribe 时机从 Start() 上调到 Awake()；详 evidence §6 + story §ADR-029 V3 Watch List Hooks)。Sprint 5 retro action item: 评估是否 promote 为 V3 candidate Type-6 "spike subscribe race"。
+      Track A pattern 第 5 次复用 (S4-01/S4-02/S4-03/S5-1b/S5-1c)；Sprint 5 ADR-029 V3 watch list 5/5 PASS（V3 #8 dp continued evolution；新数据点 V3 candidate Type-6 spike subscribe race）。
+      Unlocks: S5-02 end-to-end 5 系统串通可玩（main menu trigger / chapter button → OnRequestSceneChange → 自驱 11 步；F4 stub 已永久移除）
+    notes: "ADR-009 spec ↔ impl alignment fix — SceneManager.OnRequestSceneChange handler line 345 inline placeholder '// Story 002 接管后续 11 步流程' 填补。改动：SceneManager.cs +1 method (DriveTransitionAsync UniTaskVoid) + OnRequestSceneChange + DrainPending 各加 1 行 .Forget() tail；DevTestState.cs 移除 DriveProductionSceneTransitionAsync method + reflection 逻辑 + OnEnter 调用顺序调整 (RunRequested 先、OnRequestSceneChange 后) 修复 sync-subscribe race；ADR-009 §History 加 1 条 implementation alignment entry (不改 §Decision 主体)。架构方案 [A] SceneManager 自闭环 (per 2026-05-09 user 决策；方案 B GameFlow FSM + 方案 C GameApp listener rejected — 协议位置不自然)。R3 PlayMode probe 5 case (新建 spike S5-1c_ListenerPathDriver.cs 1 文件 3 内类 per S5-1b precedent): P1 listener-path first-boot / P2 in-flight dedupe / P3 unknown chapter fail-loud / P4 Error state drop + RecoverToIdle / P5 listener self-removal × 5 cycles (V2-5 第 4 次实战累计 S5-03/S5-05/S5-06/S5-1b/S5-1c)。Sprint 5 ADR-030 §VS Build commitment 第 1 项 ~85% (S5-1c done 后)；S5-02 启动前 cleanup ready让 main menu trigger / chapter button 走 clean production driver。Mode-aware ratio actual: ~实际 2-3h workshift (impl ~45min + sync-subscribe race fix ~30min + PlayMode probe ~30min + ADR amend ~10min + docs ~30min)。Watch List Hooks V3 Type-2(c) candidate 实战触发: sync-subscribe race after F4 stub removal — Sprint 5 retro 评估 promote。Evidence: production/qa/playmode-listener-path-driver-2026-05-09.md."
 
   - id: "S5-02"
     epic: "(vs-chapter-1)"

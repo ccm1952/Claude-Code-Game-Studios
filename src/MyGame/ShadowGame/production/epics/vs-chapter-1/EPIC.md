@@ -18,8 +18,8 @@
 > - **ADR-029 V2.0** (R1/R2/R3 readiness gate)
 >
 > **Engine Risk**: LOW (所有依赖 framework 已实施；本 epic 主要是 asset + integration 工作)
-> **Status**: In-Progress (Sprint 5; 2026-05-09 scope split discussion 完成)
-> **Stories**: 2 stories (S5-01 scene asset + S5-1b boot integration)；S5-02 end-to-end 不在本 epic dir
+> **Status**: In-Progress (Sprint 5; story-001 ✅ DONE 2026-05-09 + story-001b ✅ DONE 2026-05-09 + story-001c ✅ DONE 2026-05-09 spec ↔ impl alignment fix)
+> **Stories**: 3 stories (S5-01 scene asset ✅ + S5-1b boot integration ✅ + S5-1c listener-path driver fix ✅)；S5-02 end-to-end 不在本 epic dir
 
 ---
 
@@ -27,8 +27,9 @@
 
 | Story | Title | Type | Status | SP |
 |-------|-------|------|--------|----|
-| [story-001](story-001-scene-build.md) | Chapter 1 (靠近) Unity scene 实体构建首版 | Asset | Ready | 3 |
-| story-001b *(file 待 readiness 时创建)* | SceneManager boot pipeline 接入 + fixture ChapterDataProvider | Logic / Integration | Backlog | 3 |
+| [story-001](story-001-scene-build.md) | Chapter 1 (靠近) Unity scene 实体构建首版 | Asset | ✅ Done 2026-05-09 | 3 |
+| [story-001b](story-001b-scenemanager-boot-integration.md) | SceneManager boot pipeline 接入 + fixture ChapterDataProvider | Logic / Integration | ✅ Done 2026-05-09 | 3 |
+| [story-001c](story-001c-adr009-listener-path-driver.md) | ADR-009 production listener-path driver 接入（移除 S5-1b F4 dev-only stub）| Logic / Integration | ✅ Done 2026-05-09 | 2 |
 
 ---
 
@@ -73,20 +74,23 @@ S5-02 端到端串通 5 个 P1 系统使用本 epic 提供的 scene + boot 接�
 | TR-puzzle-001 | 第一章不引入光源操作 (shadow-puzzle-system line 42) | (Design constraint) | story-001 |
 | TR-narr-trigger-stub | Chapter 1 ≥1 narrative trigger zone stub (sprint-status notes) | ADR-016 ⚠️ stub only | story-001 |
 | TR-scene-load-fixture | fixture ChapterDataProvider 在 boot pipeline 注册；LoadChapterSceneAsync(1) 可成功执行 | ADR-009 + ADR-007 ⚠️ deficiency-flagged | story-001b |
+| TR-scene-listener-driver | OnRequestSceneChange handler internal driver 闭环 — orchestrate 11-step internally per ADR-009 §Decision line 386 | ADR-009 ⚠️ deficiency-flagged | story-001c |
 
-> **2026-05-09 readiness doc-fix**: 原表内 `TR-scene-015` (`_chapterDataProvider` 注入) 与 `tr-registry.yaml:576` 实际 requirement (`Emotional weight scales fade duration`) 语义不符；改用 TR-scene-001 / TR-scene-005 / TR-scene-013 真实贴合 boot pipeline 接入工作。`TR-scene-load-fixture` 仍未在 registry 注册，按 ADR-029 V2.0 deficiency-flag 协议显式标记，待下次 `/architecture-review` 落册。
+> **2026-05-09 readiness doc-fix**: 原表内 `TR-scene-015` (`_chapterDataProvider` 注入) 与 `tr-registry.yaml:576` 实际 requirement (`Emotional weight scales fade duration`) 语义不符；改用 TR-scene-001 / TR-scene-005 / TR-scene-013 真实贴合 boot pipeline 接入工作。`TR-scene-load-fixture` 与 `TR-scene-listener-driver` 仍未在 registry 注册，按 ADR-029 V2.0 deficiency-flag 协议显式标记，待下次 `/architecture-review` 落册。
 
 ---
 
 ## Sprint 5 Schedule
 
-- **story-001** (S5-01): Sprint 5 (5-06~5-20) — 当前 sprint，即将进入 dev
-- **story-001b** (S5-1b): Sprint 5 (5-06~5-20) — story-001 完成后立即接，**S5-02 端到端启动的硬阻塞**
+- **story-001** (S5-01): ✅ Done 2026-05-09 — chapter scene 实体构建首版 8/8 AC PASS
+- **story-001b** (S5-1b): ✅ Done 2026-05-09 — SceneManager boot pipeline 接入 + 5/5 R3 PASS + 22/22 asserts；F4 dev-only stub temporarily in DevTestState（待 story-001c 移除）
+- **story-001c** (S5-1c): ✅ Done 2026-05-09 — ADR-009 spec ↔ impl alignment fix；SceneManager.OnRequestSceneChange 内置 DriveTransitionAsync(targetChapterId).Forget() 自闭环 listener；F4 dev-only stub in DevTestState 永久移除；ADR-009 §History 加 1 条 amendment entry；R3 PlayMode 5/5 PASS + 24/24 asserts；S5-02 启动前 cleanup 完成
 
 ### 风险
 
 | 风险 | 缓解 |
 |------|------|
-| story-001 unity-mcp batch 中途 Bridge disconnect | failFast=true + 单 batch ≤25 commands 拆分；如 Bridge 中断手动重启后续跑 |
-| story-001b R3 PlayMode probe 暴露 framework boundary drift | per ADR-029 V2.0 V2-5；如出现 capture 为新 R3 case + 沉淀 problem memo |
-| Luban TbChapter post-VS 接入时 fixture provider migration cost | story-001b 设计时 fixture provider 用 Func\<int, ChapterData\> 同 Luban 真接入签名；migration 仅替换一行 lambda |
+| story-001 unity-mcp batch 中途 Bridge disconnect | failFast=true + 单 batch ≤25 commands 拆分；如 Bridge 中断手动重启后续跑（已 mitigated, story-001 ✅） |
+| story-001b R3 PlayMode probe 暴露 framework boundary drift | per ADR-029 V2.0 V2-5；如出现 capture 为新 R3 case + 沉淀 problem memo（已 mitigated, S5-1b ✅ + 3 deficiency surfaced：ADR-009 driver gap → story-001c / S5-01 path 错位 ✅ resolved / S5-01 AudioListener residual ✅ resolved by Phase A2）|
+| Luban TbChapter post-VS 接入时 fixture provider migration cost | story-001b fixture provider 用 Func\<int, ChapterData\> 同 Luban 真接入签名；migration 仅替换一行 lambda（仍待 post-VS） |
+| story-001c async void listener handler 异常逃逸到 Unity log | 与项目内 IInputBlockerEvent / ISettingsEvent / IAudioEvent 现有 listener 模式一致；BeginTransitionAsync 内部已 fail-loud 协议（state=Error + OnSceneLoadFailed）；story-001c DriveTransitionAsync catch 仅兜底；统一 review 留 Sprint 5/6 retro |
