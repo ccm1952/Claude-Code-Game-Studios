@@ -12,11 +12,16 @@
 ## 连接与基础信息
 
 ```
-MCP 服务端地址：http://localhost:8080/mcp
-Unity Editor 中：Window > MCP for Unity > Start Bridge
+MCP 服务端地址：http://localhost:8888/mcp（本工程端口；CoplayDev 默认 8080，本工程在 MCP for Unity 面板改成 8888）
+Unity Editor 中：Window > MCP for Unity > Start Server
+Cursor 端 server 名：user-unityMCP（来自 ~/.cursor/mcp.json，user-global 配置）
 ```
 
 **连接确认**：每次操作前无需显式 ping，直接调用工具即可。工具调用失败时再检查连接状态。
+
+**首次启动报错排查**：
+- `ImportError: Using SOCKS proxy, but the 'socksio' package is not installed.` → 你的 shell 配了 `all_proxy=socks5://...`，fastmcp 自检 banner 触发 httpx 走 SOCKS handler；解决方案：在 `~/.zshrc` 加 `export FASTMCP_CHECK_FOR_UPDATES=off` 关闭 fastmcp 版本自检，重开终端后再 Start Server（详见 `/.claude/memory/problem_2026-05-09_unity-bridge-to-coplaydev-switch.md`）。
+- `Address already in use: 8888` → 端口被旧 Unity 实例占用；停止旧实例的 server 或在 MCP for Unity 面板改另一端口，并同步更新 `~/.cursor/mcp.json` 里 `unityMCP.url`。
 
 ---
 

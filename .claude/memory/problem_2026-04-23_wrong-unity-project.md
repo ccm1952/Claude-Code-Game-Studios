@@ -85,3 +85,29 @@ macOS 上多个 Unity Editor 进程共享 `~/Library/Logs/Unity/Editor.log`，�
 1. **MCP 写操作前的项目指纹校验**（规则层面）
 2. **只读优先原则**：MCP 操作永远先用 `gameobject-find` / `scene-list-opened` 等只读工具探测，确认项目正确后再用写操作
 3. **明确 MCP server 命名语义边界**：`project-0-MyGameStudio-unity-bridge` 命名只表达"项目作用域配置"，**不保证**当前 Unity 进程匹配该项目
+
+---
+
+## 补注（2026-05-09）：unity-bridge → CoplayDev/unity-mcp 切换后本文档的状态
+
+> 本节由 2026-05-09 切换 MCP 工具链时追加。原文保留作为 historical record，但部分**机制细节已不再适用**。
+
+### 仍然适用 ✅
+
+- **核心教训**："MCP server 名 不等于 实际绑定的 Unity 项目" 这一原则**完全适用** CoplayDev/unity-mcp，且在 v9.6.x 多实例支持下**比当年更复杂**：
+  - 旧 unity-bridge 单实例：靠 Package 安装与否间接判断
+  - 新 CoplayDev 多实例：多个 Unity Editor 都装了 `com.coplaydev.unity-mcp` 时，HTTP server 按 connection order 路由，`mcpforunity://instances` resource + `set_active_instance` tool + per-call `unity_instance` 参数才是稳态解
+- **`-projectpath` 不可信**：log 文件被多 Unity 进程共享导致截断的问题与 MCP Package 无关，机制不变。
+- **写操作前 read-only 探测**：依然适用，只是工具名换了（`gameobject-find` → `find_gameobjects`，`scene-list-opened` → `manage_scene action=get_loaded_scenes`，`script-read` → `mcpforunity://scene/gameobject/{id}/components` resource 或 `read_console`）。
+
+### 已不适用 ❌
+
+- **静态 grep `com.aibridge.unity` 校验法**：本工程 2026-05-09 起切换到 `com.coplaydev.unity-mcp`，`com.aibridge.unity` 已从 `Packages/manifest.json` 删除，旧 grep 命令永远返回空。新校验首选改为**运行时直证**：调 `manage_scene action=get_active` 看 `data.path`，或 `mcpforunity://project_info` resource 看 `dataPath`。
+- **`script-read` 工具**：CoplayDev 没有这个工具名，等价物是 `mcpforunity://scene/gameobject/{id}/components` resource（读组件） + `find_in_file` tool（读脚本内容）。
+- **`FileBridgePoller` 描述**：CoplayDev 用 HTTP server（默认 8080，本工程 8888）+ fastmcp client 而不是文件轮询。
+
+### 当前权威协议位置
+
+- 校验协议本体：`src/MyGame/ShadowGame/CLAUDE.md` §"MCP 绑定项目归属校验" 段（2026-05-09 重写后版本）
+- 镜像位置：`.cursor/rules/shadowgame-tengine.mdc`、`src/MyGame/ShadowGame/AGENTS.md`
+- 切换 lessons：`.claude/memory/problem_2026-05-09_unity-bridge-to-coplaydev-switch.md`

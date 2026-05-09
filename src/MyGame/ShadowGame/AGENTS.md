@@ -63,11 +63,12 @@ wiki 查询: [主题 A, 主题 B] （Cursor 模式：降级为 SemanticSearch）
 - **必须**先读 [`.claude/skills/tengine-dev/references/unity-mcp-guide.md`](.claude/skills/tengine-dev/references/unity-mcp-guide.md) 评估 `scene-*` / `gameobject-*` / `gameobject-component-*` / `script-*` / `assets-*` 等工具的自动化可能性
 - 仅当 unity-mcp Bridge 不可用（MCP 状态错误 / 用户未开启 Bridge）时，才降级为**明确标注降级原因**的手动操作指南
 - **写操作前必须做「MCP 绑定项目归属校验」**（按优先级）：
-  1. 首选：`grep "com.aibridge.unity" src/MyGame/ShadowGame/Packages/manifest.json`（只有装了 Bridge 的项目绑定 MCP）
-  2. 次选：`script-read` 读 ShadowGame 独有文件确认能取到
-  3. 🚫 不可信：`~/Library/Logs/Unity/Editor.log` 的 `-projectpath`（多 Unity 实例时会被覆盖）
+  1. 首选（运行时直证）：调 `manage_scene action=get_active` 看 `data.path` 是 `Assets/Scenes/...`；或调 `mcpforunity://project_info` 看 `dataPath` 是否含 `MyGameStudio/src/MyGame/ShadowGame/Assets`
+  2. 次选（静态预证）：`grep "com.coplaydev.unity-mcp" src/MyGame/ShadowGame/Packages/manifest.json`（只有装了这个 Package 的项目才能起 MCP HTTP server）
+  3. 多实例处理：调 `mcpforunity://instances` + `set_active_instance` 锁定，或在每次工具调用上加 `unity_instance="ShadowGame@<hash前缀>"` 参数 per-call 路由
+  4. 🚫 不可信：`~/Library/Logs/Unity/Editor.log` 的 `-projectpath`（多 Unity 实例时会被覆盖）
 
-  MCP server 名 `project-0-MyGameStudio-unity-bridge` **不保证**绑定 ShadowGame，实际绑定的是**装了 `com.aibridge.unity` Package 的 Unity 进程**。详见 [`/.claude/memory/problem_2026-04-23_wrong-unity-project.md`](../../../.claude/memory/problem_2026-04-23_wrong-unity-project.md)
+  Cursor 端 MCP server 名 `user-unityMCP`（user-global config）**不绑定到任何特定 Unity 项目**——MCP HTTP server (端口 8888) 只能由当时打开了具体项目的 Unity Editor 实例启动；多实例并存时按 connection order 路由。详见 [`/.claude/memory/problem_2026-04-23_wrong-unity-project.md`](../../../.claude/memory/problem_2026-04-23_wrong-unity-project.md)（旧 unity-bridge 多实例 race 历史）+ [`/.claude/memory/problem_2026-05-09_unity-bridge-to-coplaydev-switch.md`](../../../.claude/memory/problem_2026-05-09_unity-bridge-to-coplaydev-switch.md)（2026-05-09 切换 lessons）
 
 ---
 

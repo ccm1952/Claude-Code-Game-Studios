@@ -63,25 +63,26 @@ TEngine 基于 HybridCLR + YooAsset + UniTask + Luban 构建。
    未读: [说明为何跳过某些 reference]
    ```
 
-3. **涉及 Editor 资产操作时**：禁止生成"让用户手动在 Unity Editor 里操作"的步骤，必须优先评估 unity-mcp 自动化可能性（读 `unity-mcp-guide.md`）。仅当 unity-mcp Bridge 不可用（MCP 状态错误或用户未开启 Bridge）时才降级为手动操作指南。
+3. **涉及 Editor 资产操作时**：禁止生成"让用户手动在 Unity Editor 里操作"的步骤，必须优先评估 unity-mcp 自动化可能性（读 `unity-mcp-guide.md`）。仅当 unity-mcp HTTP server 不可用（Unity Editor 未启动 / `Window > MCP for Unity > Start Server` 未点 / HTTP 8888 端口被占 / fastmcp 启动报错等）时才降级为**明确标注降级原因**的手动操作指南。
 
-4. **MCP 绑定项目归属校验（涉及 Editor 写操作时 MUST）**：在调用**任何有副作用**的 unity-mcp 工具（`scene-create` / `scene-save` / `gameobject-create` / `gameobject-destroy` / `gameobject-component-add` / `assets-*`（除 `assets-find` / `assets-refresh`）/ `editor-application-set-state isPlaying=true` / `script-update-or-create` / `script-delete` 等）之前，**必须先校验 MCP 绑定的 Unity Editor 进程打开的项目是否为 ShadowGame**。
+4. **MCP 绑定项目归属校验（涉及 Editor 写操作时 MUST）**：在调用**任何有副作用**的 unity-mcp 工具（`manage_scene action=create/save/load` / `manage_gameobject action=create/modify/delete/duplicate` / `manage_components action=add/remove/set_property` / `manage_material` 写操作 / `manage_editor action=play/pause/stop/add_tag/remove_tag/add_layer/remove_layer/deploy_package` / `create_script` / `delete_script` / `script_apply_edits` / `assets-*` 写操作等）之前，**必须先校验 user-unityMCP 当前路由到的 Unity Editor 实例打开的项目是否为 ShadowGame**。
 
    **校验方法优先级**（越靠前越可信）：
 
-   1. ⭐ **首选**：检查 `Packages/manifest.json` — `grep "com.aibridge.unity" src/MyGame/ShadowGame/Packages/manifest.json`，**只有装了 Bridge 的项目才运行 MCP Bridge**。多 Unity 实例并存时看哪个项目装了这个 Package
-   2. ⭐ **次选**：`script-read` 读一个 ShadowGame 独有的文件（如 `Assets/GameScripts/HotFix/GameLogic/Input/InputBlocker.cs`），能读到且内容匹配 → 绑定正确
-   3. 🚫 **不可信**：`~/Library/Logs/Unity/Editor.log` 的 `-projectpath` — macOS 上多个 Unity 进程共享这一个 log 文件，后启动的进程会截断前者的日志。该参数**只反映最新启动的进程**，**不反映** MCP 绑定的进程
+   1. ⭐ **首选（运行时直证）**：调 `manage_scene action=get_active`（read-only），看返回 `data.path` 是否 `Assets/Scenes/...`；或调 `mcpforunity://project_info` resource 看 `dataPath` 是否含 `MyGameStudio/src/MyGame/ShadowGame/Assets`。一次 round-trip ~100ms，最直接最准。
+   2. ⭐ **次选（静态预证）**：`grep "com.coplaydev.unity-mcp" src/MyGame/ShadowGame/Packages/manifest.json` —— 只有装了这个 Package 的项目才能在 Unity Editor 里启动 MCP for Unity HTTP server；如未装，server 根本起不来，不会有 connectivity。
+   3. ⭐ **多实例处理（多 Unity Editor 同时运行时）**：先调 `mcpforunity://instances` 列出活动实例（返回 `Name@hash` 列表），然后用 `set_active_instance` 锁定 ShadowGame 实例为整 session 默认路由；或在每个工具调用上加 `unity_instance="ShadowGame@<hash前缀>"` 参数显式 per-call 路由（per CoplayDev v9.6 multi-instance 协议）。多实例并存且无路由设置时，server 会报错"multiple instances connected"。
+   4. 🚫 **不可信**：`~/Library/Logs/Unity/Editor.log` 的 `-projectpath` —— macOS 上多个 Unity 进程共享这一个 log 文件，后启动的进程会截断前者的日志。该参数**只反映最新启动的进程**，**不反映** MCP 当前路由的实例。
 
    **匹配结论处理**：
    - ✅ 匹配 → 继续执行
-   - ❌ 不匹配 → **立即停止所有写操作**，告知用户 "MCP 绑定的 Unity 项目不是 ShadowGame，请在 Unity Hub 中切换项目（或把 Bridge Package 装到 ShadowGame 项目）"，等用户切换后重新校验，禁止绕过
+   - ❌ 不匹配 → **立即停止所有写操作**，告知用户 "MCP 当前路由到的 Unity 实例不是 ShadowGame（首选校验返回 dataPath=`<value>`），请在 Unity Hub 中切换项目（或把 com.coplaydev.unity-mcp Package 装到 ShadowGame 项目并 Start Server）"，等用户切换后重新校验，禁止绕过
 
-   > 警示：`project-0-MyGameStudio-unity-bridge` 这个 MCP server 命名只是 Cursor 层面的 project-scoped 标识符，**不保证**当前 Unity 进程匹配该项目。MCP Bridge 绑定的是**装了 `com.aibridge.unity` Package 并运行中的 Unity Editor 进程**。详见 `/.claude/memory/problem_2026-04-23_wrong-unity-project.md`。
+   > 警示：Cursor 端 MCP server 名 `user-unityMCP`（user-global config）**不绑定到任何特定 Unity 项目**——CoplayDev MCP for Unity HTTP server（本工程端口 8888）只能由当时打开了具体项目的 Unity Editor 实例启动；多个 Unity Editor 实例同时活跃时按 connection order 路由，需要 `set_active_instance` 主动锁定。详见 `/.claude/memory/problem_2026-04-23_wrong-unity-project.md`（旧 unity-bridge 时代的多 Unity 实例 race 历史）+ `/.claude/memory/problem_2026-05-09_unity-bridge-to-coplaydev-switch.md`（2026-05-09 切换 lessons）。
 
-5. **只读优先原则（涉及 MCP 时）**：MCP 操作永远**先用只读工具探测**（`gameobject-find` / `scene-list-opened` / `editor-application-get-state` / `console-get-logs` / `script-read` / `assets-find`），确认项目身份 + 场景状态正确后，再用写操作。
+5. **只读优先原则（涉及 MCP 时）**：MCP 操作永远**先用只读工具探测**（`find_gameobjects` / `manage_scene action=get_active|get_loaded_scenes|get_hierarchy|get_build_settings` / `read_console` / `mcpforunity://project_info` resource / `mcpforunity://editor_state` resource / `mcpforunity://scene/gameobject/{id}/components` resource），确认项目身份 + 场景状态正确后，再用写操作。
 
-6. **MonoBehaviour 挂载前置自检（涉及 `gameobject-component-add` 时 MUST）**：调用 MCP 添加 MonoBehaviour 组件前，必须先用 `Glob **/<类名>.cs` 确认目标类有**同名 .cs 文件**（见核心原则编码红线第 6 条）。**看到 "The associated script can not be loaded" 警告时**，优先排查顺序：① `Glob` 文件名匹配 → ② `console-get-logs` 编译错误 → ③ 命名空间冲突 → ④ 才考虑 Assembly / HybridCLR 层面问题（禁止从 ④ 开始猜）。
+6. **MonoBehaviour 挂载前置自检（涉及 `manage_components action=add` / `manage_gameobject action=create components_to_add=[...]` 时 MUST）**：调用 MCP 添加 MonoBehaviour 组件前，必须先用 `Glob **/<类名>.cs` 确认目标类有**同名 .cs 文件**（见核心原则编码红线第 6 条）。**看到 "The associated script can not be loaded" 警告时**，优先排查顺序：① `Glob` 文件名匹配 → ② `read_console` 编译错误 → ③ 命名空间冲突 → ④ 才考虑 Assembly / HybridCLR 层面问题（禁止从 ④ 开始猜）。
 
 ### 违反记录（自检机制）
 

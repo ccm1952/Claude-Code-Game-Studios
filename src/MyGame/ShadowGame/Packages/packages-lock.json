@@ -1,12 +1,5 @@
 {
   "dependencies": {
-    "com.aibridge.unity": {
-      "version": "https://github.com/butterlatte-zhang/unity-ai-bridge.git?path=Packages/com.aibridge.unity#546583b861ec5cfda0bf186897dddd7b97858522",
-      "depth": 0,
-      "source": "git",
-      "dependencies": {},
-      "hash": "546583b861ec5cfda0bf186897dddd7b97858522"
-    },
     "com.boxqkrtm.ide.cursor": {
       "version": "https://github.com/boxqkrtm/com.unity.ide.cursor.git",
       "depth": 0,
@@ -22,6 +15,16 @@
       "source": "git",
       "dependencies": {},
       "hash": "4feac30cb2e105992986c737f7f54992b8300e1a"
+    },
+    "com.coplaydev.unity-mcp": {
+      "version": "https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity#main",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {
+        "com.unity.nuget.newtonsoft-json": "3.0.2",
+        "com.unity.test-framework": "1.1.31"
+      },
+      "hash": "b92c05a25820cfc9f59ce4094eb46aaec8632ea2"
     },
     "com.cysharp.unitask": {
       "version": "file:UniTask",
