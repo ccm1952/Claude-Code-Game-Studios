@@ -20,6 +20,9 @@ public partial class GameApp
 {
     private static List<Assembly> _hotfixAssembly;
 
+    // S5-1b: SceneManager production instance (ADR-009 boot pipeline 接入；GameApp 拥有生命周期，Release 内 Dispose)。
+    private static GameLogic.SceneManager _sceneManager;
+
     /// <summary>
     /// 热更域App主入口。
     /// </summary>
@@ -36,12 +39,36 @@ public partial class GameApp
         // (per AudioModule.cs:322-326)；项目层 AudioManager 仅订阅 IAudioEvent / ISettingsEvent listeners 并 baseline framework volume。
         AudioManager.Instance.Initialize();
 
+        // S5-1b SceneManager boot pipeline 接入（ADR-009 §_chapterDataProvider 注入 + ADR-007 Luban access pattern）。
+        // fixture provider 仅 chapter 1（其余 id 返 null fail-loud，与未来 Luban TbChapter.Get 真接入行为一致）；
+        // RegisterFadeOverlay 显式注入 NoOp（即使 default fallback 也是 NoOp，显式让 wire 路径 grep-able）。
+        _sceneManager = new GameLogic.SceneManager();
+        _sceneManager.Init();
+        _sceneManager.RegisterChapterDataProvider(BuildFixtureChapterDataProvider());
+        _sceneManager.RegisterFadeOverlay(new GameLogic.NoOpFadeOverlay());
+        Log.Info("[GameApp] SceneManager production wire-up done (chapter 1 fixture provider + NoOp fade overlay)");
+
 #if UNITY_EDITOR || DEBUG
         RegisterDevSpikes();
 #endif
 
         StartGameLogic();
     }
+
+    // S5-1b fixture ChapterDataProvider — Luban TbChapter 真接入 deferred to post-VS (user decision 2026-05-09)。
+    // 签名 Func<int, ChapterData> 与未来 ConfigSystem.Tables.TbChapter.Get(id) 真接入 100% 一致；
+    // migration 仅 1 lambda swap：id => ConfigSystem.Tables.TbChapter.Get(id)。
+    private static System.Func<int, GameLogic.ChapterData> BuildFixtureChapterDataProvider() => id => id switch
+    {
+        1 => new GameLogic.ChapterData(
+            id: 1,
+            sceneId: "Chapter_01_Approach",
+            bgmAsset: string.Empty,                       // chapter 1 暂无 BGM；audio 系统 S5-02 接入
+            emotionalWeight: 1.0f,                        // ADR-009 默认值
+            overlayColor: "#3A3530"                       // art-bible.md line 53 + scene-management.md line 443
+        ),
+        _ => null                                          // 未知 id 同 Luban TbChapter.Get fail-loud 行为
+    };
 
 #if UNITY_EDITOR || DEBUG
     // Spike / 开发测试注册入口（仅 Editor / Debug 编译）。
@@ -58,7 +85,10 @@ public partial class GameApp
         // 同时调 LoadSceneAsync 会撞 YooAsset 内部 "while loading" 锁（type-3 drift 防御）。
         // S5-05 已在 Sprint 5 ✅ DONE（2026-05-08 PlayMode 10/10 PASSED — Narrative Sequence Engine R3 + V2-5），不再每次启动并发跑。
         // S5-06 已在 Sprint 5 ✅ DONE（2026-05-08 PlayMode 10/10 PASSED first-run — Audio Manager Init R3 + V2-5；evidence: production/qa/playmode-audio-mix-architecture-2026-05-08.md），不再每次启动并发跑。
-        // Sprint 5 Track B 三个 P1 ADR production code dev-stories 全部 ✅ DONE — 当前无活跃 spike（如需添加新 spike 在此 Register）。
+        // S5-1b 当前 active spike（Sprint 5 Track A）：SceneManager Boot Pipeline Integration R3 5 case；
+        //   仅本 spike 启用，其他全部注释（DevBootstrap 当前并发 Launch 所有已注册 spike，
+        //   多 spike 同时调 LoadSceneAsync 会撞 YooAsset 内部 "while loading" 锁 —— type-3 drift 防御）。
+        GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S51bSpike());
         // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.SP011Spike());
         // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S301Spike());
         // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S302Spike());
@@ -96,6 +126,15 @@ public partial class GameApp
     
     private static void Release()
     {
+        // S5-1b SceneManager Dispose 必须先于 FSM Destroy（FSM 销毁时 GameLogic listener bus 仍在；
+        // SceneManager.Dispose 内 RemoveEventListener 需要 listener bus alive）。
+        if (_sceneManager != null)
+        {
+            _sceneManager.Dispose();
+            _sceneManager = null;
+            Log.Info("[GameApp] SceneManager disposed");
+        }
+
         GameModule.Fsm.DestroyFsm<IFsmModule>(GameFlowDef.FsmName);
         SingletonSystem.Release();
         Log.Warning("======= Release GameApp =======");

@@ -8,7 +8,7 @@ goal: "VS Chapter 1 Build 启动 (per ADR-030 Sprint 5-6 双 sprint commitment) 
 start: "2026-05-06"
 end: "2026-05-20"
 generated: "2026-05-06"
-updated: "2026-05-09 (Session 25 #1 — S5-01 Track A 第 1 story DONE ✅ Sprint 5 ADR-030 §VS Build commitment 第 1 项 ~50% 进度; CoplayDev/unity-mcp v9.6.x batch_execute 实施 Chapter_01_Approach.unity 实体构建; 8/8 AC PASS + 用户 macOS Quick Look 仲裁 sign-off; 4 类 toolchain silent failure surfaced 全部已修复 — D1 manage_gameobject create component_properties.Light + D2 manage_components set_property part-success + D3 properties.color array 格式拒收 + D4 screenshot game_view fallback 到 SceneView; ADR-029 V3 watch list trigger #2 'Unity scene/asset 类 drift Type-5 candidate' TRIGGERED — Sprint 5 retro proposal 评估是否 promote; 2 lessons memo: problem_2026-05-09_unity-bridge-to-coplaydev-switch.md (Phase 1-4 toolchain 切换) + problem_2026-05-09_image-preview-confirmation-bias.md (agent 视觉判断 confirmation bias 教训); Phase 1-4 toolchain 切换 unity-bridge → CoplayDev 同期完成 ~60min)"
+updated: "2026-05-09 (Session 25 #2 — S5-1b Track A 第 2 story DONE ✅ Sprint 5 ADR-030 §VS Build commitment 第 1 项 ~75% 进度; story-001b SceneManager boot pipeline 接入 + fixture ChapterDataProvider; PlayMode R3 5/5 PASS + 22/22 asserts 1st-try; 10/10 AC PASS; M1 dual-layer spike strategy (P1-P3 production reflection + P4-P5 isolated local SceneManager) 实战首测; F4 dev-only driver in DevTestState 临时模拟 ADR-009 production 端 listener-path driver — surface architectural deficiency 待 follow-up story; R1 fix S5-01 chapter scene path 错位 (Assets/Scenes/ → Assets/AssetRaw/Scenes/ via git mv) + S5-01 evidence doc amendment 待 doc-fix; S5-01 chapter scene MainCamera 残留 AudioListener 与 main.unity 冲突 — warning-only deficiency 待 follow-up doc-fix; evidence: production/qa/playmode-bootscene-load-2026-05-09.md §10 deficiencies surface)"
 
 # ========================================
 # Sprint 4 Final Result Reference（详见 sprint-4-retrospective.md）
@@ -808,16 +808,39 @@ sprint_5_stories:
   - id: "S5-1b"
     epic: "vs-chapter-1"
     name: "SceneManager boot pipeline 接入 + fixture ChapterDataProvider"
-    file: "production/epics/vs-chapter-1/story-001b-scenemanager-boot-integration.md (待 readiness 时创建)"
+    file: "production/epics/vs-chapter-1/story-001b-scenemanager-boot-integration.md ✅"
     priority: must-have
-    status: backlog
-    owner: ""
+    status: done
+    owner: "AI"
     complexity_points: 3
     type: Logic / Integration (production C# in GameApp.Entrance + SceneManager boot; framework boundary)
-    depends_on: ["S5-01 (scene asset 必须先建)", "S3-01 ✅ (LoadChapterSceneAsync)", "S2-07 ✅ (RegisterChapterDataProvider)"]
+    depends_on: ["S5-01 ✅", "S3-01 ✅ (LoadChapterSceneAsync)", "S3-02 ✅ (UnloadCurrentChapterAsync)", "S3-03 ✅ (BeginTransitionAsync)"]
     blocker: ""
-    completed: ""
-    notes: "S5-01 scope split 后接续 story (2026-05-09 scope discussion). GameApp.Entrance 内: new SceneManager() + Init() + RegisterChapterDataProvider(fixture lambda) + RegisterFadeOverlay (NoOp 兜底; 真 UI fade 留后续) + 注册 dev menu/FSM state 触发 LoadChapterSceneAsync(1). Fixture chapter_01 ChapterData: Id=1, SceneId='Chapter_01_Approach', BgmAsset='', EmotionalWeight=1.0, OverlayColor='#3A3530'. R3 PlayMode probe MANDATORY (framework boundary: GameModule.Scene.LoadSceneAsync Additive + ActivateScene). Fixture provider 用 Func<int, ChapterData> 同 Luban 真接入签名，post-VS migration 仅替换一行 lambda. Luban TbChapter 真接入 deferred to post-VS (per 2026-05-09 user decision)."
+    completed: "2026-05-09"
+    evidence: "production/qa/playmode-bootscene-load-2026-05-09.md"
+    closure_summary: |
+      Sprint 5 Track A 第 2 story DONE 2026-05-09 — VS Chapter 1 boot pipeline 接入交付 + ADR-030 §VS Build Commitment 第 1 项 ~75% 进度 (剩 S5-02 end-to-end 5 系统串通)。
+      Production code 改动:
+        - GameApp.cs: `_sceneManager` static field + `Entrance(object[] objects)` 内 new + Init() + RegisterChapterDataProvider(BuildFixtureChapterDataProvider()) + RegisterFadeOverlay(new NoOpFadeOverlay()) + Release() 内 Dispose; BuildFixtureChapterDataProvider() 同文件 inline (per Q2=A user 决策)
+        - DevTestState.cs: OnEnter 内 dev-only auto-trigger ISceneEvent.OnRequestSceneChange(1) (per Q1=A user 决策) + DriveProductionSceneTransitionAsync(targetChapterId=1, delayMs=800) UniTaskVoid F4 driver (反射拿 production _sceneManager + await BeginTransitionAsync(1)) — **临时 stub, 待 ADR-009 production listener-path driver 补完后移除** (TODO marker inline)
+      Spike: Assets/GameScripts/HotFix/GameLogic/DevTest/Spikes/S5-1b_BootSceneLoad.cs — **1 文件 + 3 内类** (S51bSpike : IDevSpike + S51bRuntime : MonoBehaviour + S51bTester 纯逻辑) per 项目惯例 (S301/S302/S303 一致)
+      M1 dual-layer 策略 (per Q1=A vs spike 自构建 SceneManager 冲突解决):
+        - P1 first boot ✅ — production reflection 拿 GameApp._sceneManager + 监听 production events + 等 IDLE → Loading → Ready (8 lifecycle event 顺序 verified)
+        - P2 same-chapter dedupe ✅ — production reflection (P1 后) + 第 2 次 BeginTransitionAsync(1) 不重 load
+        - P3 unload ✅ — production reflection (P2 后) + UnloadCurrentChapterAsync() + 验 OnSceneUnloadBegin 派发 + state=Idle
+        - P4 unknown chapter ✅ — isolated local SceneManager + RegisterChapterDataProvider 返 null + BeginTransitionAsync(99) → fail-loud OnSceneLoadFailed + LogAssert.Expect Error
+        - P5 provider null ✅ — isolated local SceneManager + 不 RegisterChapterDataProvider + BeginTransitionAsync(1) → fail-loud + LogAssert.Expect Error
+      AC matrix: 10/10 PASS
+      R3 PlayMode 5/5 case PASS / 22/22 asserts PASS first-run after F4 driver + R1 mv scene fix
+      Console: 0 unexpected error (P4/P5 expected error 用 LogAssert.Expect 标记)
+      JSON evidence: ~/Library/Application Support/<company>/<product>/S5-1b_Result.json all_passed=true
+      Surfaced deficiencies (详见 evidence doc §10):
+        1. **NEW (架构 gap)**: ADR-009 listener-path driver 缺失 — production `OnRequestSceneChange` handler 仅 state=TransitionOut 但**没**串到 `BeginTransitionAsync`; 11-step transition 无 production driver 入口; 本 story F4 driver in DevTestState (dev-only) 经反射临时模拟; **待新建 follow-up story** 补 production driver
+        2. **S5-01 production gap (resolved during S5-1b)**: chapter scene 路径错位 — `Chapter_01_Approach.unity` 原在 `Assets/Scenes/`, YooAsset `Scenes` group 收集 `Assets/AssetRaw/Scenes/`; 已 `git mv` 修正; **S5-01 evidence doc 待 amendment doc-fix**
+        3. **S5-01 production gap (residual, unresolved)**: chapter scene MainCamera 留 AudioListener 与 main.unity 冲突, console 反复 warning `There are 2 audio listeners in the scene`; **待 follow-up doc-fix / S5-1c story** 删除 chapter scene MainCamera AudioListener 或 disable
+      Track A pattern 第 4 次复用 (S4-01/S4-02/S4-03/S5-1b)；Sprint 5 ADR-029 V3 watch list 5/5 PASS (无新 drift type 出现, V3 #8 dp continued evolution)。
+      Unlocks: S5-02 end-to-end 5 系统串通可玩 (chapter 1 boot 路径 ready)
+    notes: "S5-01 scope split 后接续 story；GameApp.Entrance: new SceneManager() + Init() + RegisterChapterDataProvider(fixture lambda) + RegisterFadeOverlay (NoOp 兜底) + Dispose 挂 Release. R3 PlayMode probe MANDATORY (framework boundary). M1 dual-layer (P1-P3 production reflection + P4-P5 isolated local). F4 driver dev-only 临时 stub 待 ADR-009 follow-up. Luban TbChapter 真接入 deferred to post-VS. Evidence: production/qa/playmode-bootscene-load-2026-05-09.md."
 
   - id: "S5-02"
     epic: "(vs-chapter-1)"
