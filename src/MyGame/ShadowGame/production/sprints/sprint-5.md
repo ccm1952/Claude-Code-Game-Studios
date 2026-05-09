@@ -15,7 +15,7 @@
 
 ## Sprint Goal
 
-**Sprint 5-6 双 sprint VS Build commitment 启动 — Sprint 5 核心目标是 chapter 1 (`外升孔`) end-to-end VS slice 实体构建首版可玩 + Sprint 4 Track A 三个 P1 ADR (014/016/017) story-001 framework 进入 production code 实施 + Sprint 3→4 carryover (S4-09/-10) promote/descope 决策落地 + S4-08 art bible sign-off 与 chapter 1 art asset 实施同步并轨**。结束 Sprint 5 后：chapter 1 应能从 splash → chapter 1 scene load → 至少 1 个 puzzle 互动 → narrative beat → audio cue → ready-for-next-chapter 端到端可玩；Sprint 6 进 ≥2 次 playtest sessions + playtest report + `/gate-check pre-production` 重跑。
+**Sprint 5-6 双 sprint VS Build commitment 启动 — Sprint 5 核心目标是 chapter 1 (`靠近`) end-to-end VS slice 实体构建首版可玩 + Sprint 4 Track A 三个 P1 ADR (014/016/017) story-001 framework 进入 production code 实施 + Sprint 3→4 carryover (S4-09/-10) promote/descope 决策落地 + S4-08 art bible sign-off 与 chapter 1 art asset 实施同步并轨**。结束 Sprint 5 后：chapter 1 应能从 splash → chapter 1 scene load → 至少 1 个 puzzle 互动 → narrative beat → audio cue → ready-for-next-chapter 端到端可玩；Sprint 6 进 ≥2 次 playtest sessions + playtest report + `/gate-check pre-production` 重跑。
 
 ---
 
@@ -64,7 +64,7 @@
 
 | ID | Story | Type | Complexity | Depends on | AC 要点 |
 |----|-------|:----:|:----------:|------------|---------|
-| **S5-01** | **Chapter 1 (`外升孔`) Unity scene 实体构建首版** + scene asset (prefab + lighting + UI) | Asset / Integration | **3 SP** | S3-01 ✅（Additive Scene Loading） + S4-01..03 ✅（framework）+ Art bible（S5-04）| chapter 1 Unity scene file ready 在 Assets/GameMain/Scenes/Chapter01.unity；含 baseline lighting setup + 投影墙面 + 至少 1 个可操作物件（per shadow-puzzle GDD MVP §单关卡 3m×3m×2.5m） + ≥1 光源 + ≥1 narrative trigger zone；scene 通过 SceneManager.LoadChapterSceneAsync 可 load |
+| **S5-01** | **Chapter 1 (`靠近`) Unity scene 实体构建首版** + scene asset (prefab + lighting + UI) | Asset / Integration | **3 SP** | S3-01 ✅（Additive Scene Loading） + S4-01..03 ✅（framework）+ Art bible（S5-04）| chapter 1 Unity scene file ready 在 Assets/GameMain/Scenes/Chapter01.unity；含 baseline lighting setup + 投影墙面 + 至少 1 个可操作物件（per shadow-puzzle GDD MVP §单关卡 3m×3m×2.5m） + ≥1 光源 + ≥1 narrative trigger zone；scene 通过 SceneManager.LoadChapterSceneAsync 可 load |
 | **S5-02** | **Chapter 1 end-to-end 5 系统串通可玩** | Integration | **3 SP** | S5-01 + S5-03/-05/-06 | end-to-end flow: Splash/MainMenu → Chapter 1 scene load → object interaction (Drag/Rotate per S2-08 ✅) → shadow match (per S5-03 puzzle production code) → narrative beat (per S5-05) → audio cue (per S5-06) → "下一章" UI button (即 transition trigger) → SceneManager.UnloadChapterSceneAsync (S3-02 ✅) → ready；至少 1 个完整 success path 可走 |
 
 #### Track B — P1 ADR Dev-Story 实施（VS chapter 1 依赖前置）
@@ -204,7 +204,7 @@ Sprint 5 dependency chain:
 ## Definition of Done for Sprint 5
 
 - [ ] Must Have 5/5 完成（S5-01..06 全）— chapter 1 端到端可玩 + 3 P1 ADR production code + art bible sign-off
-- [ ] chapter 1 (`外升孔`) Unity scene 实体构建完成；可从 splash → chapter 1 → ≥1 puzzle → narrative beat → next chapter ready 完整走通
+- [ ] chapter 1 (`靠近`) Unity scene 实体构建完成；可从 splash → chapter 1 → ≥1 puzzle → narrative beat → next chapter ready 完整走通
 - [ ] S4-01/-02/-03 三个 story-001 production code 实施 + ADR-029 V2.0 Phase 1.5 readiness PASS + R3 PlayMode probe ≥3 case PASS each
 - [ ] Should Have 至少 2/3 完成（S5-07 第 1 次 playtest + S5-08/-09 carryover decision 落地，theoretical 3/3）
 - [ ] art-bible.md Status: Draft → Accepted（S5-04 sign-off pass）
@@ -274,7 +274,7 @@ Sprint 5 dependency chain:
 
 | ADR-030 §Sprint 5-6 VS Build Commitment 项 | Sprint 5 目标 | 完成判定 |
 |---------------------------------------------|---------------|---------|
-| Chapter 1 (`外升孔`) end-to-end VS slice 实体构建 | ✅ S5-01 + S5-02 | end-to-end 可玩 |
+| Chapter 1 (`靠近`) end-to-end VS slice 实体构建 | ✅ S5-01 + S5-02 | end-to-end 可玩 |
 | Sprint 4 Track A 三系统 production code 实施 | ✅ S5-03 + S5-05 + S5-06 | R3 PlayMode probe 全 PASS |
 | ≥3 internal playtest sessions | ⏳ Sprint 5 完成 1/3（S5-07）；Sprint 6 完成 2/3 | sessions documented in `production/playtests/` |
 | Playtest report | Sprint 6 | Sprint 6 末 |

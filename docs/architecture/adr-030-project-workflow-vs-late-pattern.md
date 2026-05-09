@@ -105,7 +105,7 @@ Project actual workflow (FOUNDATION/CORE-FIRST / VS-LATE):
 
 | Item | Sprint | Owner | 验收 |
 |------|:------:|-------|------|
-| Chapter 1 (`外升孔`) end-to-end VS slice 实体构建 | Sprint 5 | Lead Programmer + GameDesigner | scene load → puzzle interaction → shadow match → narrative beat → chapter transition end-to-end 可玩 |
+| Chapter 1 (`靠近`) end-to-end VS slice 实体构建 | Sprint 5 | Lead Programmer + GameDesigner | scene load → puzzle interaction → shadow match → narrative beat → chapter transition end-to-end 可玩 |
 | Sprint 4 Track A 三系统 (Puzzle / Narrative / Audio) production code 实施 | Sprint 5 | Lead Programmer | per Sprint 4 framework stories (S4-01/-02/-03 story-001 各)；R3 PlayMode probe 全 PASS |
 | ≥3 internal playtest sessions | Sprint 5-6 | Producer + GameDesigner | sessions documented in `production/playtests/`；Core loop fun validated |
 | Playtest report | Sprint 6 | Producer | `production/playtests/playtest-vs-chapter-1-2026-XX-XX.md`；含 player journey 反馈 + adjustment recommendations |
@@ -203,7 +203,7 @@ Project actual workflow (FOUNDATION/CORE-FIRST / VS-LATE):
 
 1. Sprint 5 plan 起草时 explicit reference 本 ADR 的 VS Build commitment
 2. Track A 实际实施 (S4-01/-02/-03 story-001 production code + tests)
-3. chapter 1 (`外升孔`) VS slice 实体构建 — scene load → puzzle → shadow match → narrative → audio → chapter transition
+3. chapter 1 (`靠近`) VS slice 实体构建 — scene load → puzzle → shadow match → narrative → audio → chapter transition
 4. 第一 playtest session 立即跑（不等 build "完美"）
 5. Sprint 5 retro 反馈 fun loop validation 数据
 

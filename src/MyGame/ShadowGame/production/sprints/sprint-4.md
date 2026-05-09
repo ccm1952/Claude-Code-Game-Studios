@@ -184,7 +184,7 @@ Track B (carryover) - 与 Track A 并行：
 ## Sprint 4 主题候选 → Sprint 5 衔接
 
 完成 Sprint 4 后，Sprint 5 起 **Vertical Slice Build (chapter 1 端到端)**：
-- 选 chapter 1 (`外升孔`) 作为 VS slice
+- 选 chapter 1 (`靠近`) 作为 VS slice
 - 串通：scene load (S3 完成) → object interaction & rotation (S2 完成) → shadow match (Sprint 4 ADR-014 ready) → narrative beat (Sprint 4 ADR-016 ready) → audio (Sprint 4 ADR-017 ready) → chapter transition (S3 完成)
 - ≥3 internal playtest sessions
 - Playtest report 写入 `production/playtests/`

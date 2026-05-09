@@ -4,7 +4,7 @@
 # Historical Sprint 1/2 stories archived in sprint-1/-2-retrospective.md
 
 sprint: 5
-goal: "VS Chapter 1 Build 启动 (per ADR-030 Sprint 5-6 双 sprint commitment) — chapter 1 (`外升孔`) end-to-end VS slice 实体构建首版可玩 + Sprint 4 Track A 三个 P1 ADR (014/016/017) story-001 framework 进入 production code 实施 + Sprint 3→4 carryover (S5-08/-09) promote/descope 决策落地 + S5-04 art bible sign-off 与 chapter 1 art asset 实施同步并轨"
+goal: "VS Chapter 1 Build 启动 (per ADR-030 Sprint 5-6 双 sprint commitment) — chapter 1 (`靠近`) end-to-end VS slice 实体构建首版可玩 + Sprint 4 Track A 三个 P1 ADR (014/016/017) story-001 framework 进入 production code 实施 + Sprint 3→4 carryover (S5-08/-09) promote/descope 决策落地 + S5-04 art bible sign-off 与 chapter 1 art asset 实施同步并轨"
 start: "2026-05-06"
 end: "2026-05-20"
 generated: "2026-05-06"
@@ -766,18 +766,32 @@ tech_debt_metric:
 sprint_5_stories:
   # Must Have — Track A: VS Chapter 1 Build (Critical Path)
   - id: "S5-01"
-    epic: "(vs-chapter-1)"
-    name: "Chapter 1 (外升孔) Unity scene 实体构建首版 + scene asset"
-    file: "Assets/GameMain/Scenes/Chapter01.unity (待创建) + production/epics/vs-chapter-1/story-001-scene-build.md (待创建)"
+    epic: "vs-chapter-1"
+    name: "Chapter 1 (靠近) Unity scene 实体构建首版"
+    file: "Assets/Scenes/Chapter_01_Approach.unity (待创建) + production/epics/vs-chapter-1/story-001-scene-build.md ✅"
     priority: must-have
     status: ready-for-dev
     owner: ""
     complexity_points: 3
-    type: Asset / Integration (Unity Editor manual + asset workflow)
-    depends_on: ["S3-01 ✅ (LoadChapterSceneAsync)", "S4-01..03 ✅ (frameworks)", "S5-04 art bible (placeholder OK 起步)"]
+    type: Asset (Unity Editor scene + lighting + material + GameObject hierarchy via unity-mcp batch_execute)
+    depends_on: ["S3-01 ✅ (LoadChapterSceneAsync; 仅 scope reference 不真调)", "S4-01..03 ✅ (frameworks; 仅 scope reference)", "S5-04 art bible (placeholder OK 起步)"]
     blocker: ""
     completed: ""
-    notes: "Chapter 1 Unity scene file at Assets/GameMain/Scenes/Chapter01.unity；含 baseline lighting + 投影墙面 + ≥1 可操作物件 + ≥1 光源 + ≥1 narrative trigger zone；通过 SceneManager.LoadChapterSceneAsync 可 load；ADR-030 Sprint 5-6 VS Build commitment 第 1 项；mode-aware ratio: 30-50 min/SP (实体 Unity scene work)"
+    notes: "Sprint 5 scope split 2026-05-09: S5-01 仅 scene 实体（layout/lighting/material/物件/光源/trigger stub），不接 SceneManager production boot；boot pipeline 接入留 S5-1b。GDD 严格 content：2 可操作物件 + 1 固定光源（per concept.md line 106 + object-interaction.md line 86 严格约束，不是 ≥1）+ 投影墙面 + baseline lighting + 1 narrative trigger zone stub；色温 4000-4500K + 主背景 #3A3530（art-bible line 53）；URP/Lit placeholder material（待 S5-04 sign-off polish）。AC-7 担保 0 production C# diff；R3 N/A reasoned (Asset type; framework boundary probe propagated 到 S5-1b)。unity-mcp batch_execute 全自动 6 batches (per mdc rule §unity-mcp 优先)。ADR-030 §VS Build Commitment 第 1 项；mode-aware ratio: 30-50 min/SP."
+
+  - id: "S5-1b"
+    epic: "vs-chapter-1"
+    name: "SceneManager boot pipeline 接入 + fixture ChapterDataProvider"
+    file: "production/epics/vs-chapter-1/story-001b-scenemanager-boot-integration.md (待 readiness 时创建)"
+    priority: must-have
+    status: backlog
+    owner: ""
+    complexity_points: 3
+    type: Logic / Integration (production C# in GameApp.Entrance + SceneManager boot; framework boundary)
+    depends_on: ["S5-01 (scene asset 必须先建)", "S3-01 ✅ (LoadChapterSceneAsync)", "S2-07 ✅ (RegisterChapterDataProvider)"]
+    blocker: ""
+    completed: ""
+    notes: "S5-01 scope split 后接续 story (2026-05-09 scope discussion). GameApp.Entrance 内: new SceneManager() + Init() + RegisterChapterDataProvider(fixture lambda) + RegisterFadeOverlay (NoOp 兜底; 真 UI fade 留后续) + 注册 dev menu/FSM state 触发 LoadChapterSceneAsync(1). Fixture chapter_01 ChapterData: Id=1, SceneId='Chapter_01_Approach', BgmAsset='', EmotionalWeight=1.0, OverlayColor='#3A3530'. R3 PlayMode probe MANDATORY (framework boundary: GameModule.Scene.LoadSceneAsync Additive + ActivateScene). Fixture provider 用 Func<int, ChapterData> 同 Luban 真接入签名，post-VS migration 仅替换一行 lambda. Luban TbChapter 真接入 deferred to post-VS (per 2026-05-09 user decision)."
 
   - id: "S5-02"
     epic: "(vs-chapter-1)"

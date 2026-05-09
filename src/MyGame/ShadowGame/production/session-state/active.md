@@ -1,8 +1,21 @@
 # ShadowGame — Session State
 
-> Last updated: 2026-04-30 dusk (session 21 / **Sprint 3 Must Have 4/4 ✅ + Lite propagation v2 ✅ + ADR-029 V2.0 ✅ Accepted — S3-04+S3-01+S3-02+S3-03 全部 DONE；ADR-027 §5 框 knowledge fact 单点覆盖 17 stories；ADR-029 升 V1.0→V2.0 backward-compatible major revision (§Decision V2.0 7 sections: R1/R2/R3 继承 + Drift Types V2 拆 Type-2 a/b/c + R3 mandatory + Propagation v2 with SSoT priority + Framework boundary behavior probe checklist + 7 trigger conditions + drift metrics)；下一推荐 /sprint-status + Should Have 切入 OR /retrospective sprint-3-must-have OR /architecture-review (须 fresh session)**)
-> Phase: **Pre-Production** — **Sprint 3 IN PROGRESS**（start 2026-04-30；end 2026-05-15；主题 Multi-Scene Integration × ADR-029 governance ✅ × Visual Polish 起步；7 commitments + 2 nice-to-have；S3-04 ✅ + S3-01 ✅ = 2/7 done；预期 ~56 新自动化测试 + 6 manual evidence）
-> Next milestone: **S3-02 Mandatory Cleanup Sequence**（依赖 S3-01 已 unlock；ADR-029 第二条 drift revision time 数据点；S3-01 已暴露 ClearCurrentChapterSceneName setter 给 Story 003 cleanup 接入）→ S3-03 Critical Path Forwarding → S3-05 Visual Polish 起步
+> Last updated: 2026-05-09 (Sprint 5 Track B 收官 + TEngine 6.2.1 vendor sync 闭环；详细 sprint 数据见 `production/sprint-status.yaml`)
+> Phase: **Vertical Slice (VS)** — **Sprint 5 IN PROGRESS** (start 2026-05-06 / end 2026-05-20；Track B 三个 P1 ADR production code 全部 ✅ DONE 2026-05-06~05-08；Track A VS Chapter 1 Build 待启动；ADR-030 §VS Build commitment 第 1 项核心交付窗口)
+> Next milestone: **S5-01 Chapter 1 (靠近) Unity scene 实体构建首版**（status: ready-for-dev；S3-01 LoadChapterSceneAsync ✅ unlock；S5-04 art bible sign-off 可 placeholder 起步并轨）→ S5-02 Chapter 1 end-to-end 5 系统串通可玩（Track B 已 unlock）→ S5-04 art bible 正式 sign-off（VS art readiness gate）
+
+> **Track B closure (2026-05-06 ~ 2026-05-08)** — 三个 P1 ADR production code dev-stories 全部 ✅ DONE:
+>   - **S5-03** Puzzle State Machine (ADR-014) — PlayMode 8/8 PASSED first-try (P5 grace 1.29ms / P7 absence 1.58ms / P8 FSM Tick p99 0.0001ms ≈500x margin)
+>   - **S5-05** Narrative Sequence Engine (ADR-016) — PlayMode 10/10 PASSED v2 (P10 trigger latency 0.0141ms vs 16ms ≈1100x margin / P9 pause delta 0.00ms)
+>   - **S5-06** Audio Manager Init (ADR-017) — PlayMode 10/10 PASSED first-run (P3 framework_sound_volume=0.4000 multiplicative / P9 ADV crossfade 0 exception with Music agentHelperCount=2)
+>
+> **Recent governance close-outs (2026-05-08 ~ 2026-05-09)**:
+>   - **TEngine 6.2.1 vendor sync** (commit `c5f8952`) — 3 P0 framework bug fixes (ResourceModule cancel handle.Dispose / AssetsReference indexer + OnDestroy / SingletonSystem.Release lifecycle lists) + 6 skill references 修订 + R1~R4 vendor patch 硬规则 in `.cursor/rules/shadowgame-tengine.mdc` + AI workflow 迁移 `wiki-query-agent` → `tengine-dev` skill
+>   - **doc-fix follow-ups** (commit `ff72824`) — Entrance(object[]) 真签名修订 + AudioModule drift-v2-(a) clarify + vendor docs banner + .claude/agent-memory/ 残留清理
+>   - **ADR Amendment closure** (commit `02d8e7d`) — ADR-017 §B + ADR-028 §1 audio activation gate Amendment 段闭环 drift-v1 → drift-v2-(a) supersede 链
+>   - **Sprint 5 retro 待执行** — Track B 收官 + ADR-027 §5 listener self-removal 第 3 次实战 verified (9 listener × 5 cycle) + ADR-029 V3 candidate #8 dp4 close-out (drift-v1/v2-(a)/v2-(b) batch) + 8+ action items 累积
+
+> **Project Identity / Workflow Progress (Concept) / Completed Artifacts** sections below are kept verbatim as audit history (truth source for sprint+story status is now `production/sprint-status.yaml`).
 
 ---
 
@@ -3220,7 +3233,7 @@ Sprint 4 LOCKED 7/8 commit ≈ 87.5%  (Sprint 3: 57% — +30 pts ↑)
 
 **Sprint 5 主题**: **VS Chapter 1 Build 启动** + P1 ADR Dev-Story 实施 + Carryover Promote 决策
 
-**Sprint Goal** (一句话): chapter 1 (`外升孔`) end-to-end VS slice 实体构建首版可玩 + Sprint 4 Track A 三系统进入 production code + Sprint 4→5 carryover (S5-08/-09) promote/descope 决策落地 + S5-04 art bible sign-off 与 chapter 1 art asset 并轨。
+**Sprint Goal** (一句话): chapter 1 (`靠近`) end-to-end VS slice 实体构建首版可玩 + Sprint 4 Track A 三系统进入 production code + Sprint 4→5 carryover (S5-08/-09) promote/descope 决策落地 + S5-04 art bible sign-off 与 chapter 1 art asset 并轨。
 
 ### Sprint 5 stories (10 candidate / 16 SP commit + 3 SP nice)
 
@@ -3294,7 +3307,7 @@ Sprint 4 LOCKED 7/8 commit ≈ 87.5%  (Sprint 3: 57% — +30 pts ↑)
 
 | ADR-030 §Sprint 5-6 VS Build commitment 项 | Sprint 5 目标 | 完成判定 |
 |--------------------------------------------|---------------|---------|
-| Chapter 1 (`外升孔`) end-to-end VS slice | ✅ S5-01 + S5-02 (Sprint 5 高潮) | end-to-end 可玩 ≥1 success path |
+| Chapter 1 (`靠近`) end-to-end VS slice | ✅ S5-01 + S5-02 (Sprint 5 高潮) | end-to-end 可玩 ≥1 success path |
 | Sprint 4 Track A 三系统 production code | ✅ S5-03 + S5-05 + S5-06 | R3 PlayMode probe 全 PASS |
 | ≥3 internal playtest sessions | ⏳ Sprint 5 完成 1/3 (S5-07)；Sprint 6 ≥2/3 | sessions documented |
 | Playtest report | Sprint 6 (Sprint 5 仅 session-level 反馈) | Sprint 6 末 |
