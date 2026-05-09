@@ -342,7 +342,8 @@ namespace GameLogic
                 _currentChapterId = targetChapterId;
                 _inflightChapterId = targetChapterId;
                 TransitionTo(SceneManagerState.TransitionOut);
-                // Story 002 接管后续 11 步流程
+                // story-001c: listener-path driver 接管 11-step (ADR-009 §Decision line 386 spec align)
+                DriveTransitionAsync(targetChapterId).Forget();
                 return;
             }
 
@@ -379,6 +380,38 @@ namespace GameLogic
             _currentChapterId = next;
             _inflightChapterId = next;
             TransitionTo(SceneManagerState.TransitionOut);
+            // story-001c: listener-path driver 接管 11-step (ADR-009 §Decision line 386 spec align)
+            DriveTransitionAsync(next).Forget();
+        }
+
+        /// <summary>
+        /// story-001c (2026-05-09): listener-path internal driver — 由 <see cref="OnRequestSceneChange"/>
+        /// 与 <see cref="DrainPending"/> 在状态机推进到 TransitionOut 后调用，await
+        /// <see cref="BeginTransitionAsync"/> 走完 11 步流程。
+        /// </summary>
+        /// <remarks>
+        /// <para><b>异常处理</b>：<see cref="BeginTransitionAsync"/> 内部已有 fail-loud 协议
+        /// (state=Error + OnSceneLoadFailed via <see cref="LoadChapterSceneAsync"/> + <see cref="TryResolveOrFail"/>)；
+        /// 本 catch 仅作兜底，捕获理论上不应发生的"BeginTransitionAsync 之外"的异常逃逸。</para>
+        /// <para><b>UniTaskVoid 选择理由</b>：listener handler (<see cref="OnRequestSceneChange"/>) 是
+        /// <c>void</c> 签名（per <c>GameEvent.AddEventListener&lt;T&gt;(Action&lt;...&gt;)</c> 协议），
+        /// 调用方无法 await；UniTaskVoid + .Forget() 是 fire-and-forget 标准模式（与项目内 IInputBlockerEvent /
+        /// ISettingsEvent / IAudioEvent listener 一致）。</para>
+        /// <para><b>ADR-009 §Decision spec align</b>：spec line 386 "Scene Manager subscribes to
+        /// IChapterStateEvent.OnRequestSceneChange and orchestrates the entire 11-step flow internally"
+        /// 与本方法 1:1 alignment；S5-1b 期间 <c>DevTestState.DriveProductionSceneTransitionAsync</c>
+        /// F4 dev-only stub 已 removed (story-001c AC-4)。</para>
+        /// </remarks>
+        private async UniTaskVoid DriveTransitionAsync(int targetChapterId)
+        {
+            try
+            {
+                await BeginTransitionAsync(targetChapterId);
+            }
+            catch (Exception e)
+            {
+                Log.Error($"[SceneManager] DriveTransitionAsync({targetChapterId}) 异常 (兜底): {e}");
+            }
         }
 
         // ------------------------------------------------------------------
