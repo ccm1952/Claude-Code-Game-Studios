@@ -1,19 +1,23 @@
 # ShadowGame — Session State
 
-> Last updated: 2026-05-09 (Sprint 5 Track B 收官 + TEngine 6.2.1 vendor sync 闭环；详细 sprint 数据见 `production/sprint-status.yaml`)
-> Phase: **Vertical Slice (VS)** — **Sprint 5 IN PROGRESS** (start 2026-05-06 / end 2026-05-20；Track B 三个 P1 ADR production code 全部 ✅ DONE 2026-05-06~05-08；Track A VS Chapter 1 Build 待启动；ADR-030 §VS Build commitment 第 1 项核心交付窗口)
-> Next milestone: **S5-01 Chapter 1 (靠近) Unity scene 实体构建首版**（status: ready-for-dev；S3-01 LoadChapterSceneAsync ✅ unlock；S5-04 art bible sign-off 可 placeholder 起步并轨）→ S5-02 Chapter 1 end-to-end 5 系统串通可玩（Track B 已 unlock）→ S5-04 art bible 正式 sign-off（VS art readiness gate）
+> Last updated: 2026-05-09 (Session 25 #1 — Sprint 5 Track A 第 1 story S5-01 ✅ DONE + unity-bridge → CoplayDev/unity-mcp toolchain 切换闭环；详细 sprint 数据见 `production/sprint-status.yaml`)
+> Phase: **Vertical Slice (VS)** — **Sprint 5 IN PROGRESS** (start 2026-05-06 / end 2026-05-20；Track B 三个 P1 ADR production code 全部 ✅ DONE 2026-05-06~05-08；**Track A VS Chapter 1 Build 启动** — S5-01 ✅ DONE 2026-05-09 (Chapter_01_Approach.unity 实体构建首版 8/8 AC PASS)；ADR-030 §VS Build commitment 第 1 项 ~50% 进度，剩 story-001b boot integration + S5-02 end-to-end)
+> Next milestone: **story-001b — SceneManager boot pipeline 接入 + fixture ChapterDataProvider**（status: backlog → 准备 readiness check；S5-01 scene asset ✅ ready，可立即进入；R3 PlayMode probe MANDATORY: framework boundary GameModule.Scene.LoadSceneAsync Additive + ActivateScene）→ S5-02 Chapter 1 end-to-end 5 系统串通可玩（Track B 已 unlock；story-001b done 后即可启动）→ S5-04 art bible 正式 sign-off（VS art readiness gate）
 
 > **Track B closure (2026-05-06 ~ 2026-05-08)** — 三个 P1 ADR production code dev-stories 全部 ✅ DONE:
 >   - **S5-03** Puzzle State Machine (ADR-014) — PlayMode 8/8 PASSED first-try (P5 grace 1.29ms / P7 absence 1.58ms / P8 FSM Tick p99 0.0001ms ≈500x margin)
 >   - **S5-05** Narrative Sequence Engine (ADR-016) — PlayMode 10/10 PASSED v2 (P10 trigger latency 0.0141ms vs 16ms ≈1100x margin / P9 pause delta 0.00ms)
 >   - **S5-06** Audio Manager Init (ADR-017) — PlayMode 10/10 PASSED first-run (P3 framework_sound_volume=0.4000 multiplicative / P9 ADV crossfade 0 exception with Music agentHelperCount=2)
 >
+> **Track A start (2026-05-09)** — VS Chapter 1 Build 启动:
+>   - **S5-01** Chapter 1 (靠近) Unity scene 实体构建首版 — 8/8 AC PASS via CoplayDev/unity-mcp v9.6.x batch_execute (Chapter_01_Approach.unity 12 KB + 5 root + 8 child + 3 URP/Lit material + 3 tag + 4500K 色温 + Spot lighting; AC-7 担保 0 production C# 改动; R3 N/A reasoned per ADR-029 V2.0 Asset type; 用户 macOS Quick Look 仲裁 sign-off screenshot-20260509-152000.png; 4 类 toolchain silent failure surfaced 全部已修复 — D1~D4 详 evidence + sprint-status closure_summary; ADR-029 V3 watch list trigger #2 'Type-5 candidate tooling silent failure' TRIGGERED — Sprint 5 retro proposal 评估 promote)
+>
 > **Recent governance close-outs (2026-05-08 ~ 2026-05-09)**:
 >   - **TEngine 6.2.1 vendor sync** (commit `c5f8952`) — 3 P0 framework bug fixes (ResourceModule cancel handle.Dispose / AssetsReference indexer + OnDestroy / SingletonSystem.Release lifecycle lists) + 6 skill references 修订 + R1~R4 vendor patch 硬规则 in `.cursor/rules/shadowgame-tengine.mdc` + AI workflow 迁移 `wiki-query-agent` → `tengine-dev` skill
 >   - **doc-fix follow-ups** (commit `ff72824`) — Entrance(object[]) 真签名修订 + AudioModule drift-v2-(a) clarify + vendor docs banner + .claude/agent-memory/ 残留清理
 >   - **ADR Amendment closure** (commit `02d8e7d`) — ADR-017 §B + ADR-028 §1 audio activation gate Amendment 段闭环 drift-v1 → drift-v2-(a) supersede 链
->   - **Sprint 5 retro 待执行** — Track B 收官 + ADR-027 §5 listener self-removal 第 3 次实战 verified (9 listener × 5 cycle) + ADR-029 V3 candidate #8 dp4 close-out (drift-v1/v2-(a)/v2-(b) batch) + 8+ action items 累积
+>   - **MCP toolchain 切换闭环 (2026-05-09)** — `unity-ai-bridge` (kebab-case tool, 缺 batch_execute) → `CoplayDev/unity-mcp v9.6.x` (manage_* + batch_execute 完整支持) 完成；同步 CLAUDE.md / AGENTS.md / .cursor/rules/shadowgame-tengine.mdc / unity-mcp-guide.md skill；archive 旧 unity-bridge skill 目录到 _archive/unity-bridge-2026-05-09/；删除 com.aibridge.unity (manifest + packages-lock 同步) + 新增 com.coplaydev.unity-mcp；2 lessons memo: problem_2026-05-09_unity-bridge-to-coplaydev-switch.md (toolchain 切换教训：fastmcp + SOCKS proxy 启动 trap → FASTMCP_CHECK_FOR_UPDATES=off 修复 + Cursor 多 unityMCP 重复配置去重 + schema vs runtime drift 处理) + problem_2026-05-09_image-preview-confirmation-bias.md (agent 视觉判断 confirmation bias 教训：信任 server metadata + IHDR + md5 三条独立 ground truth 优先于 agent pattern recognition；遇 ≥2 次"server 说 X 我看到 Y"冲突时让用户原生工具仲裁); S5-01 是切换后第 1 个真实 dev-story validation
+>   - **Sprint 5 retro 待执行** — Track B 收官 + Track A S5-01 done + ADR-027 §5 listener self-removal 第 3 次实战 verified (9 listener × 5 cycle) + ADR-029 V3 candidate #8 dp4 close-out (drift-v1/v2-(a)/v2-(b) batch) + ADR-029 V3 trigger #2 Type-5 candidate "tooling silent failure" 评估 (S5-01 D1~D4 实证) + 9+ action items 累积
 
 > **Project Identity / Workflow Progress (Concept) / Completed Artifacts** sections below are kept verbatim as audit history (truth source for sprint+story status is now `production/sprint-status.yaml`).
 
@@ -4210,6 +4214,105 @@ Reactive cost: ~5 min diagnose + ~10 min spike fix + 1 re-run cycle (~3-5 min Un
 **默认推荐 [1]** — Sprint 5 Track B 三 production code stories 中 S5-03 ✅ + S5-05 ✅ 两个完成，S5-06 是最后一个 + 已就绪 (Session 23 #2 deficiency-flagged 路径 ready)；momentum 良好直接推进 Track B 收官；其他 governance 任务（S5-04 art bible / S5-01 scene build）可后置 / 并行。
 
 — END Session 24 #3 — S5-05 dev-story FULLY CLOSED (2026-05-08, PlayMode 10/10 PASSED, 8 P1 ⚠️ TRs → ✅ + 1 partial); evidence doc + story Status=Complete + sprint-status done; ADR-029 V3 #8 dp5+dp6 captured; R2 四重 grep + spike-design parity check 提议 Sprint 5 retro
+
+---
+
+## Session 25 #1 — Sprint 5 Track A 启动: unity-bridge → CoplayDev/unity-mcp toolchain 切换 + S5-01 Chapter 1 scene 实体构建首版 ✅ DONE (2026-05-09, ~3 h)
+
+### 内容概要
+
+Sprint 5 Track A VS Chapter 1 Build 第 1 个 story 交付。一次 session 横跨两件大事：
+
+1. **MCP toolchain 切换**：从 `unity-ai-bridge`（kebab-case tool, 缺 `batch_execute` + 缺 `manage_*` style）切到 **CoplayDev/unity-mcp v9.6.x**（HTTP transport + port 8888 + `manage_*` 完整支持 + `batch_execute` 一次推 N commands + 12 toolset）。同步 6 份 doc 修订 + 2 份 lessons memo + archive 旧 skill。
+2. **S5-01 Chapter 1 scene 实体构建**：用切换后的 CoplayDev/unity-mcp `batch_execute` 实施 6-batch（实际拆 ~10 batch 含 silent failure 修复）build 出 `Chapter_01_Approach.unity`。8/8 AC PASS。Evidence doc + Story Status: Done + sprint-status done + 用户 macOS Quick Look 视觉 sign-off 全部完成。
+
+### Phase 1-4 toolchain 切换 (~60 min)
+
+详细 lessons memo 详见 `.claude/memory/problem_2026-05-09_unity-bridge-to-coplaydev-switch.md`。要点：
+
+- **触发原因**: S5-01 story documentation 严格指定 `manage_scene` / `manage_gameobject` / `manage_material` / `manage_camera` / `batch_execute` 等 CoplayDev/unity-mcp tool name + 用法；旧 `unity-ai-bridge` schema 是 kebab-case（如 `gameobject-create`）+ 缺 `batch_execute`+ 缺 `manage_*` 同名 tool。User decision: **移除 unity-bridge，换成 CoplayDev/unity-mcp**。
+- **切换步骤**:
+  - Phase 1: 归档 `src/MyGame/ShadowGame/.claude/skills/unity-bridge/` → `_archive/unity-bridge-2026-05-09/`；删除 `Packages/manifest.json` 中 `com.aibridge.unity` + 同步 `packages-lock.json`
+  - Phase 2: 添加 `com.coplaydev.unity-mcp` 到 `Packages/manifest.json`；用户在 Unity 内 Auto-Setup MCP-For-Unity (Window → MCP-For-Unity → Open MCP Window → Auto-Setup)；解决 `fastmcp` SOCKS 代理 + `socksio` 缺失启动 trap (`export FASTMCP_CHECK_FOR_UPDATES=off` 加到 `~/.zshrc`)
+  - Phase 3: 配置 Cursor `~/.cursor/mcp.json` HTTP transport `unityMCP` server (port 8888)；删除项目级 `.cursor/mcp.json`（与 CoplayDev Auto-Setup 写入的 `~/.cursor/mcp.json` 重复）；用户重连 MCP；R2 7 项重新验证
+  - Phase 4: 同步 doc — `src/MyGame/ShadowGame/CLAUDE.md` MCP binding validation 章节 + `src/MyGame/ShadowGame/AGENTS.md` 跨工具版 + `.cursor/rules/shadowgame-tengine.mdc` Cursor hard rule (按 glob 自动挂载) + `src/MyGame/ShadowGame/.claude/skills/tengine-dev/references/unity-mcp-guide.md` 用户 guide；写 `.claude/memory/problem_2026-05-09_unity-bridge-to-coplaydev-switch.md` lessons memo（详细切换原因 + fastmcp trap fix + Cursor 多 server 重复配置去重 + schema vs runtime drift 处理）
+
+### Phase 5 S5-01 dev-story 实施 (~90 min)
+
+R2 假设 sign-off 4 项全部成立 → 直接 batch_execute 推。
+
+实际执行 6 batches（原 plan）+ ~4 修复 batch:
+
+- **Batch 1**: scene create + 5 root hierarchy create
+- **Batch 2**: Walls/ProjectionWall + Floor + 3 URP/Lit material 创建（Mat_ProjectionWall_Ivory `#3A3530` + Mat_Floor_LightWarm `#E8DCC4` + Mat_Object_Default `#F5E6CA`）+ MeshRenderer.material 设置
+- **Batch 3**: FixedLamp Light 组件 + tag `FixedLight` 添加（用 manage_editor add_tag + manage_gameobject set_tag by_path）
+- **Batch 4**: Object_01_CoffeeMug + Object_02_Book + tag `Interactable`
+- **Batch 5**: NarrativeTrigger_01 + BoxCollider isTrigger + tag `NarrativeTrigger`
+- **Batch 6**: scene save + screenshot + read_console
+- **Phase 5b** (Material 修复): `manage_material assign_material_to_renderer` 默认 search_method 是 `by_name`，对 path 形式 target 失败 → 重试 `search_method=by_path`
+- **Phase 5c** (intensity polish): 视觉过曝 → DL intensity 1.0 → 0.5, FL intensity 1.0 → 0.7 + 重抓 screenshot
+
+### Phase 6 evidence + 严重 silent failure 暴露 (~30 min)
+
+Phase 6 evidence dump 阶段（execute_code 实测 final state）暴露 4 类 toolchain silent failure，全部已修复:
+
+- **D1**: `manage_gameobject create component_properties.Light` silent fail 范围 — type / useColorTemperature / colorTemperature / color (array) / range / spotAngle 全 silent fail（server return success=true 但 final state 是 default）
+- **D2**: `manage_components set_property` 一次推 N properties 时 part-success transaction（5/6 成功不回滚, return success=false 含失败列表）
+- **D3**: `manage_components properties.color` 不接受 `[r, g, b, a]` array，要求 `{r, g, b, a}` object（与 manage_material set_material_color 接受 array 不一致 — server inconsistency）
+- **D4**: `manage_camera screenshot capture_source=game_view` 在 Game View tab 没活时 fallback 到 ScreenCapture of focused window（修复用 execute_code 强制 GameView.Focus() + Selection.activeObject=null）
+
+D5 是 Unity geometry trap（DL rotation forward.z>0 朝 wall 背面 → wall 前面只有 ambient × albedo ≈ 接近黑；修复改 rotation (50, 200, 0) → forward.z=-0.60 朝 wall 前面），不是 toolchain 问题。
+
+### Phase 5 后期 confirmation bias 教训 (~15 min troubleshoot + lessons memo write)
+
+详 `.claude/memory/problem_2026-05-09_image-preview-confirmation-bias.md`。Phase 5 后期 agent 反复将 game view 干净渲染中的"棕灰 ProjectionWall + 浅米黄 Cube/Capsule + 浅色 Floor"误读为"AI Nav overlay + Persp gizmo + Editor toolbar"，无视 server metadata + IHDR + md5 三条独立 ground truth 信号。最终用户 macOS Quick Look 仲裁通过。
+
+教训：当 server 结构化 metadata + 文件 hash + IHDR 这类硬证据与 agent 视觉解读冲突时，**default 信任前两者**；多次冲突时立即让用户原生工具仲裁，不要继续构造猜测。User 决策 [C] 仅本工程 lessons memo 不沉淀跨工程 cursor rule。
+
+### Final State 验证
+
+```
+DL  | type=Directional | intensity=0.50 | useColorTemp=True | colorTemp=4500K | rot=(50,200,0) | forward=(-0.22,-0.77,-0.60)
+FL  | type=Spot        | intensity=0.70 | useColorTemp=True | colorTemp=4500K | range=8.0 | spotAngle=45° | pos=(0,3,2)
+AmbientMode = Flat | ambient = (0.0682, 0.0624, 0.0565)  ← #3A3530 × 0.3
+3 mat | URP/Lit shader | BaseColor in art-bible 三色循环
+3 tag | FixedLight + Interactable + NarrativeTrigger | added to ProjectSettings/TagManager.asset
+0 production C# diff | git diff --name-only HEAD | grep .cs == 0
+EditorBuildSettings.scenes | [main, ShadowPrototype] | Chapter_01_Approach.unity 不在
+Console | 0 new error on Editor 双击打开
+```
+
+8 / 8 AC PASS → S5-01 closed.
+
+### Evidence Document
+
+`production/qa/s501-scene-build-2026-05-09.md` (~250 行) — 含 Hierarchy / Material / Lighting state / Console / git diff / EditorBuildSettings / 7 PNG screenshot pathway / 8 AC 实测 verify / 6 Deviations 详细 / R3 N/A justification / lessons memo references / sign-off。
+
+### ADR-029 V3 Watch List 触发记录
+
+**trigger #2 (Unity scene/asset 类 drift "Type-5 candidate") TRIGGERED 2026-05-09**：4 类 CoplayDev/unity-mcp v9.6.x toolchain silent failure 实测 surfaced，不属于 ADR-029 V2.0 现有 Type-1~4 (production code drift)。Sprint 5 retro proposal: 评估是否 promote 为 ADR-029 V3 candidate Type-5 "tooling silent failure"。
+
+修复路径建议：agent 必须 verify final state 而不仅信任 server return success=true；多 properties 推送时 bool 字段 + enum 字段 + array vs object 字段 individually verify。
+
+### Sprint 5 进度 + Next Step
+
+- **Sprint 5 进度**:
+  - Track A: 1/3 ✅ (S5-01 ✅ + story-001b 待 + S5-02 待)
+  - Track B: 3/3 ✅ (S5-03 + S5-05 + S5-06)
+  - Track C / Should / Nice: S5-04 art bible / S5-07 playtest / S5-08 UI / S5-09 Settings / S5-10 DOTween.UniTask / S5-11 metric automation 待
+  - ADR-030 §VS Build commitment 第 1 项 (chapter 1 build) ~50% 进度 — 剩 story-001b boot integration + S5-02 end-to-end
+- **Next milestone (推荐 Session 26 起手)**:
+  - **⭐ 推荐 [1]**: `/story-readiness story-001b` — SceneManager boot pipeline 接入 readiness check (R3 PlayMode probe MANDATORY: framework boundary GameModule.Scene.LoadSceneAsync Additive + ActivateScene)
+  - 推荐 [2]: `/art-bible-review` (S5-04 governance burst) — art-director subagent; 解锁 chapter 1 art readiness gate
+  - 推荐 [3]: STOP — Session 25 #1 累计 ~3 h substantive；momentum 已 bank，下次起手 [1]
+
+### Lessons Memo Surfaced (2 份新增)
+
+- `/.claude/memory/problem_2026-05-09_unity-bridge-to-coplaydev-switch.md` — Phase 1-4 unity-bridge → CoplayDev/unity-mcp toolchain 切换教训（schema vs runtime drift / fastmcp SOCKS 代理 trap / Cursor 多 server 重复配置）
+- `/.claude/memory/problem_2026-05-09_image-preview-confirmation-bias.md` — Phase 5 后期 agent 视觉判断 confirmation bias 教训（信任 server metadata + IHDR + md5 优先于 agent pattern recognition；遇到 ≥ 2 次"server 说 X 我看到 Y"冲突时让用户原生工具仲裁）
+
+— END Session 25 #1 — S5-01 Chapter 1 scene 实体构建首版 ✅ DONE (2026-05-09, 8/8 AC PASS, 用户 macOS Quick Look sign-off, 2 lessons memo, ADR-029 V3 trigger #2 TRIGGERED Sprint 5 retro 评估 Type-5 candidate); 同期完成 unity-bridge → CoplayDev/unity-mcp toolchain 切换闭环 (Phase 1-4 ~60 min)
+
 
 
 

@@ -3,7 +3,7 @@
 # Story 001: Chapter 1 (靠近) Unity scene 实体构建首版
 
 > **Epic**: VS Chapter 1
-> **Status**: Ready (post 2026-05-09 scope split discussion)
+> **Status**: **Done (2026-05-09)** — 8 AC 全部 PASS；evidence: `production/qa/s501-scene-build-2026-05-09.md`
 > **Layer**: Vertical Slice (VS)
 > **Type**: Asset
 > **Manifest Version**: 2026-05-09
@@ -142,7 +142,8 @@ R3 N/A reasoning 已在本节 record；如未来 S5-02 实测发现 chapter scen
 
 **Batch 6**: scene save + Editor screenshot + read_console
 - `manage_scene` action=`save`
-- `manage_scene` action=`screenshot`
+- `manage_camera` action=`screenshot` capture_source=`scene_view` view_target=`Environment/Walls/ProjectionWall` screenshot_file_name=`s501-scenebuild-2026-05-09` include_image=`true`
+  > **R2.6 修正**：CoplayDev/unity-mcp v9.6.x 把 screenshot 从 `manage_scene` 迁移到 `manage_camera`；description 明确建议 "For screenshots, use manage_camera"。详见 `.claude/memory/problem_2026-05-09_unity-bridge-to-coplaydev-switch.md`。
 - `read_console` 读取最后 30 lines 验证 0 error
 
 每 batch `failFast=true`。如某一 batch 报 `Tag not exists` 错（虽然已加 add_tag），先用 `manage_editor` 显式 `add_tag` 补 tag 再继续。
@@ -160,7 +161,7 @@ R3 N/A reasoning 已在本节 record；如未来 S5-02 实测发现 chapter scen
   - `git diff --stat HEAD -- Assets/GameScripts/HotFix/` 应空
   - `EditorBuildSettings.scenes` 不含本 scene 路径
 - **AC-2, AC-3, AC-4**: unity-mcp `manage_scene` action=`get_hierarchy` + `find_gameobjects` 自动可验
-- **AC-5**: Editor SceneView 截图（unity-mcp `manage_scene` action=`screenshot` 或 manual）
+- **AC-5**: Editor SceneView 截图（unity-mcp `manage_camera` action=`screenshot` capture_source=`scene_view` 或 manual）
 - **AC-8**: Console 日志检查（unity-mcp `read_console` filter level=Error；error_count == 0）
 
 ---
@@ -177,7 +178,7 @@ R3 N/A reasoning 已在本节 record；如未来 S5-02 实测发现 chapter scen
   - `git diff --stat HEAD -- Assets/GameScripts/HotFix/` 空 evidence
   - `EditorBuildSettings.scenes` 列表 dump 不含本 scene
 
-**Status**: pending dev-story
+**Status**: ✅ DONE 2026-05-09 — evidence 文件 `production/qa/s501-scene-build-2026-05-09.md` 已落盘 + 8/8 AC PASS + 用户 macOS Quick Look 视觉 sign-off + 0 production C# 改动 + 0 EditorBuildSettings 污染
 
 ---
 
@@ -195,7 +196,72 @@ R3 N/A reasoning 已在本节 record；如未来 S5-02 实测发现 chapter scen
 
 ## Implementation Log
 
-*待 dev-story 阶段填写*
+### 实施时间 + 工具链
+
+- **Date**: 2026-05-09 (Sprint 5 Track A 启动日)
+- **Toolchain**: CoplayDev/unity-mcp v9.6.x (HTTP transport, port 8888) + `batch_execute` MCP tool（per Phase 1-4 unity-bridge → CoplayDev 切换 — 详 `/.claude/memory/problem_2026-05-09_unity-bridge-to-coplaydev-switch.md`）
+- **Total elapsed**: ~3 h（Phase 1-4 toolchain 切换 ~60 min + Phase 5 6-batch 实施 ~90 min + Phase 6 evidence + lighting bug 修复 ~30 min）
+- **R2 假设 sign-off (2026-05-09 morning)**: 4 项假设全部成立 — `manage_editor add_tag` 存在 + URP Skybox material = `Default-Skybox` (procedural) + Lighting Window ambient mode 通过 `execute_code` set `RenderSettings.ambientMode/ambientLight` + `Assets/Scenes/main.unity` 是 BootScene + EditorBuildSettings.scenes = [main, ShadowPrototype]，无需 patch story file。
+
+### Batch 拆分实际执行情况
+
+原 plan 6 batches 实际拆成 ~10 个 MCP call（含 silent failure 修复批 + screenshot 重抓批 + lighting bug 修复批）。`fail_fast=false` 用于诊断 batch（看哪些 cmd 失败），`fail_fast=true` 用于线性 build batch（确保 GameObject 顺序创建）。
+
+| Phase | Batches | 状态 |
+|---|---|---|
+| **Phase 5a — 实体构建** | Batch 1 (scene + root hierarchy) → Batch 2 (Walls/Floor + 3 mat create) → Batch 3 (FixedLamp + tag) → Batch 4 (Object_01 + Object_02 + tag) → Batch 5 (Trigger + tag) → Batch 6 (save + screenshot) | 6 batches ✅ 全 success |
+| **Phase 5b — Material 修复** | `manage_material assign_material_to_renderer` 默认 `search_method=by_name` 失败 → 用 `search_method=by_path` 重试 ✅ | 2 retry batches |
+| **Phase 5c — Lighting intensity polish** | DL intensity 1.0 + FL intensity 1.0 视觉过曝 → set_property 调到 0.5 + 0.7 ✅ + 重抓 screenshot | 2 batches |
+| **Phase 6a — Lighting silent fail 修复** | `manage_gameobject create component_properties.Light` silent fail（type / useColorTemperature / colorTemperature / color array）→ Phase 6 evidence dump 暴露 → `manage_components set_property` 单独 set 6 properties（5/6 成功，color array 失败 reasoned 为色温模式不需 color）| 1 修复 batch |
+| **Phase 6b — DL rotation 修复** | "ProjectionWall 整体纯黑" → DL forward.z=+0.56 朝 wall 背面 → `execute_code` 设 rotation (50, 200, 0) → forward.z=-0.60 朝 wall 前面 ✅ | 1 final batch |
+
+### Toolchain Silent Failures Surfaced（详 evidence §10）
+
+实施暴露 4 类 CoplayDev/unity-mcp v9.6.x silent failure，全部已修复：
+
+1. **D1**: `manage_gameobject action=create component_properties.Light` 对 type / useColorTemperature / color (array) / range / spotAngle 等字段 silent fail（server return success=true 但 final state 是 default 值）
+2. **D2**: `manage_components action=set_property` 一次推 N properties 时 part-success 行为（部分成功不回滚，但 server return success=false 含失败列表）
+3. **D3**: `manage_components properties.color` 不接受 `[r, g, b, a]` array 格式（要求 `{r, g, b, a}` object 格式）— 与 `manage_material set_material_color` 接受 array 格式不一致
+4. **D4**: `manage_camera action=screenshot capture_source=game_view` 在 Game View tab 没活时 fallback 到 ScreenCapture of currently focused window（修复用 `execute_code` 强制 Game View focus + 去选中）
+
+D5 (DL rotation forward 计算) 是 Unity light direction 几何 trap，非 toolchain 问题。
+
+D6 (agent confirmation bias 误判 game view screenshot 内容) 沉淀到 lessons memo `/.claude/memory/problem_2026-05-09_image-preview-confirmation-bias.md`。
+
+### Visual Sign-off 路径
+
+Phase 5 期间 agent 多次依赖 Cursor image preview 评判 game view screenshot 内容，由于 confirmation bias 反复误判（详 D6）。最终 visual sign-off 路径采用 **用户 macOS Quick Look 仲裁** + agent 信任 server metadata + IHDR + md5 三条独立 ground truth 信号。
+
+最终 sign-off image: `Assets/Screenshots/screenshot-20260509-152000.png` (1024×1024, 67 KB) — 用户 2026-05-09 15:25 macOS 原生工具核实通过。
+
+### AC Closure Matrix
+
+| # | AC | 状态 |
+|---|---|---|
+| AC-1 | scene 文件存在 + name `Chapter_01_Approach` | ✅ PASS |
+| AC-2 | scene root 6 项节点 + 必须 child + 3 tag 添加 | ✅ PASS |
+| AC-3 | Ambient `#3A3530` × 0.3 + DL 4500K + Skybox default | ✅ PASS（含 intensity polish 0.5/0.7 placeholder 待 S5-04） |
+| AC-4 | 3 个 URP/Lit material + BaseColor in art-bible 三色循环 | ✅ PASS |
+| AC-5 | 视觉 evidence + 用户 macOS Quick Look sign-off | ✅ PASS |
+| AC-6 | EditorBuildSettings.scenes 不含本 scene | ✅ PASS |
+| AC-7 | `Assets/GameScripts/HotFix/` 0 production C# 改动 | ✅ PASS |
+| AC-8 | Editor 双击打开 happy path Console 0 new error | ✅ PASS |
+
+**8 / 8 PASS** → S5-01 dev-story closed.
+
+### Evidence Document
+
+完整 evidence 见 `production/qa/s501-scene-build-2026-05-09.md`（含 Hierarchy dump / Material dump / Lighting state dump / Console snapshot / git diff / EditorBuildSettings dump / 7 PNG screenshot pathway / 8 AC 实测 verify / 6 Deviations 详细记录 / R3 N/A justification）。
+
+### Lessons Memo Surfaced
+
+- `/.claude/memory/problem_2026-05-09_unity-bridge-to-coplaydev-switch.md` — Phase 1-4 unity-bridge → CoplayDev/unity-mcp toolchain 切换教训（schema vs runtime drift / fastmcp SOCKS 代理 trap / Cursor 多 server 重复配置）
+- `/.claude/memory/problem_2026-05-09_image-preview-confirmation-bias.md` — Phase 5 后期 agent 视觉判断 confirmation bias 教训（信任 server metadata + IHDR + md5 优先于 agent pattern recognition；遇到 ≥ 2 次"server 说 X 我看到 Y"冲突时让用户原生工具仲裁）
+
+### Unlocks (per Dependencies)
+
+- **story-001b**: SceneManager boot pipeline 接入 + fixture ChapterDataProvider（unblocked — scene asset ready）
+- **S5-02**: Chapter 1 end-to-end 5 系统串通（unlocked once story-001b done — ADR-030 §VS Build Commitment 第 1 项核心交付）
 
 ---
 

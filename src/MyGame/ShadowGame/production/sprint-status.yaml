@@ -8,7 +8,7 @@ goal: "VS Chapter 1 Build 启动 (per ADR-030 Sprint 5-6 双 sprint commitment) 
 start: "2026-05-06"
 end: "2026-05-20"
 generated: "2026-05-06"
-updated: "2026-05-08 (Session 24 #3 — S5-06 dev-story FULLY CLOSED ✅ Track B 收官; PlayMode 10/10 PASSED first-run (P3 framework_sound_volume=0.4000 multiplicative + P4 ducking_lerp multiplier=0.300 state=Held + P10 V2-5 5×init/shutdown 0 exception + P9 ADV crossfade 0 exception with Music agentHelperCount=2 per D1); evidence at production/qa/playmode-audio-mix-architecture-2026-05-08.md; 6 P1 ⚠️ TRs closed → ✅ + 5 partial/deferred (per AC coverage 13/18 + 4/18 partial + 1/18 deferred); spike-design parity check (S5-05 dp6 lesson) 应用成功避免 v1 陷阱 (P5 spy listener + P9 0 exception 设计); ADR-029 V3 candidate #8 dp4 close-out: drift-v1 Activate→Initialize + drift-v2-(a) AudioModule.OnInit 自动 Initialize + drift-v2-(b) ISettingsEvent.OnSettingChanged 真签名 (string,string) 一并 retro; ADR-027 §5 listener self-removal 第 3 次实战 verified (9 listener × 5 cycle); Sprint 5 Track B 三个 P1 ADR production code dev-stories 全部 ✅ DONE (S5-03 / S5-05 / S5-06))"
+updated: "2026-05-09 (Session 25 #1 — S5-01 Track A 第 1 story DONE ✅ Sprint 5 ADR-030 §VS Build commitment 第 1 项 ~50% 进度; CoplayDev/unity-mcp v9.6.x batch_execute 实施 Chapter_01_Approach.unity 实体构建; 8/8 AC PASS + 用户 macOS Quick Look 仲裁 sign-off; 4 类 toolchain silent failure surfaced 全部已修复 — D1 manage_gameobject create component_properties.Light + D2 manage_components set_property part-success + D3 properties.color array 格式拒收 + D4 screenshot game_view fallback 到 SceneView; ADR-029 V3 watch list trigger #2 'Unity scene/asset 类 drift Type-5 candidate' TRIGGERED — Sprint 5 retro proposal 评估是否 promote; 2 lessons memo: problem_2026-05-09_unity-bridge-to-coplaydev-switch.md (Phase 1-4 toolchain 切换) + problem_2026-05-09_image-preview-confirmation-bias.md (agent 视觉判断 confirmation bias 教训); Phase 1-4 toolchain 切换 unity-bridge → CoplayDev 同期完成 ~60min)"
 
 # ========================================
 # Sprint 4 Final Result Reference（详见 sprint-4-retrospective.md）
@@ -768,15 +768,41 @@ sprint_5_stories:
   - id: "S5-01"
     epic: "vs-chapter-1"
     name: "Chapter 1 (靠近) Unity scene 实体构建首版"
-    file: "Assets/Scenes/Chapter_01_Approach.unity (待创建) + production/epics/vs-chapter-1/story-001-scene-build.md ✅"
+    file: "Assets/Scenes/Chapter_01_Approach.unity ✅ + production/epics/vs-chapter-1/story-001-scene-build.md ✅"
     priority: must-have
-    status: ready-for-dev
-    owner: ""
+    status: done
+    owner: "AI"
     complexity_points: 3
     type: Asset (Unity Editor scene + lighting + material + GameObject hierarchy via unity-mcp batch_execute)
     depends_on: ["S3-01 ✅ (LoadChapterSceneAsync; 仅 scope reference 不真调)", "S4-01..03 ✅ (frameworks; 仅 scope reference)", "S5-04 art bible (placeholder OK 起步)"]
     blocker: ""
-    completed: ""
+    completed: "2026-05-09"
+    evidence: "production/qa/s501-scene-build-2026-05-09.md"
+    closure_summary: |
+      Sprint 5 Track A 第 1 story DONE 2026-05-09 — VS Chapter 1 实体构建首版交付 + ADR-030 §VS Build Commitment 第 1 项 ~50% 进度（剩 story-001b boot integration + S5-02 end-to-end 串通）：
+        Toolchain: CoplayDev/unity-mcp v9.6.x (HTTP transport port 8888) batch_execute (Phase 1-4 从 unity-bridge 切换到 CoplayDev 后第 1 个真实 dev-story validation; lesson memo 详 .claude/memory/problem_2026-05-09_unity-bridge-to-coplaydev-switch.md)
+        Total elapsed ~3h: Phase 1-4 toolchain 切换 ~60min + Phase 5 6-batch 实施 ~90min + Phase 6 evidence 收集 + lighting bug 修复 ~30min
+        Scene 内容: 5 root + 8 child GameObject (Environment/Walls/ProjectionWall + Floor / Lighting/FixedLamp + Directional Light / Interactables/Object_01_CoffeeMug + Object_02_Book / Triggers/NarrativeTrigger_01 / Camera/MainCamera) + 3 URP/Lit material (Mat_ProjectionWall_Ivory #3A3530 / Mat_Floor_LightWarm #E8DCC4 / Mat_Object_Default #F5E6CA) + 3 tag (FixedLight + Interactable + NarrativeTrigger 添加到 ProjectSettings/TagManager.asset)
+        Lighting state final: DL type=Directional intensity=0.50 useColorTemp=True colorTemp=4500K rotation=(50,200,0) forward=(-0.22,-0.77,-0.60) / FL type=Spot intensity=0.70 range=8.0 spotAngle=45° useColorTemp=True colorTemp=4500K pos=(0,3,2) rotation=(30,0,0) / AmbientMode=Flat ambient≈(0.068,0.062,0.057) (#3A3530×0.3)
+        AC matrix: 8/8 PASS
+          AC-1 scene file 存在 + name Chapter_01_Approach ✅
+          AC-2 root hierarchy 6 项节点 + child + 3 tag ✅
+          AC-3 Ambient #3A3530×0.3 + DL 4500K + Skybox default ✅ (含 intensity polish 0.5/0.7 placeholder 待 S5-04 art-bible Status: Draft → Accepted 时定 spec 数值)
+          AC-4 3 URP/Lit material + art-bible 三色循环 BaseColor ✅
+          AC-5 视觉 evidence + 用户 macOS Quick Look 仲裁 sign-off (screenshot-20260509-152000.png) ✅
+          AC-6 EditorBuildSettings.scenes 不含本 scene ✅
+          AC-7 Assets/GameScripts/HotFix/ 0 production C# diff ✅ (git diff --name-only HEAD | grep .cs == 0)
+          AC-8 Editor 双击打开 happy path Console 0 new error ✅
+        R3 N/A reasoned per ADR-029 V2.0 (Asset type; framework boundary probe propagated 到 story-001b)
+        Toolchain silent failures surfaced (4 类全部已修复 + reasoned, 详 evidence §10):
+          D1 manage_gameobject create component_properties.Light silent fail (type/useColorTemperature/color array/range/spotAngle 全 silent fail; server return success=true 但 final state 是 default)
+          D2 manage_components set_property 一次推 N properties part-success transaction (5/6 成功不回滚, return success=false 含失败列表)
+          D3 manage_components properties.color 不接受 [r,g,b,a] array 格式 (与 manage_material set_material_color array 接受不一致 — CoplayDev v9.6.x server inconsistency)
+          D4 manage_camera screenshot capture_source=game_view 在 Game View tab 没活时 fallback 到 ScreenCapture (修复用 execute_code 强制 GameView.Focus() + Selection.activeObject=null)
+        + D5 (Unity geometry trap, 非 toolchain): DL rotation 错朝向导致 wall 背光 (forward.z>0 朝 wall 背面, 修复改 rotation (50,200,0) → forward.z=-0.60)
+        + D6 (agent behavior trap): confirmation bias 误判 game view screenshot 内容 (lessons memo .claude/memory/problem_2026-05-09_image-preview-confirmation-bias.md)
+        Sprint 5 ADR-029 V3 watch list trigger #2 (Unity scene/asset 类 drift "Type-5 candidate") observed: D1/D2/D3/D4 4 类 toolchain silent fail 是 Unity scene/asset 工作流特有 drift 而非 ADR-029 V2.0 现有 Type-1~4 (production code drift)。Sprint 5 retro proposal: 评估是否 promote 为 ADR-029 V3 candidate Type-5 "tooling silent failure" (manage_gameobject create component_properties 接受 schema vs server 实际 set 行为 drift; manage_components properties 字段 inconsistency)
+        Unlocks: story-001b (SceneManager boot pipeline 接入) + S5-02 end-to-end (经 story-001b 后)
     notes: "Sprint 5 scope split 2026-05-09: S5-01 仅 scene 实体（layout/lighting/material/物件/光源/trigger stub），不接 SceneManager production boot；boot pipeline 接入留 S5-1b。GDD 严格 content：2 可操作物件 + 1 固定光源（per concept.md line 106 + object-interaction.md line 86 严格约束，不是 ≥1）+ 投影墙面 + baseline lighting + 1 narrative trigger zone stub；色温 4000-4500K + 主背景 #3A3530（art-bible line 53）；URP/Lit placeholder material（待 S5-04 sign-off polish）。AC-7 担保 0 production C# diff；R3 N/A reasoned (Asset type; framework boundary probe propagated 到 S5-1b)。unity-mcp batch_execute 全自动 6 batches (per mdc rule §unity-mcp 优先)。ADR-030 §VS Build Commitment 第 1 项；mode-aware ratio: 30-50 min/SP."
 
   - id: "S5-1b"
@@ -1085,7 +1111,9 @@ sprint_5_adr_029_v3_watch_list:
 
   - trigger: "新 drift type 出现（非 Type-1/2/3/4）— Sprint 5 重点关注 Unity scene/asset 类 drift (Type-5 candidate)"
     sprint_4_baseline: 0
-    sprint_5_status: "monitoring"
+    sprint_5_status: "TRIGGERED 2026-05-09 (S5-01 dev-story) — 4 类 CoplayDev/unity-mcp v9.6.x toolchain silent failure 实测 surfaced 不属于 V2.0 现有 Type-1~4 (production code drift): D1 manage_gameobject create component_properties.Light silent fail (type/useColorTemperature/color array/range/spotAngle 全 silent fail; server return success=true 但 final state 是 default) / D2 manage_components set_property 一次推 N properties part-success transaction (5/6 成功不回滚, return success=false 含失败列表) / D3 manage_components properties.color 不接受 [r,g,b,a] array (与 manage_material set_material_color array 接受不一致) / D4 manage_camera screenshot capture_source=game_view 在 Game View tab 没活时 fallback 到 ScreenCapture. Sprint 5 retro proposal: 评估是否 promote 为 ADR-029 V3 candidate Type-5 'tooling silent failure'. 修复路径: agent 必须 verify final state 而不仅信任 server return success=true; 多 properties 推送时 bool 字段 + enum 字段 + array vs object 字段 individually verify."
+    data_points:
+      - dp1_S5_01_2026_05_09: "S5-01 Chapter_01_Approach.unity 实体构建 — 4 类 toolchain silent fail 累计 ~30 min 修复成本 (Phase 5 实施 → Phase 6 evidence collection 阶段才暴露 silent fail; 修复 batch +2 + lighting bug fix +1 + screenshot 重抓 +2)。Lessons memo: problem_2026-05-09_unity-bridge-to-coplaydev-switch.md + problem_2026-05-09_image-preview-confirmation-bias.md"
 
   - trigger: "Type-2 (c) framework behavior frequency > 2/sprint"
     sprint_4_baseline: "0 (Sprint 3 baseline 1 不再增长)"
