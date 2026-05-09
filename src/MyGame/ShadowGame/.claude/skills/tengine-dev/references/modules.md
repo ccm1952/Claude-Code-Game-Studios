@@ -373,3 +373,75 @@ Language lang = GameModule.Localization.Language;
 ```
 
 **集成说明**：TEngine 集成 I2Localization 编辑器工具（`Assets/Editor/I2Localization/`），本地化数据需在 I2Localization 面板中配置，并正确标记资源供 YooAsset 管理。
+
+---
+
+## 框架 v6.2.x 修订亮点（同步上游）
+
+> 来自 TEngine 6.2.0 / 6.2.1 release notes，仅补充已有功能描述空白点，不引入功能新增。
+
+### GameModule 完整入口（之前 references 未列）
+
+```csharp
+GameModule.Base       // RootModule         — 根模块（框架初始化入口）
+GameModule.Debugger   // IDebuggerModule    — 调试器（运行时按 ~ 键呼出）
+GameModule.Procedure  // IProcedureModule   — 流程
+```
+
+`Base` 通过 `FindObjectOfType<RootModule>()` 获取（非 `ModuleSystem.GetModule` 路径），其余通过 `ModuleSystem.GetModule<T>()` 获取并缓存。`UI` 属性类型是 `UIModule`（实现单例，不是 `IUIModule` 接口）。
+
+### SceneModule 进度回调真实参数名
+
+```csharp
+Scene scene = await GameModule.Scene.LoadSceneAsync(
+    "SceneName",
+    LoadSceneMode.Single,
+    progressCallBack: p => Log.Info($"加载进度: {p:P}")  // 0~1
+);
+```
+
+> 真实参数名 `progressCallBack`（驼峰大小写不严格，但确为框架实际签名）。
+
+### Log 系统完整 API
+
+```csharp
+Log.Debug(string);    // 仅 Development Build 输出，发布包条件剥离
+Log.Info(string);     // 普通信息
+Log.Warning(string);  // 警告
+Log.Error(string);    // 错误，始终保留（NUnit 中触发隐式 fail）
+Log.Fatal(string);    // 严重错误
+Log.Assert(bool, string);  // 断言失败时输出
+```
+
+发布规则：`Log.Debug` 在非 Development 包中由编译器条件剥离；`Log.Error` / `Log.Fatal` 始终保留。
+
+---
+
+## Sprint 5 累计 framework drift batch
+
+> Sprint 5 实施过程发现的 ADR-028 vs 实际 framework API 偏差，待 Sprint 5 retro 时 batch 入 ADR；先在此 reference 标注真实 API。
+
+### drift-v1: AudioModule 初始化签名
+
+ADR-028 §1 原描述用了 `Activate()` 空参签名，实测真实 API：
+
+```csharp
+GameModule.Audio.Initialize(Settings.AudioSetting.audioGroupConfigs);
+```
+
+入参是 `AudioGroupConfig[]`（音频组配置数组）。框架**没有**空参 `Activate()` 重载。
+
+### drift-v2-(a): AudioModule 自动 Initialize 已生效
+
+`AudioModule.OnInit()` 框架内部已自动调用 `Initialize(Settings.AudioSetting.audioGroupConfigs)`，业务侧**不需要**再次手动调用：
+
+```csharp
+// AudioModule.OnInit 框架内部：
+public override void OnInit()
+{
+    Initialize(Settings.AudioSetting.audioGroupConfigs);
+    // ...
+}
+```
+
+业务侧直接 `GameModule.Audio.Play(...)` 即可。重复 `Initialize` 是无害的（idempotent）但徒增噪音。

@@ -20,9 +20,9 @@ Unity 2022.3.62f2 LTS · TEngine · HybridCLR（代码热更）· YooAsset 2.3.1
 1. 判定任务等级 **L1 / L2 / L3 / L4**（判断标准见 [`CLAUDE.md` 强制工作流第零步](CLAUDE.md)）
 2. L2+ 必读 [`.claude/skills/tengine-dev/SKILL.md`](.claude/skills/tengine-dev/SKILL.md) 导航表
 3. 按导航表追加阅读 `.claude/skills/tengine-dev/references/` 下的对应 reference
-4. L3/L4 调用 wiki 查询：
-   - **Claude Code** 用 `wiki-query-agent` subagent
-   - **Cursor** 降级为 `SemanticSearch` + `Read` 查 `repowiki/zh/content/`（并在已读声明中注明降级）
+4. L3/L4 references 不足时补查（v6.2.1 sync 起统一流程，不再用 wiki-query-agent）：
+   - 直接 `SemanticSearch` / `Grep` / `Read` 查 `repowiki/zh/content/`，按主题精确读章节
+   - 必要时 `Read` 真实源码 `Assets/TEngine/Runtime/<相关模块>/` 做 ground truth 验证
 5. 在产出代码 / 方案前输出「已读声明」块（格式见下）
 
 **Cursor 用户补充**：`.cursor/rules/shadowgame-tengine.mdc` 已按 glob 自动挂载，包含强制 TodoWrite 前置项、违反处理流程等完整约束，请严格遵守。

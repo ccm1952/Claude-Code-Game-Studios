@@ -101,8 +101,35 @@ Prefab 节点命名前缀决定 `UIScriptGenerator` 自动生成的绑定类型�
 | `m_vlay_` | `VerticalLayoutGroup` | `m_vlay_List` |
 | `m_canvasGroup_` | `CanvasGroup` | `m_canvasGroup_Fade` |
 | `m_curve_` | `AnimationCurve` | `m_curve_Anim` |
+| `m_canvas_` | `Canvas` | `m_canvas_Overlay` |
+| `m_dropdown_` | `Dropdown` | `m_dropdown_Select` |
+| `m_tmpInput_` | `TMP_InputField` | `m_tmpInput_Search` |
+| `m_tmpDropdown_` | `TMP_Dropdown` | `m_tmpDropdown_Lang` |
+| `m_richText_` | `RichTextItem` | `m_richText_Desc` |
 
 不需要绑定的节点无需加前缀，UIScriptGenerator 会忽略。
+
+### 前缀匹配顺序警示（同步上游 v6.2.x）
+
+`ScriptGeneratorSetting.asset` 中 regex 按序匹配，长前缀必须先于短前缀声明：
+
+| 必须先匹配 | 才能匹配 | 否则会被误识别为 |
+|-----------|---------|--------------|
+| `m_scrollBar` | `m_scroll` | `m_scrollBar_X` 会被 `m_scroll` 先匹配 → 生成 `ScrollRect` |
+| `m_tmpInput` | `m_tmp` | `m_tmpInput_X` 会被 `m_tmp` 先匹配 → 生成 `TextMeshProUGUI` |
+| `m_tmpDropdown` | `m_tmp` | 同上 |
+| `m_richText` | `m_text` | `m_richText_X` 会被 `m_text` 先匹配 → 生成 `Text` |
+
+新增前缀时检查 `Assets/TEngine/Settings/Resources/ScriptGeneratorSetting.asset` 的 `uiElementRegex` 字段顺序。
+
+### 旧 m_tInput_ 已废弃（v6.2.0 修订）
+
+```
+❌ m_tInput_Search     // 旧前缀，已被废弃
+✅ m_tmpInput_Search   // 新前缀，统一 TMP 命名
+```
+
+旧节点重命名为 `m_tmpInput_` 后重新生成绑定。
 
 ---
 

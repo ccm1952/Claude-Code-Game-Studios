@@ -299,3 +299,84 @@ await UniTask.WhenAll(tasks);
 if (GameModule.Resource.HasAsset("HeroPrefab") == HasAssetResult.AssetOnline)
     Log.Warning("资源需要联网下载");
 ```
+
+---
+
+## 框架 v6.2.x 修订亮点（同步上游）
+
+### SetSprite / SetSubSprite 4 个签名速查
+
+```csharp
+// 1. Image 基础（最常用）
+void SetSprite(this Image image, string location,
+    bool setNativeSize = false,
+    Action<Image> callback = null,                    // ← Action<Image>，不是 Action<Sprite>
+    CancellationToken cancellationToken = default)
+
+// 2. SpriteRenderer
+void SetSprite(this SpriteRenderer spriteRenderer, string location,
+    Action<SpriteRenderer> callback = null,            // ← Action<SpriteRenderer>
+    CancellationToken cancellationToken = default)
+
+// 3. Image 图集子图（无 callback 重载）
+void SetSubSprite(this Image image, string location, string spriteName,
+    bool setNativeSize = false,
+    CancellationToken cancellationToken = default)
+
+// 4. SpriteRenderer 图集子图（无 callback 重载）
+void SetSubSprite(this SpriteRenderer spriteRenderer, string location,
+    string spriteName,
+    CancellationToken cancellationToken = default)
+```
+
+> **要点**：SetSprite 的 callback 类型是 `Action<Image>` / `Action<SpriteRenderer>`（不是 `Action<Sprite>`）。SetSubSprite **没有** Action 回调重载。
+
+### 句柄式加载（高级用法）
+
+返回 `AssetHandle` 的加载方式，适合需要精细控制加载/卸载时机的场景：
+
+```csharp
+// 同步句柄
+AssetHandle h1 = GameModule.Resource.LoadAssetSyncHandle<Sprite>("icon");
+if (h1.IsValid) { var sprite = h1.AssetObject as Sprite; }
+
+// 异步句柄
+using var h2 = GameModule.Resource.LoadAssetAsyncHandle<Sprite>("icon");
+await h2.Task;
+if (h2.IsValid) { var sprite = h2.AssetObject as Sprite; }
+```
+
+句柄方式比 `LoadAssetAsync<T>` 多一层 API，适合：(1) 需要直接访问 `AssetHandle` 操作（如绑定 `Completed` 回调），(2) 需要手动控制 `Dispose` 时机。日常加载仍然推荐 `LoadAssetAsync<T>`。
+
+### SetRemoteServicesUrl 双地址
+
+```csharp
+// ✅ 正确：必须同时提供默认和备用地址
+GameModule.Resource.SetRemoteServicesUrl(
+    defaultHostServer: "https://primary.cdn.example.com/",
+    fallbackHostServer: "https://backup.cdn.example.com/");
+
+// ❌ 错误：单参数重载不存在
+GameModule.Resource.SetRemoteServicesUrl("https://only.cdn.example.com/");
+```
+
+---
+
+## 资源加载 cancel/failure 路径 handle 释放（来自 issue #253 修复）
+
+> ShadowGame 已 cherry-pick TEngine 6.2.1 issue #253 修复（参 `ResourceModule.cs` LoadAssetAsync / LoadGameObjectAsync）。
+
+业务侧 `await` 资源加载 + 取消时 framework 已正确 `handle.Dispose()`，资产引用计数归零。但**业务侧的 try/catch 路径**也应保持正确处理：
+
+```csharp
+// ✅ 正确：业务侧不需要手动管 handle，framework 已处理
+private CancellationTokenSource _cts = new();
+
+try
+{
+    var asset = await GameModule.Resource.LoadAssetAsync<TextAsset>("config", _cts.Token);
+    if (asset == null) return;  // cancel 时 LoadAssetAsync 返回 null（非抛异常）
+    // ...
+}
+catch (OperationCanceledException) { /* 取消时 SuppressCancellationThrow 已吞掉，几乎不走这里 */ }
+```

@@ -857,6 +857,11 @@ namespace TEngine
             if (cancelOrFailed)
             {
                 _assetLoadingList.Remove(assetObjectKey);
+                // SHADOWGAME PATCH: cherry-pick from TEngine 6.2.1 issue #253 — cancel/failure 分支必须 Dispose handle，否则 resource 泄漏
+                if (handle is { IsValid: true })
+                {
+                    handle.Dispose();
+                }
                 return null;
             }
 
@@ -901,6 +906,11 @@ namespace TEngine
             if (cancelOrFailed)
             {
                 _assetLoadingList.Remove(assetObjectKey);
+                // SHADOWGAME PATCH: cherry-pick from TEngine 6.2.1 issue #253 — cancel/failure 分支必须 Dispose handle，否则 resource 泄漏
+                if (handle is { IsValid: true })
+                {
+                    handle.Dispose();
+                }
                 return null;
             }
 

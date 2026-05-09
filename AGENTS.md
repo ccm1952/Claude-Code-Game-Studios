@@ -44,7 +44,7 @@
 | `.claude/agents/*` 自定义 subagent | ❌（需用 `Task` + `SemanticSearch` 模拟） | ✅ |
 | `.claude/commands/*` 斜杠命令 | ❌ | ✅ |
 
-> 在 Cursor 里处理 ShadowGame 任务时，`wiki-query-agent` 子代理不可用，应降级为 `SemanticSearch` + `Read` 查询 `src/MyGame/ShadowGame/repowiki/zh/content/`，并在已读声明中标注"Cursor 模式：wiki 查询已降级"。
+> 注：`wiki-query-agent` 子代理已于 2026-05-08 同步上游 TEngine 6.2.1 时删除（上游已用 `tengine-dev` skill 取代）。L3/L4 任务 references 不足时，统一用 `SemanticSearch` / `Grep` / `Read` 查 `src/MyGame/ShadowGame/repowiki/zh/content/`（按主题精确读章节，禁止整份 Read 进上下文）。
 
 ---
 

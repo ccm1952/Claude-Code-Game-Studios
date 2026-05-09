@@ -264,3 +264,92 @@ if (this == null || _imgIcon == null) return; // Unity Object 的 null 检查
 
 _imgIcon.sprite = sprite;
 ```
+
+---
+
+## 框架 v6.2.x 速查表（同步上游）
+
+> 来自 TEngine 6.2.1 references "FAQ 章节 + quick reference 表" sync。集中处理 AI 编码时容易写错的高频签名。
+
+### UIWindow 生命周期签名速查
+
+```csharp
+// ✅ 正确签名（UIBase 中定义）
+protected virtual void OnCreate()      // 无参数
+protected virtual void OnRefresh()     // 无参数
+protected virtual void OnUpdate()      // 无参数
+protected virtual void OnDestroy()     // 无参数（非 ProcedureBase.OnDestroy(ProcedureOwner)）
+
+// ❌ 常见错误签名
+protected override void OnCreate(object userData)   // 不存在
+protected override void OnDestroy(bool isShutdown)  // 这是 ProcedureBase 的签名
+```
+
+UIWindow 数据通过 `UserData` 属性获取，不通过参数传入。
+
+### SetSprite callback 类型速查
+
+```csharp
+// Image 扩展方法
+void SetSprite(this Image image, string location,
+    bool setNativeSize = false,
+    Action<Image> callback = null,           // ← Action<Image>，不是 Action<Sprite>
+    CancellationToken cancellationToken = default)
+
+// SpriteRenderer 扩展方法
+void SetSprite(this SpriteRenderer spriteRenderer, string location,
+    Action<SpriteRenderer> callback = null,  // ← Action<SpriteRenderer>
+    CancellationToken cancellationToken = default)
+
+// SetSubSprite 没有 callback 重载（Image / SpriteRenderer 两版）
+```
+
+### GameEvent 清理方法速查
+
+```csharp
+// ✅ UI 内部事件自动清理
+AddUIEvent(eventType, handler);  // UIWindow.OnDestroy 自动 RemoveAllUIEvent
+
+// ✅ 单个监听移除
+GameEvent.RemoveEventListener(eventType, handler);
+
+// ✅ 局部批量清除（GameEventMgr）
+_eventMgr.Clear();
+
+// ✅ 全局清除（仅游戏退出时）
+GameEvent.Shutdown();
+
+// ❌ 不存在的方法（AI 常见幻觉）
+GameEvent.UnRegisterAll();          // 编译错误
+GameEvent.UnRegisterAll<T>();       // 编译错误
+GameEvent.RegisterListener<T>();    // 编译错误（Source Generator 自动注册）
+GameEvent.ClearAll();               // 编译错误
+GameEvent.RemoveAll(eventId);       // 编译错误
+```
+
+---
+
+## Sprint 5 spike-design parity check（lessons learned）
+
+> 触发：S5-06 Audio Manager spike 在 PlayMode 验证发现"功能正确但 1 处与设计文档不一致"——`ISettingsEvent.OnSettingChanged` 真签名是 `(string, string)` 而非 design doc 写的 `(string, object)`。
+
+### Self-check 流程
+
+spike / story 实施前，对每个引用的 framework 接口做一次 grep verify：
+
+```bash
+# 验证 IEvent 接口真签名
+rg "interface IXxxEvent" Assets/GameScripts/HotFix/GameLogic/IEvent/
+
+# 验证 framework module API 真签名
+rg "void Initialize" Assets/TEngine/Runtime/Module/AudioModule/
+```
+
+### Drift 处理协议
+
+design vs framework 出现 drift 时：
+
+1. **以 framework 为准**（design 不能改 framework 行为）
+2. drift 写入当前 story 的 `## Implementation Notes` 段
+3. retro 时 batch 修订涉及的 ADR / GDD（不在 sprint 内做）
+4. 触发 ≥ 3 次 drift 即升级为正式协议（参 ADR-029 V2.0 governance）

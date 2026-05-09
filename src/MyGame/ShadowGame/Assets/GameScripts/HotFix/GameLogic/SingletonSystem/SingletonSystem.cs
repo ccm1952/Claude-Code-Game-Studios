@@ -212,6 +212,18 @@ namespace GameLogic
 
         public static void Release()
         {
+            // SHADOWGAME PATCH: 借鉴 TEngine 6.2.1 PR #248 思路 —— Release 时主动清理生命周期 lists，
+            // 防止后续 Restart 流程残留旧 Update / FixedUpdate / LateUpdate / Gizmos 引用。
+            // 注：本类是项目自实现（GameLogic 域），不是 TEngine 框架的 SingletonSystem，
+            //     因此不能直接 cherry-pick 上游 patch；这里按上游思路自己加 cleanup。
+            _updates.Clear();
+            _fixedUpdates.Clear();
+            _lateUpdates.Clear();
+#if UNITY_EDITOR
+            _drawGizmos.Clear();
+            _drawGizmosSelecteds.Clear();
+#endif
+
             if (_gameObjects != null)
             {
                 foreach (var item in _gameObjects)
@@ -226,12 +238,13 @@ namespace GameLogic
             {
                 for (int i = _singletons.Count - 1; i >= 0; i--)
                 {
-                    _singletons[i].Release();
+                    _singletons[i]?.Release();
                 }
 
                 _singletons.Clear();
             }
 
+            DeInit();
             Resources.UnloadUnusedAssets();
         }
 

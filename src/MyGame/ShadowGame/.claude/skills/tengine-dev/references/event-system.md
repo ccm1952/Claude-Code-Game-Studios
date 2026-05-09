@@ -340,3 +340,84 @@ GameEvent.AddEventListener<float>(IBattleEvent_Event.OnHpChanged, cb); // 类型
 // ✅ 正确：订阅参数类型与接口方法参数一致
 GameEvent.AddEventListener<int>(IBattleEvent_Event.OnHpChanged, cb);
 ```
+
+---
+
+## 框架 v6.2.x 修订亮点（同步上游）
+
+> 来自 TEngine 6.2.0 / 6.2.1 release notes。本节为保留信息层，不影响项目实施约定。
+
+### EventMgr 实现已升级为 type-key（v6.2.0）
+
+`EventMgr._eventEntryMap` 内部 dictionary 的 key 从 `string` 改为 `System.Type`，达到**零 GC 分配**与 **Obfuz 混淆兼容**。日常 `GameEvent.Get<T>()` / `_eventEntryMap.RegWrapInterface<T>(impl)` 用法不变。
+
+### 不存在的 GameEvent API（AI 常见幻觉）
+
+```csharp
+// ❌ 以下 API 均不存在，编译会失败：
+GameEvent.UnRegisterAll();
+GameEvent.UnRegisterAll<int>(eventId);
+GameEvent.RegisterListener<ITrade>(impl);  // 由 Source Generator 自动注册
+GameEvent.ClearAll();
+GameEvent.RemoveAll(eventId);
+
+// ✅ 正确替代：
+GameEvent.RemoveEventListener(eventType, handler);   // 移除单个
+GameEventMgr.Clear();                                // 局部批量清除
+GameEvent.Shutdown();                                // 全局清除（仅游戏退出）
+```
+
+### Lambda 捕获导致不可移除监听
+
+```csharp
+// ❌ 错误：Lambda 无法用 RemoveEventListener 移除（引用不同）
+GameEvent.AddEventListener<int>(eventId, hp => _txtHp.text = hp.ToString());
+
+// ✅ 正确：命名方法，可精确移除；或改用 GameEventMgr / AddUIEvent
+private void OnHpChanged(int hp) => _txtHp.text = hp.ToString();
+_eventMgr.AddEvent<int>(eventId, OnHpChanged);
+```
+
+### 高频事件直接更新 UI（事件风暴反模式）
+
+```csharp
+// ❌ 错误：每帧 Send 高频事件 + UI 直接更新，产生大量 UI 重绘
+void Update() => GameEvent.Get<IHeroEvent>().OnPositionChanged(_hero.position);
+
+// ✅ 正确：高频数据用 Timer 节流
+_timerId = GameModule.Timer.AddTimer(RefreshPosition, time: 0.1f, isLoop: true);
+```
+
+---
+
+## Sprint 5 drift v2-(b) — ISettingsEvent.OnSettingChanged 真签名
+
+> Sprint 5 S5-06 Audio Manager spike 实测验证发现的 framework vs design 偏差。
+
+`ISettingsEvent.OnSettingChanged` 真实签名是两个 string 参数（不是 `(string, object)` 或 `(object, object)`）：
+
+```csharp
+[EventInterface(EEventGroup.GroupLogic)]
+public interface ISettingsEvent
+{
+    void OnSettingChanged(string category, string settingKey);
+}
+```
+
+派发：
+
+```csharp
+GameEvent.Get<ISettingsEvent>().OnSettingChanged("audio", "music_volume");
+```
+
+监听：
+
+```csharp
+GameEvent.AddEventListener<string, string>(
+    ISettingsEvent_Event.OnSettingChanged, OnSettingChanged);
+
+private void OnSettingChanged(string category, string key)
+{
+    // 业务侧通过 Repo / SaveManager 自行 lookup 实际值
+}
+```

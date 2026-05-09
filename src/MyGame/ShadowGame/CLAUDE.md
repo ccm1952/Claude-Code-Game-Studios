@@ -51,7 +51,7 @@ TEngine 基于 HybridCLR + YooAsset + UniTask + Luban 构建。
 |------|-------|---------|------|
 | **L-0 导航**（所有 TEngine 任务必读） | 任务开始前 | [`.claude/skills/tengine-dev/SKILL.md`](.claude/skills/tengine-dev/SKILL.md) | 极低（~50 行） |
 | **L-1 Editor 操作**（涉及场景 / 资产 / MCP 时追加） | 需要操作 Unity Editor 时 | `.claude/skills/tengine-dev/references/` 下对应文件：`scene-gameobject.md` / `script-asset-workflow.md` / `unity-mcp-guide.md` / `ui-prefab-builder.md` / `material-shader-vfx.md` / `editor-automation.md` | 低（100-300 行） |
-| **L-2 深度 API**（L3 / L4 任务追加） | 需要深度 API 规范时 | 调用 `wiki-query-agent` 查询 `repowiki/zh/content/` | 中（subagent 独立上下文） |
+| **L-2 深度 API**（L3 / L4 任务追加） | references 不足以覆盖某 API 细节时 | `SemanticSearch` / `Grep` / `Read` 查 `repowiki/zh/content/`，或 `Read` 真实源码 `Assets/TEngine/Runtime/` | 中（按需精确读章节） |
 
 ### 强制执行检查点
 
@@ -85,7 +85,7 @@ TEngine 基于 HybridCLR + YooAsset + UniTask + Luban 构建。
 
 ### 违反记录（自检机制）
 
-发现违反本协议（未读 SKILL.md 就写代码 / 未评估 unity-mcp 就给手动步骤 / L3+ 任务未调 wiki-query-agent）时：
+发现违反本协议（未读 SKILL.md 就写代码 / 未评估 unity-mcp 就给手动步骤 / L3+ 任务 references 不足却没补充 repowiki 查询）时：
 
 1. **立即写入** 工程根 `/.claude/memory/problem_YYYY-MM-DD_tengine-skill-violation.md`，格式参考 `/.claude/memory/problem_2026-04-22_asmdef-source-generator.md`。
 2. **当前任务重启**：回滚或暂停当前代码产出，先补齐阅读，再重新产出。
@@ -110,80 +110,84 @@ TEngine 基于 HybridCLR + YooAsset + UniTask + Luban 构建。
 
 在执行任何操作前，先判断任务等级：
 
-| 等级 | 判断标准 | wiki 查询策略 | 声明步骤 |
+| 等级 | 判断标准 | 阅读策略 | 声明步骤 |
 |------|---------|-------------|---------|
-| **L1 简单** | typo 修正、注释修改、日志输出、单行变量改名 | ❌ 跳过查询 | ❌ 跳过 |
-| **L2 调用** | 调用已知 API、单一模块的局部修改 | ✅ 轻量查询（只查该 API） | 可选 |
-| **L3 功能** | 新功能开发、跨文件修改、新增 UI/资源/事件逻辑 | ✅ 全量查询 | ✅ 必须 |
-| **L4 架构** | 模块设计、系统重构、多模块协作、架构决策 | ✅ 并行多主题查询 | ✅ 必须 |
+| **L1 简单** | typo 修正、注释修改、日志输出、单行变量改名 | ❌ 跳过 | ❌ 跳过 |
+| **L2 调用** | 调用已知 API、单一模块的局部修改 | ✅ 读 SKILL.md + 1 个 reference | 可选 |
+| **L3 功能** | 新功能开发、跨文件修改、新增 UI/资源/事件逻辑 | ✅ 读 SKILL.md + 多个 references | ✅ 必须 |
+| **L4 架构** | 模块设计、系统重构、多模块协作、架构决策 | ✅ 多 references + 必要时 SemanticSearch repowiki | ✅ 必须 |
 
 > **判断原则**：宁可高估等级，不可低估——不确定时上调一级。
 
 ---
 
-### 第一步：按等级查询 Wiki（使用 wiki-query-agent）
+### 第一步：按等级阅读 tengine-dev skill（取代旧 wiki-query-agent 流程）
 
-**L1 任务直接跳到第三步。L2-L4 必须先调用 `wiki-query-agent`。**
+> **v6.2.x sync 后**：上游已用 `tengine-dev` skill 取代 `wiki-query-agent` subagent，本工程已删除 `.claude/agents/wiki-query-agent.md`。统一走 skill references。
 
-**核心规则**：wiki 文档内容**必须经由 wiki-query-agent 处理后引用**，不得将原始文档大段复制到主 Agent 上下文中（目的：保持主 Agent 上下文干净，专注代码生成）。
+**L1 任务直接跳到第三步。L2-L4 必须读 SKILL.md + 对应 references。**
+
+**核心规则**：禁止把 `repowiki/` 原始文档大段复制到主上下文。SKILL.md 16 个 references 已经是结构化精华，按需读章节即可。
 
 #### 会话内缓存（避免重复查询）
 
-同一会话中已查询过的主题无需重复查询：
-- 直接引用本次会话已获取的规范摘要
-- 仅当任务涉及**本次会话未覆盖的新主题**时才启动新查询
-
-```
-示例：
-会话内已查询 UIWindow 规范
-→ 后续 UIWindow 相关任务：直接引用已有摘要，不重新查询
-→ 后续涉及 GameEvent 的任务：UIWindow 摘要复用，仅补充查询 GameEvent
-```
+同一会话内同一 reference 已读过则直接复用，仅当任务涉及未覆盖的新主题时再追加阅读。
 
 #### 触发时机
 
-| 场景 | 必须查询主题 |
+| 场景 | 必读 reference |
 |------|------------|
-| UI 开发 | UIWindow 生命周期、UIWidget 规范、资源加载释放 |
-| 资源加载 | LoadAssetAsync API、释放时机、YooAsset 规范 |
-| 热更代码 | HybridCLR 程序集划分、GameApp 入口、热更边界 |
-| 事件系统 | GameEvent 用法、AddUIEvent 规范、事件解耦模式 |
-| 模块使用 | GameModule.XXX API、模块生命周期 |
-| Luban 配置 | 配置表生成流程、访问方式 |
-| 代码规范 | 命名约定、设计模式、架构约束 |
+| UI 开发 | `ui-development.md` + `ui-prefab-builder.md` |
+| 资源加载 | `resource-management.md` |
+| 热更代码 | `hotfix-development.md` |
+| 热更包/Manifest | `hotpatch-management.md` |
+| 事件系统 | `event-system.md` |
+| 模块使用 | `modules.md` |
+| Luban 配置 | `luban-config.md` |
+| 代码规范 | `conventions.md` |
+| 排错 | `troubleshooting.md` |
 
-#### 调用方式
+#### L-2 深度查询（仅当 references 不足以覆盖时）
 
-```
-使用 Agent 工具，subagent_type = "wiki-query-agent"
-在 prompt 中描述需要查询的技术问题或功能点
-```
+按以下顺序：
+
+1. `Read` 真实源码 `src/MyGame/ShadowGame/Assets/TEngine/Runtime/<相关模块>/`（ground truth）
+2. `SemanticSearch` 查 `src/MyGame/ShadowGame/repowiki/zh/content/`（按主题精确读）
+3. `Grep` 关键 API / 类名定位具体文件
+
+**禁止**：把整份 `repowiki/zh/content/<file>.md` 全文 Read 进上下文。
 
 #### 并行查询（L4 架构任务）
 
-多主题时并行启动多个 wiki-query-agent，汇总后再编码：
-```
-同时查询 UI规范 + 资源管理规范 → 汇总后再编码
-```
+多主题用同一回合内多次 `SemanticSearch` 并行启动，汇总后再编码。
 
 ---
 
-### 第二步：声明已查询文档（L3/L4 必须，L2 可选，L1 跳过）
+### 第二步：声明已读（L3/L4 必须，L2 可选，L1 跳过）
 
-在输出代码/方案前，列出：
-- 已通过 wiki-query-agent 查询的主题（含本次会话复用的缓存主题）
-- 关键规范摘要（来自 subagent 返回结果）
+在输出代码 / 方案前，列出：
+- 已读的 SKILL.md / references / repowiki 章节（含本会话复用的缓存）
+- 关键规范摘要
+
+格式示例：
+
+```
+已读: SKILL.md + references/ui-development.md + references/event-system.md
+会话缓存: [resource-management.md — 上一回合已读，复用]
+未读: [hotpatch-management.md — 本任务不涉及热更]
+任务等级: L3
+```
 
 ---
 
 ### 第三步：输出代码/方案
 
-基于 wiki-query-agent 返回的规范编写实现。
+基于 references / 真实源码 编写实现。
 
-**当 wiki 规范与代码实际 API 冲突时**：
+**当 references / wiki 规范与代码实际 API 冲突时**：
 1. 优先信任代码中的实际实现
 2. 在输出中标注冲突点
-3. 任务完成后触发 `/wiki:sync` 同步文档
+3. 任务完成后**修订对应 reference**（直接 edit `.claude/skills/tengine-dev/references/<file>.md`），不再走旧的 `/wiki:sync` 命令
 
 ---
 
@@ -227,18 +231,22 @@ Wiki 目录索引：[repowiki/zh/content/index.md](repowiki/zh/content/index.md)
 
 ---
 
-## wiki-query-agent 使用规范
+## 历史 wiki-query-agent 子代理（已废弃）
 
-### 为什么必须用 subagent
-- wiki-query-agent 在独立上下文中运行，**不占用主 Agent 上下文窗口**
-- 大量文档内容由 subagent 处理后，只返回精华摘要给主 Agent
-- 保持主 Agent 上下文干净，专注于代码生成
+> **2026-05-08 v6.2.1 sync 后已删除** `.claude/agents/wiki-query-agent.md`。
+>
+> 上游 TEngine 在 6.2.1 已经把 wiki-query-agent subagent 替换为更轻量的 `tengine-dev` skill。本工程同步删除子代理文件，理由：
+> 1. `tengine-dev` skill 的 16 个 references 已 cover 95% framework 知识，无需独立 subagent
+> 2. Cursor 工具不支持 Claude Code 的 subagent，原本就是降级模式
+> 3. 简化心智模型：references 不够 → 直接 SemanticSearch / Read repowiki
+>
+> 上下文压力问题改由 SemanticSearch 解决（按主题精确读章节而非整份文档）。
 
 ---
 
 ## 补充文档参考（技能文档）
 
-详细技能文档见 `.claude/skills/tengine-dev/references/`（仅供 wiki-query-agent 内部查阅）：
+详细技能文档见 `.claude/skills/tengine-dev/references/`（主 Agent 直接 Read，按 SKILL.md 导航表选择）：
 
 | 文档 | 内容 |
 |-----|------|
@@ -265,18 +273,17 @@ Wiki 目录索引：[repowiki/zh/content/index.md](repowiki/zh/content/index.md)
 - 文件名：`problem_YYYY-MM-DD.md`
 - 内容：问题现象、原因分析、解决方案
 
-### 自动触发文档同步的条件（主动检测，无需人工判断）
+### 自动触发 references 同步的条件（主动检测，无需人工判断）
 
-以下任一情况**自动触发** `/wiki:sync`，无需等待用户指令：
+以下任一情况**应主动修订** `.claude/skills/tengine-dev/references/<file>.md`：
 
 | 触发条件 | 说明 |
 |---------|------|
-| wiki 规范与代码实际 API 不符 | 以代码为准，更新 wiki |
-| 代码中存在 wiki 未覆盖的新 API/模式 | 补充 wiki 文档 |
-| wiki 描述的类/方法在代码中已不存在 | 删除或修正 wiki 条目 |
-| 同一问题在 `.claude/memory/` 出现两次以上 | 说明根因是 wiki 缺失，补充文档 |
+| references 与代码实际 API 不符 | 以代码为准，edit 对应 reference 文件 |
+| 代码中存在 references 未覆盖的新 API/模式 | 补充章节到合适的 reference |
+| references 描述的类/方法在代码中已不存在 | 删除或修正条目 |
+| 同一问题在 `.claude/memory/` 出现两次以上 | 沉淀为 references 章节 + 在 `.cursor/rules/shadowgame-tengine.mdc` 加硬规则 |
 
-### 手动触发文档同步
-```bash
-/wiki:sync
-```
+### 修订流程
+
+直接 edit `.claude/skills/tengine-dev/references/<file>.md`，不再走 `/wiki:sync` 命令（旧 wiki-query-agent 时代的产物，已废弃）。重大 framework 变更同步追加到 `.cursor/rules/shadowgame-tengine.mdc` 的「框架 vendor patch 硬规则」节。

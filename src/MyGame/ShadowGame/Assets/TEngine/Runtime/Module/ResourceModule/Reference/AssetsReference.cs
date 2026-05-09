@@ -86,6 +86,13 @@ namespace TEngine
 
         private void OnDestroy()
         {
+            // SHADOWGAME PATCH: cherry-pick from TEngine 6.2.1 — _originalRefs 残留旧引用修复
+            // 上游 commit: AssetsReference OnDestroy 时移除自身引用，防止字典残留导致后续克隆判定失败
+            if (_originalRefs.TryGetValue(gameObject, out var reference) && reference == this)
+            {
+                _originalRefs.Remove(gameObject);
+            }
+
             CheckInit();
             if (sourceGameObject != null)
             {
@@ -123,10 +130,9 @@ namespace TEngine
             _resourceModule = resourceModule;
             sourceGameObject = source;
 
-            if (!_originalRefs.ContainsKey(gameObject))
-            {
-                _originalRefs.Add(gameObject, this);
-            }
+            // SHADOWGAME PATCH: cherry-pick from TEngine 6.2.1 — _originalRefs 残留旧引用修复
+            // 上游用 indexer 替代 ContainsKey+Add：同一 gameObject 重复 Ref 时确保引用始终更新到最新实例
+            _originalRefs[gameObject] = this;
 
             return this;
         }
