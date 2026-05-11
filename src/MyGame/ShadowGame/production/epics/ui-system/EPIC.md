@@ -71,7 +71,7 @@ This epic is complete when:
 
 | Story ID | Title | Type | GDD Requirements | Status |
 |----------|-------|------|-----------------|--------|
-| ui-system-001 | UIModule Initialization + UIWindow Base Class Setup | Logic | TR-ui-001, TR-ui-002 | Ready |
+| ui-system-001 | UIModule Initialization + UIWindow Base Class Setup *(2026-05-11 Sprint 5 narrow scope amendment — Logic → Integration；Popup Queue/InputBlocker 移至 story-008 Sprint 6 polish)* | Integration | TR-ui-001 ✅ + TR-ui-002 ⚠️ partial (UILayer 枚举本 story；Popup/InputBlocker story-008) | **Draft (Sprint 5)** |
 | ui-system-002 | GameHUD Window (Hint Button, Puzzle Progress, Interaction Prompts) | UI | TR-ui-004, TR-ui-006, TR-ui-015 | Ready |
 | ui-system-003 | PauseMenu Window (Resume, Settings, Quit) | UI | TR-ui-005, TR-ui-009 | Ready |
 | ui-system-004 | PuzzleComplete Window (Score Display, Continue) | UI | TR-ui-005, TR-ui-010 | Ready |
@@ -85,3 +85,23 @@ This epic is complete when:
 ## Next Step
 
 Run `/dev-story ui-system-001` to begin implementation. Recommended order: 001 → 008 → 002 → 003 → 004 → 006 → 007 → 009 → 010 → 005 (005 blocked on chapter-state).
+
+---
+
+## Sprint 5 Override (2026-05-11)
+
+**S5-08 promote**: ui-system-001 promoted should-have → must-have (sprint-status.yaml `S5-08` entry)；Sprint 5 [A] serial 序列：S5-04 ✅ → **S5-08 (本 story narrow scope)** → S5-02 → S5-07。
+
+**Narrow scope amendment**:
+
+- ui-system-001 本 sprint **narrow scope** 实施（10 AC + R3 PlayMode probe 4 case；详 story file §History 2026-05-11 entry）：UILayer 枚举 + UIRoot Canvas runtime 实例化 + GameModule.UI 通路 + ShowWindow/CloseWindow API + Mock minimal panel lifecycle verify + Button onClick path verify
+- **Popup Queue / Auto-Dequeue / Auto InputBlocker / Overlay limit / 双 InputBlocker 叠加** → 全部由 **ui-system-008** cover (Sprint 6 polish；不新建 ui-system-001b — story-008 已存在 9 AC + 5 TC 同 scope)
+- **Full Main Menu UIWindow** (New Game / Continue / Settings 按钮 + 存档检查 + fade-in 动画 + 主菜单 BGM) → **ui-system-006** Sprint 6 polish；S5-02 内 minimal main menu (2 minimal inline Button) 基于 ui-system-001 API 通路实施，不实施完整 main menu
+
+**Sprint 5 不实施 ui-system-002..-010 任何 story**；本 sprint 仅 ui-system-001 narrow scope。
+
+**Sprint 4 carryover hard rule satisfaction (S3-08 → S4-09 → S5-08 第 2 次 carryover)**：
+- ✅ Promote: S5-08 must-have + Sprint 5 dev-story 实施
+- ✅ Descope rationale: 完整 robust UI infrastructure (Popup Queue / Auto InputBlocker 等) descope 到 story-008 Sprint 6 polish；明示 rationale
+
+---
