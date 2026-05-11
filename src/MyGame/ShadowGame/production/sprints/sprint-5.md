@@ -58,14 +58,15 @@
 
 ## Tasks
 
-### Must Have (Critical Path) — 5 items / 11 SP
+### Must Have (Critical Path) — 6 items / 12 SP *(2026-05-11 update: S5-08 promote → Must Have; S5-02 拆 happy path 2 SP + S5-2b error/restart 1 SP Sprint 6 backlog)*
 
 #### Track A — VS Chapter 1 Build（Sprint 5 核心 Critical Path）
 
 | ID | Story | Type | Complexity | Depends on | AC 要点 |
 |----|-------|:----:|:----------:|------------|---------|
 | **S5-01** | **Chapter 1 (`靠近`) Unity scene 实体构建首版** + scene asset (prefab + lighting + UI) | Asset / Integration | **3 SP** | S3-01 ✅（Additive Scene Loading） + S4-01..03 ✅（framework）+ Art bible（S5-04）| chapter 1 Unity scene file ready 在 Assets/GameMain/Scenes/Chapter01.unity；含 baseline lighting setup + 投影墙面 + 至少 1 个可操作物件（per shadow-puzzle GDD MVP §单关卡 3m×3m×2.5m） + ≥1 光源 + ≥1 narrative trigger zone；scene 通过 SceneManager.LoadChapterSceneAsync 可 load |
-| **S5-02** | **Chapter 1 end-to-end 5 系统串通可玩** | Integration | **3 SP** | S5-01 + S5-03/-05/-06 | end-to-end flow: Splash/MainMenu → Chapter 1 scene load → object interaction (Drag/Rotate per S2-08 ✅) → shadow match (per S5-03 puzzle production code) → narrative beat (per S5-05) → audio cue (per S5-06) → "下一章" UI button (即 transition trigger) → SceneManager.UnloadChapterSceneAsync (S3-02 ✅) → ready；至少 1 个完整 success path 可走 |
+| **S5-02** | **Chapter 1 end-to-end 5 系统串通可玩 (happy path only)** *(2026-05-11 [B] split decision: 拆 happy path 2 SP + S5-2b error/restart 1 SP Sprint 6)* | Integration | **2 SP** | S5-01 ✅ + S5-1b ✅ + S5-1c ✅ + S5-03 ✅/-05 ✅/-06 ✅ + S5-04 + S5-08 (Must Have promoted) | end-to-end happy path: Main menu (S5-08 base canvas + 2 minimal inline Button — `Start Chapter 1` + `Next Chapter` per [A] minimal_inline 决策；完整 ui-system-006 main menu 留 Sprint 6) → Button click → ISceneEvent.OnRequestSceneChange(1) → SceneManager handler S5-1c → DriveTransitionAsync(1) 11-step → chapter 1 active → InteractableObject (Drag/Rotate per S2-08 ✅) → shadow match (S5-03 ✅) → puzzle complete → narrative beat (S5-05 ✅) → audio duck (S5-06 ✅) → sequence complete → `Next Chapter` Button click → unload (S3-02 ✅) → state=Idle；至少 1 个完整 success path 可走；R3 PlayMode probe 5 cases (P1-P5)；M1 dual-layer 全 production reflection (复用 S5-1c precedent) |
+| **S5-08** | **UI Module Setup (promoted Must Have 2026-05-11; S5-02 hard prerequisite)** | Integration / Governance | **2 SP** | S3-08 ✅ origin + ADR-011 ✅ | 2026-05-11 promote should-have → must-have per S5-02 main menu UI [A] minimal_inline 决策。本 sprint 范围聚焦：UIModule init + base canvas + UIRoot + 1+ panel 挂载 API；S5-02 内 main menu 'Start Chapter 1' + 'Next Chapter' 2 个 Button minimal inline 复用本 API。完整 ui-system-002..-007 系列 UIWindow 留 Sprint 6+。Sprint 5 [A] serial 序列：S5-04 → S5-08 → S5-02 → S5-07 |
 
 #### Track B — P1 ADR Dev-Story 实施（VS chapter 1 依赖前置）
 
@@ -81,17 +82,17 @@
 |----|------|:----:|:----------:|------------|---------|
 | **S5-04** | **S4-08 carryover — Art bible AD-ART-BIBLE 正式 sign-off** | Art / Governance | **1 SP** | S4-08 descoped → Sprint 5 + ADR-030 §VS Build commitment | art-director 走 `/art-bible-review` 或 AD-ART-BIBLE pass；art-bible.md Status: Draft → Accepted 2026-05-XX；as **VS art readiness gate**；与 S5-01 chapter 1 art asset 协调（如 sign-off 通过则 chapter 1 art asset spec 直接走 art-bible 标准；如 NEEDS REVISION 则 chapter 1 art asset 临时用 placeholder 等 Sprint 5 末 sign-off 后再升级）|
 
-**Must Have 总计**: 5 stories / 11 SP（Track A 6 SP + Track B 6 SP + Track C 1 SP；注 Track A 含 dependency 来自 Track B 故按 critical path 计 Track A 6 + Track B 部分 ad hoc 入 Track A 串通 = Track A "effective" 12 SP但分 stories 算）
+**Must Have 总计**: 6 stories / 12 SP（Track A: S5-01 ✅ 3 + S5-02 happy path 2 = 5 SP / Track B: S5-03 ✅ + S5-05 ✅ + S5-06 ✅ = 6 SP / Track C: S5-04 art-bible 1 SP / Track D 新增: S5-08 UIModule promote = 2 SP；2026-05-11 [A] serial 序列：S5-04 → S5-08 → S5-02 → S5-07）
 
-### Should Have — 3 items / 5 SP
+### Should Have — 3 items / 4 SP *(2026-05-11 update: S5-08 promote → Must Have; S5-2b 新增 Sprint 6 backlog placeholder)*
 
 | ID | Story | Type | Complexity | Depends on | 说明 |
 |----|-------|:----:|:----------:|------------|------|
 | **S5-07** | **chapter 1 第 1 次 internal playtest session + 反馈整理** | Playtest / QA | **2 SP** | S5-02 ✅（end-to-end 可玩） | playtest session ≥30 min；reuse session 从 splash → chapter 1 完整走通；记录 player journey 反馈；写入 `production/playtests/playtest-vs-chapter-1-2026-05-XX.md`（per ADR-030 §VS Build commitment 第 ≥3 项 第 1/3 次）|
-| **S5-08** | **S4-09 carryover decision — UI Module Setup promote OR descope** | Integration / Governance | **2 SP** | S3-08 ✅ origin + ADR-011 ✅ | per Sprint 4 retro action #3 hard rule：第 2 次 carryover 必须 promote (做实施) OR descope (移 backlog with rationale)；如 promote 实施 UIModule init + base canvas + at least HUD root；如 descope 写明理由（推断 chapter 1 UI 需求是否 critical path） |
-| **S5-09** | **S4-10 carryover decision — Settings Manager promote OR descope** | Logic / Governance | **1 SP** | S3-09 ✅ origin + ADR-008 ✅ | 同 S5-08 hard rule；如 promote 实施 SettingsManager 单例 + persistence；如 descope 写明理由 |
+| **S5-09** | **S4-10 carryover decision — Settings Manager promote OR descope** | Logic / Governance | **1 SP** | S3-09 ✅ origin + ADR-008 ✅ | per Sprint 4 retro action #3 hard rule：第 2 次 carryover 必须 promote OR descope；如 promote 实施 SettingsManager 单例 + persistence；如 descope 写明理由 |
+| **S5-2b** | **Chapter 1 error/restart path (placeholder Sprint 6)** | Integration | **1 SP** | S5-02 ✅ | 2026-05-11 Sprint 5 [B] split_2 决策派生：S5-02 happy path 拆出本 entry。Sprint 6 backlog placeholder（本 sprint 不写 file，只占 sprint-status.yaml entry）。Sprint 6 启动后写 `production/epics/vs-chapter-1/story-003-error-restart-path.md`：unknown chapter Button click / mid-transition cancel / asset load fail / restart-from-Error state recovery 等 4-5 R3 case |
 
-**Should Have 总计**: 3 stories / 5 SP
+**Should Have 总计**: 3 stories / 4 SP
 
 ### Nice to Have — 2 items / 3 SP
 

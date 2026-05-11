@@ -8,7 +8,7 @@ goal: "VS Chapter 1 Build 启动 (per ADR-030 Sprint 5-6 双 sprint commitment) 
 start: "2026-05-06"
 end: "2026-05-20"
 generated: "2026-05-06"
-updated: "2026-05-09 (Session 25 #3 — S5-1c Track A 第 3 story DONE ✅ Sprint 5 ADR-030 §VS Build commitment 第 1 项 ~85% 进度; story-001c ADR-009 spec ↔ impl 1:1 alignment fix; SceneManager.cs +DriveTransitionAsync UniTaskVoid 自闭环 listener-path driver; DevTestState F4 dev-only stub 永久移除; ADR-009 §History 2026-05-09 dusk amendment entry; PlayMode R3 5/5 PASS + 24/24 asserts; 10/10 AC PASS; M1 dual-layer 第 2 次实战 (P1-P3 production reflection + P4-P5 isolated local SceneManager); V2-5 listener self-removal pattern 第 4 次实战 (S5-03/S5-05/S5-06/S5-1b/S5-1c); Watch List Hooks V3 Type-2(c) candidate 实战触发: sync-subscribe race after F4 stub removal (DevTestState.OnEnter 调用顺序 + spike subscribe Awake() vs Start() 时机) — Sprint 5 retro 评估 promote 为 V3 candidate Type-6 'spike subscribe race'; Phase A 清理收口 (S5-1b 尾巴) 两 commit (1a858f9 α + c0cfc20 β) clean — S5-01 evidence amendment + chapter scene MainCamera AudioListener removal; evidence: production/qa/playmode-listener-path-driver-2026-05-09.md)"
+updated: "2026-05-11 (Session 26 #1 — S5-02 Draft 落盘 + Sprint 5 序列 [A] serial 决策落实 + S5-08 promote should-have → must-have + S5-2b Sprint 6 backlog placeholder; story-002-end-to-end-flow.md Draft (10 sections / 293 lines) created in vs-chapter-1 epic dir per [A] location decision; main menu UI [A] minimal inline 决策 (S5-02 内仅 2 Button + 完整 main menu UIWindow 留 Sprint 6); story split [B] (S5-02 happy path 2 SP + S5-2b error/restart 1 SP Sprint 6); EPIC.md update reflect 5 stories + supersede 原 'S5-02 不在本 epic dir' 注解; 5 大块 wiring R2 uncertainty 待 /story-readiness gate 实证 (R2.5 必待 S5-08 done); Earlier session: Session 25 #3 — S5-1c Track A 第 3 story DONE ✅ Sprint 5 ADR-030 §VS Build commitment 第 1 项 ~85% 进度; story-001c ADR-009 spec ↔ impl 1:1 alignment fix; SceneManager.cs +DriveTransitionAsync UniTaskVoid 自闭环 listener-path driver; DevTestState F4 dev-only stub 永久移除; ADR-009 §History 2026-05-09 dusk amendment entry; PlayMode R3 5/5 PASS + 24/24 asserts; 10/10 AC PASS; M1 dual-layer 第 2 次实战 (P1-P3 production reflection + P4-P5 isolated local SceneManager); V2-5 listener self-removal pattern 第 4 次实战 (S5-03/S5-05/S5-06/S5-1b/S5-1c); Watch List Hooks V3 Type-2(c) candidate 实战触发: sync-subscribe race after F4 stub removal (DevTestState.OnEnter 调用顺序 + spike subscribe Awake() vs Start() 时机) — Sprint 5 retro 评估 promote 为 V3 candidate Type-6 'spike subscribe race'; Phase A 清理收口 (S5-1b 尾巴) 两 commit (1a858f9 α + c0cfc20 β) clean — S5-01 evidence amendment + chapter scene MainCamera AudioListener removal; evidence: production/qa/playmode-listener-path-driver-2026-05-09.md)"
 
 # ========================================
 # Sprint 4 Final Result Reference（详见 sprint-4-retrospective.md）
@@ -879,17 +879,31 @@ sprint_5_stories:
 
   - id: "S5-02"
     epic: "(vs-chapter-1)"
-    name: "Chapter 1 end-to-end 5 系统串通可玩"
-    file: "production/epics/vs-chapter-1/story-002-end-to-end-flow.md (待创建)"
+    name: "Chapter 1 end-to-end 5 系统串通可玩 (happy path only)"
+    file: "production/epics/vs-chapter-1/story-002-end-to-end-flow.md (Draft 2026-05-11)"
     priority: must-have
+    status: draft
+    owner: ""
+    complexity_points: 2
+    type: "Integration (depend on Track B production code complete + S5-08 UIModule Setup minimal inline UI)"
+    depends_on: ["S5-01 ✅", "S5-1b ✅", "S5-1c ✅", "S5-03 ✅", "S5-05 ✅", "S5-06 ✅", "S5-04 art-bible (ready-for-dev)", "S5-08 (must-have promote pending)"]
+    blocker: "S5-08 not yet started (hard prerequisite for main menu UIModule)"
+    completed: ""
+    notes: "2026-05-11 Sprint 5 序列 [A] serial 决策：S5-04 → S5-08 → S5-02 → S5-07。Story 拆分 [B]：S5-02 happy path 2 SP（本 entry） + S5-2b error/restart path 1 SP（Sprint 6 backlog placeholder）。Main menu UI 范围 [A] minimal_inline：S5-02 内仅在 ui-system-001 base canvas 上贴 1 个 'Start Chapter 1' Button + 1 个 'Next Chapter' Button；完整 ui-system-006 main menu UIWindow 留 Sprint 6 polish。Story file 位置 [A] in_vs_ch1：放在 vs-chapter-1 epic dir 内；EPIC.md 已 update 反映该架构变更（supersede 原 'S5-02 不在本 epic dir' 注解）。Happy path 完整链：T0 main menu visible → T1 Button click → ISceneEvent.OnRequestSceneChange(1) → T2 SceneManager handler (S5-1c) DriveTransitionAsync(1).Forget() → T3 11-step transition → T4 chapter 1 active 自动 drag InteractableObject → T5 IShadowMatchEvent.OnNearMatchEnter → T6 PuzzleStateMachine 5 state transition → T7 IShadowPuzzleEvent.OnPuzzleComplete → T8 NarrativeSequencePlayer listener → T9 sequence atomic effects 串行 (含 AudioDuckingEffect) → T10 IAudioEvent.OnDuckingRequest → AudioManager Music ducking → T11 OnSequenceComplete → T12 Next Chapter Button click → T13 unload → state=Idle。R3 PlayMode probe 5 cases (P1-P5)：MainMenuButtonBootChapter1 / ObjectInteractionToShadowMatch / PuzzleStateTransitionToComplete / NarrativeSequenceWithAudioDuck / NextChapterButtonUnloadToIdle。M1 dual-layer 全 production reflection (复用 S5-1c precedent；spike Awake() subscribe per problem_2026-05-09_spike-sync-subscribe-race.md)。R2 待 /story-readiness gate 实证 5 大块 wiring uncertainty (R2.1 IShadowMatchEvent listener wiring / R2.2 OnPuzzleComplete listener wiring / R2.3 chapter 1 prefab InteractableObject + puzzle config / R2.4 chapter 1 PuzzleStateConfig injection / R2.5 UIModule API 路径 必待 S5-08 done)。ADR-030 §VS Build commitment 第 1 项核心交付 (Sprint 5 收官)。Sprint 5 Track A 最后 1 story；DONE 后 ADR-030 §VS commitment 第 1 项 100%。Spike: Assets/GameScripts/HotFix/GameLogic/DevTest/Spikes/S5-02_EndToEndFlow.cs (1 文件 + 3 内类 per S5-1b/1c precedent)。"
+
+  - id: "S5-2b"
+    epic: "(vs-chapter-1)"
+    name: "Chapter 1 error/restart path (placeholder Sprint 6)"
+    file: "production/epics/vs-chapter-1/story-003-error-restart-path.md (待创建 Sprint 6)"
+    priority: should-have
     status: backlog
     owner: ""
-    complexity_points: 3
-    type: Integration (depend on Track B production code complete)
-    depends_on: ["S5-01", "S5-03", "S5-05", "S5-06"]
+    complexity_points: 1
+    type: Integration
+    depends_on: ["S5-02 ✅"]
     blocker: ""
     completed: ""
-    notes: "Sprint 5 高潮 story — Splash/MainMenu → Chapter 1 scene load → object interaction → puzzle → narrative → audio cue → 'next chapter' UI → unload → ready 完整 success path 至少 1 条；如某个 Track B 系统卡住 → 部分 mock for missing；ADR-030 commit 第 1 项核心交付"
+    notes: "2026-05-11 Sprint 5 [B] split_2 决策派生：S5-02 happy path 拆出本 entry。Sprint 6 backlog placeholder（本 sprint 不写 file，只占 sprint-status.yaml entry）。范围：unknown chapter Button click / mid-transition cancel / asset load fail (corrupt asset path) / restart-from-Error state recovery 等 4-5 R3 case；SceneManager error state 处理 / NarrativeSequence interrupt / Audio cleanup 等。R3 PlayMode probe Integration type；按 ADR-029 V2.0 R3 mandatory；Sprint 6 启动后写 file。"
 
   # Must Have — Track B: P1 ADR Dev-Story 实施
   - id: "S5-03"
@@ -1012,17 +1026,17 @@ sprint_5_stories:
 
   - id: "S5-08"
     epic: "ui-system"
-    name: "S4-09 carryover decision — UI Module Setup promote OR descope"
-    file: "production/epics/ui-system/story-001-uimodule-setup.md (待视决策决定)"
-    priority: should-have
-    status: backlog
+    name: "UI Module Setup (promoted Must Have 2026-05-11; S5-02 hard prerequisite)"
+    file: "production/epics/ui-system/story-001-uimodule-setup.md"
+    priority: must-have
+    status: ready-for-dev
     owner: ""
     complexity_points: 2
     type: Integration / Governance
     depends_on: ["ADR-011 ✅"]
-    blocker: ""
+    blocker: "S5-04 art-bible sign-off (per Sprint 5 [A] serial 序列：S5-04 → S5-08 → S5-02 → S5-07)"
     completed: ""
-    notes: "Sprint 4 retro action #3 hard rule：第 2 次 carryover 必须 promote 或 descope；如 promote 实施 UIModule init + base canvas + HUD root；如 descope 写明理由 (chapter 1 用 GameObject UI 替代是否够) → backlog；'if descoped, where it goes' = backlog"
+    notes: "2026-05-11 promote should-have → must-have per S5-02 main menu UI [C] decision (S5-08 是 S5-02 hard prerequisite)。Sprint 4 retro action #3 hard rule：第 2 次 carryover promote 决议落实 — 实施 UIModule init + base canvas + HUD root。本 sprint 范围聚焦：UIModule init / base canvas / UIRoot / 1+ panel 挂载 API（S5-02 内 main menu 'Start Chapter 1' + 'Next Chapter' 2 个 Button minimal inline 复用本 API）。完整 ui-system-002..-007 系列 UIWindow 留 Sprint 6+。Sprint 5 序列 [A] serial：S5-04 art-bible sign-off → S5-08 dev-story → S5-02 dev-story → S5-07 playtest。"
 
   - id: "S5-09"
     epic: "settings-accessibility"

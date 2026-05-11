@@ -18,8 +18,8 @@
 > - **ADR-029 V2.0** (R1/R2/R3 readiness gate)
 >
 > **Engine Risk**: LOW (所有依赖 framework 已实施；本 epic 主要是 asset + integration 工作)
-> **Status**: In-Progress (Sprint 5; story-001 ✅ DONE 2026-05-09 + story-001b ✅ DONE 2026-05-09 + story-001c ✅ DONE 2026-05-09 spec ↔ impl alignment fix)
-> **Stories**: 3 stories (S5-01 scene asset ✅ + S5-1b boot integration ✅ + S5-1c listener-path driver fix ✅)；S5-02 end-to-end 不在本 epic dir
+> **Status**: In-Progress (Sprint 5; story-001 ✅ DONE 2026-05-09 + story-001b ✅ DONE 2026-05-09 + story-001c ✅ DONE 2026-05-09 spec ↔ impl alignment fix + story-002 Draft 2026-05-11 end-to-end happy path + story-003 Sprint 6 placeholder error/restart path)
+> **Stories**: 5 stories (S5-01 scene asset ✅ + S5-1b boot integration ✅ + S5-1c listener-path driver fix ✅ + S5-02 end-to-end happy path Draft + S5-2b error/restart placeholder Sprint 6) — *2026-05-11 architecture change: S5-02 contained in this epic dir; S5-02b error/restart path 拆出 S5-2b Sprint 6 backlog*
 
 ---
 
@@ -30,6 +30,8 @@
 | [story-001](story-001-scene-build.md) | Chapter 1 (靠近) Unity scene 实体构建首版 | Asset | ✅ Done 2026-05-09 | 3 |
 | [story-001b](story-001b-scenemanager-boot-integration.md) | SceneManager boot pipeline 接入 + fixture ChapterDataProvider | Logic / Integration | ✅ Done 2026-05-09 | 3 |
 | [story-001c](story-001c-adr009-listener-path-driver.md) | ADR-009 production listener-path driver 接入（移除 S5-1b F4 dev-only stub）| Logic / Integration | ✅ Done 2026-05-09 | 2 |
+| [story-002](story-002-end-to-end-flow.md) | Chapter 1 end-to-end 5 系统串通可玩（happy path）| Integration | Draft 2026-05-11 | 2 |
+| story-003 (placeholder) | Chapter 1 error/restart path（unknown chapter / mid-transition cancel / asset load fail / restart-from-Error）| Integration | Sprint 6 backlog | 1 |
 
 ---
 
@@ -44,10 +46,13 @@ S5-02 端到端串通 5 个 P1 系统使用本 epic 提供的 scene + boot 接�
 
 ### 不在本 epic（明示）
 
-- **S5-02** 端到端串通（独立 sprint-status entry）
 - **Luban TbChapter 真接入**（user decision 2026-05-09: post-VS；S5-1b 用 hardcoded fixture provider 兜底）
 - **S5-04** art-bible Status: Draft → Accepted（独立 governance story；本 epic story-001 起步用 placeholder URP/Lit material，待 S5-04 sign-off 后 polish）
-- **投影 puzzle production 配置注入**（S5-03 ✅ DONE 但本 scene 不实例化具体 puzzle config，留 S5-02 决定）
+- **S5-08** UIModule Setup（ui-system epic 独立；本 story-002 hard prerequisite — 必须 S5-08 dev-story DONE 才 unblock S5-02 dev-story；per Sprint 5 序列 [A] serial：S5-04 → S5-08 → S5-02 → S5-07）
+- **ui-system-006 完整 main menu UIWindow** + **-002 game-hud / -003 pause-menu / -004 puzzle-complete / -005 chapter-select / -007 settings-panel** — 本 epic story-002 main menu 仅 minimal Button × 2 inline impl per 决策 [A]，完整 UIWindow 留 Sprint 6+
+- **多 chapter 切换 (chapter 2-5)** — 留 Sprint 6+
+- **Save / Load round-trip / Pause / Resume during scene transition** — 留 chapter-state epic Sprint 6+
+- **2026-05-11 architecture change**: 原 EPIC.md 列 "S5-02 不在本 epic dir" 已 supersede — S5-02 现在物理放在本 epic dir per Sprint 5 序列协调与 sprint-status.yaml line 862 file path 一致；本块描述更新 reflect 当前架构
 
 ---
 
@@ -85,6 +90,8 @@ S5-02 端到端串通 5 个 P1 系统使用本 epic 提供的 scene + boot 接�
 - **story-001** (S5-01): ✅ Done 2026-05-09 — chapter scene 实体构建首版 8/8 AC PASS
 - **story-001b** (S5-1b): ✅ Done 2026-05-09 — SceneManager boot pipeline 接入 + 5/5 R3 PASS + 22/22 asserts；F4 dev-only stub temporarily in DevTestState（待 story-001c 移除）
 - **story-001c** (S5-1c): ✅ Done 2026-05-09 — ADR-009 spec ↔ impl alignment fix；SceneManager.OnRequestSceneChange 内置 DriveTransitionAsync(targetChapterId).Forget() 自闭环 listener；F4 dev-only stub in DevTestState 永久移除；ADR-009 §History 加 1 条 amendment entry；R3 PlayMode 5/5 PASS + 24/24 asserts；S5-02 启动前 cleanup 完成
+- **story-002** (S5-02): Draft 2026-05-11 — Chapter 1 end-to-end 5 系统 happy path；2 SP；hard prerequisite = S5-04 art-bible sign-off + S5-08 UIModule Setup dev-story DONE；按 Sprint 5 序列 [A] serial：S5-04 → S5-08 → S5-02 → S5-07；待 /story-readiness gate（5 大块 wiring R2 实证）通过后转 Ready
+- **story-003** (S5-2b placeholder): Sprint 6 backlog — Chapter 1 error/restart path（unknown chapter / mid-transition cancel / asset load fail / restart-from-Error）；1 SP；本 sprint 不写 file，仅 sprint-status.yaml entry placeholder
 
 ### 风险
 
@@ -94,3 +101,5 @@ S5-02 端到端串通 5 个 P1 系统使用本 epic 提供的 scene + boot 接�
 | story-001b R3 PlayMode probe 暴露 framework boundary drift | per ADR-029 V2.0 V2-5；如出现 capture 为新 R3 case + 沉淀 problem memo（已 mitigated, S5-1b ✅ + 3 deficiency surfaced：ADR-009 driver gap → story-001c / S5-01 path 错位 ✅ resolved / S5-01 AudioListener residual ✅ resolved by Phase A2）|
 | Luban TbChapter post-VS 接入时 fixture provider migration cost | story-001b fixture provider 用 Func\<int, ChapterData\> 同 Luban 真接入签名；migration 仅替换一行 lambda（仍待 post-VS） |
 | story-001c async void listener handler 异常逃逸到 Unity log | 与项目内 IInputBlockerEvent / ISettingsEvent / IAudioEvent 现有 listener 模式一致；BeginTransitionAsync 内部已 fail-loud 协议（state=Error + OnSceneLoadFailed）；story-001c DriveTransitionAsync catch 仅兜底；统一 review 留 Sprint 5/6 retro |
+| story-002 5 大块 wiring uncertainty (R2.1~R2.5) — chapter 1 listener handler 是否已挂 / prefab InteractableObject / puzzle config injection / UIModule API 路径 | /story-readiness gate 阶段强制 R2 grep 实证；任意 0-hit 走 ADR-029 V2.0 deficiency-flag PASS 路径补 production wiring；R2.5 必待 S5-08 done 才能 verify（Sprint 5 serial 序列保证）|
+| story-002 5 系统 cross-system event 顺序 drift (Type-2(c) candidate) | R3 spike P1-P5 顺序 assert + spike Tester listener event log dump；如 drift 累计为 V3 #2 Type-5 候选 dp / V3 #6 Type-6 候选 dp |
