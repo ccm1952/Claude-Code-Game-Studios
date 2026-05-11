@@ -85,12 +85,15 @@ public partial class GameApp
         // 同时调 LoadSceneAsync 会撞 YooAsset 内部 "while loading" 锁（type-3 drift 防御）。
         // S5-05 已在 Sprint 5 ✅ DONE（2026-05-08 PlayMode 10/10 PASSED — Narrative Sequence Engine R3 + V2-5），不再每次启动并发跑。
         // S5-06 已在 Sprint 5 ✅ DONE（2026-05-08 PlayMode 10/10 PASSED first-run — Audio Manager Init R3 + V2-5；evidence: production/qa/playmode-audio-mix-architecture-2026-05-08.md），不再每次启动并发跑。
-        // S5-1c 当前 active spike（Sprint 5 Track A — story-001c ADR-009 listener-path driver）：
-        //   验证 SceneManager.OnRequestSceneChange handler 内部 DriveTransitionAsync 真接管 11-step
-        //   （S5-1b F4 dev-only stub 已移除）；5 R3 case M1 双层模式复用 S5-1b precedent。
-        //   仅本 spike 启用，其他全部注释（DevBootstrap 当前并发 Launch 所有已注册 spike，
-        //   多 spike 同时调 LoadSceneAsync 会撞 YooAsset 内部 "while loading" 锁 —— type-3 drift 防御）。
-        GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S51cSpike());
+        // S5-1c 已在 Sprint 5 ✅ DONE（2026-05-09 PlayMode 5/5 PASSED 24/24 asserts — ADR-009 listener-path driver + F4 stub 永久移除），不再每次启动并发跑。
+        // S5-08 当前 active spike（Sprint 5 Track D — story-001 UIModule narrow scope amendment）：
+        //   验证 TEngine framework 自动 init UIModule + UIRoot scene 实例化 + GameModule.UI 静态门面 +
+        //   ShowUI / CloseUI / HideUI API 通路 + UIWindow vendor 7+2 lifecycle 顺序 + Button.onClick path。
+        //   4 R3 case M1 双层模式复用 S5-1b/1c precedent；mock panel 走 Resources.Load
+        //   (Assets/Resources/UI/S5_08_MockMinimalPanel.prefab) 不撞 YooAsset 锁。
+        //   仅本 spike 启用，其他全部注释（type-3 race 防御）。
+        GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S508Spike());
+        // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S51cSpike());
         // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S51bSpike());
         // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.SP011Spike());
         // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S301Spike());
