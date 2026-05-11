@@ -8,7 +8,7 @@
 > **GDD Requirement**: TR-ui-001 (All UI via TEngine UIModule), TR-ui-002 (5 UI layer levels — UILayer 枚举部分；Popup Queue/Auto InputBlocker 完整行为 → story-008 cover)
 > **ADR References**: ADR-011 (UIWindow Management), ADR-001 (TEngine Framework), SP-002 (UIWindow Lifecycle), ADR-029 V2.0 (R3 mandatory), ADR-027 (Event Layer)
 > **Sprint**: **Sprint 5** *(2026-05-11 promote should-have → must-have per Sprint 5 [A] serial 序列：S5-04 ✅ → S5-08 → S5-02 → S5-07；详 §History)*
-> **Status**: **Ready** *(2026-05-11 Session 26 #5 — /story-readiness gate R1+R2+R3 全 PASS after amendments per 决策 [D]+[A]：R1 ✅ 0 forbidden listener pattern / R2 ✅ DEFICIENCY-FLAGGED PASS / R3 ✅ stub type collision resolved by reusing vendor UILayer enum + UILayerExtensions helper)*
+> **Status**: **Done** *(2026-05-11 Session 26 #6 — dev-story Phase 2~4 完成：4/4 R3 case PASS first-run + 29/29 asserts + all_passed=true + JSON evidence + V3 Type-8 dp1 NEW 实战触发；evidence: `production/qa/playmode-uimodule-setup-2026-05-11.md`)*
 > **Manifest Version**: 2026-05-11
 
 ## Context
@@ -236,7 +236,15 @@ UIModule 本身由 TEngine 提供，位于 `Assets/GameScripts/HotFix/GameLogic/
   - Watch List Hooks（如出现 framework boundary drift / TEngine vendor gap / V3 candidate）
 - **EditMode test**: 本 story Integration type；无强制 EditMode test 要求（Popup Queue / Auto InputBlocker 等 logic 留 story-008 写 EditMode test）
 
-**Status**: Pending — 待 dev-story 实施。
+**Status**: **DONE 2026-05-11 Session 26 #6** — Phase 2~4 全完成：
+- Spike `S5-08_UIModuleSetup.cs` ~430 行 (1 file + 3 inner class per S5-1b/1c precedent)
+- Mock fixture `S5_08_MockMinimalPanel.cs` ~190 行 (9 lifecycle override + ResetForTest + ButtonRef + ClickCount + LifecycleEvents static List)
+- Helper `UILayerExtensions.cs` ~50 行 (vendor UILayer enum + GetSortingOrderBase extension)
+- Editor generator `S5_08_MockPanelGenerator.cs` ~135 行 (`Tools/S5-08/Generate Mock Panel Prefab`)
+- Generated prefab `Assets/Resources/UI/S5_08_MockMinimalPanel.prefab` (RectTransform + Canvas + GraphicRaycaster + Image + Button child + Text)
+- GameApp.cs RegisterDevSpikes 切换 S51cSpike → S508Spike
+- JSON evidence dump 完成 (`~/Library/Application Support/DefaultCompany/Unity/S5-08_Result.json` 2026-05-11 18:20:35 — 29 asserts + 4 case events)
+- QA evidence doc `production/qa/playmode-uimodule-setup-2026-05-11.md` ~280 行 (含 V3 Type-8 dp1 实战 capture)
 
 ---
 
@@ -314,13 +322,68 @@ S5-02 dev-story 内 spike (`S5-02_EndToEndFlow.cs`) 模拟点击 Button 走 prod
    - **累计**: V3 Type-5 候选 promote 数据点 +2 (本 story 共贡献 dp2+dp3 两个 unique dp)；与 S5-01 D1~D4 同 type；累计 3 个 unique 实战 dp (1 toolchain failure + 2 ADR-011 spec ↔ vendor wording drift)；超过 V3 promote ROI 阈值 (≥ 3 unique dp) → Sprint 5 retro **强烈建议 promote** 为 ADR-029 V3 正式 candidate "spec ↔ reality drift" 类 (split or unified) + ADR-011 §G implementation expand + SP-002 系统性 wording amend (含 UILayer enum 命名 / ShowUI API 命名 / 7 lifecycle method 命名) 高优 action item
 3. **Type-6 candidate (S5-1c lessons memo promote 候选累计)**: spike subscribe race 如再次出现（UIModule init 同步 fire event 路径或类似）→ 累计 V3 #6 dp 数据点；本 story spike Awake() subscribe 已采纳防御
 4. **Type-7 candidate (新)**: UIRoot DontDestroyOnLoad 跨 scene 持久化路径如出现 race（如 chapter scene load 时 UIRoot reference 丢失 / Canvas 渲染异常）→ 累计 V3 candidate `boot-order / scene-transition drift` dp 数据点（R3 P1 + S5-02 R3 dev-story 实施时 verify）
-5. **Type-8 candidate (本 story R2 surfaced)**: UIWindow second show 行为 — ADR-011/SP-002 假设 "second show 仅 OnRefresh" vs vendor 实际是否完整 init phase replay？R3 P3 case 实证后如 drift → 累计 V3 dp（spec 假设 vs vendor 实际另一类）
+5. **Type-8 candidate (本 story R3 P3 实战 NEW dp1 触发 2026-05-11 Session 26 #6)**: UIWindow second show 行为 spec vs vendor drift **CONFIRMED**:
+   - ADR-011/SP-002 spec 假设 "second show 仅 OnRefresh，已存在 instance 复用"
+   - **vendor 实测 (R3 P3 frame=59)**: **创建新 instance** (vs first show frame=30) + **完整 init phase replay** (ScriptGenerator + BindMemberProperty + RegisterEvent + OnCreate + OnRefresh 4 init methods + 2 method 重新调用) + OnUpdate × N continued
+   - 推测根因: vendor CloseUI<T>() 走 OnDestroy 销毁 instance + 从 _uiStack 移除；second ShowUI<T>() 走 Activator.CreateInstance 新 instance + Resources.Load + 完整 InternalLoad → InternalCreate → InternalRefresh 链路。**这是 vendor 的"销毁后重建"模式**，**非** spec 假设的"隐藏后重显示"模式
+   - **dp1 累计**: V3 Type-8 candidate "UIWindow second show 行为 spec vs vendor 是否一致" dp1 实战触发；ADR-011 §G "UIWindow 显示/隐藏行为" 系统性 amend 候选 (高优 Sprint 5 retro action item)
 
 如出现以上任一，per ADR-029 V2.0 §V2-7：sprint-status.yaml `watch_list` triggers 内追加 drift type 描述 + 关联 story-001 R3 case 编号 + 沉淀 problem memo 到 `.claude/memory/`。
 
 ---
 
 ## History
+
+### 2026-05-11 Session 26 #6 — dev-story Phase 2~4 完成 (Status: Ready → Done)
+
+**Trigger**: 2026-05-11 Session 26 #6 /dev-story S5-08 实施；Phase 1 read refs + Phase 1.5 self-check auto PASS (R1/R2/R3 已 done by readiness gate Session 26 #5) + Phase 2 实施 4 C# files + Phase 2.3 prefab generated via Editor menu (unity-mcp `Tools/S5-08/Generate Mock Panel Prefab` execute_menu_item) + Phase 3 PlayMode 实跑 + Phase 4 evidence doc 完成。
+
+**Phase 3 PlayMode 实跑结果**: **4/4 R3 case PASS first-run / 29/29 asserts / all_passed=true** (JSON: `~/Library/Application Support/DefaultCompany/Unity/S5-08_Result.json` 2026-05-11 18:20:35)
+
+**Phase 3 重要 vendor 行为实证发现**:
+
+1. **R2.3 lifecycle drift R3 verified** (P2/P3): vendor 7 method (ScriptGenerator → BindMemberProperty → RegisterEvent → OnCreate → OnRefresh → OnUpdate × N → OnDestroy) 同帧/连续帧调用顺序在 ShowUI + visible + CloseUI + second show 各阶段实测对齐 — spec 4 method 假设 confirmed drift
+2. **R2.4 UIRoot scene 实例化 R3 verified** (P1): UIRoot = UICanvas Transform / parent.scene = DontDestroyOnLoad / layer = UI(5) / UICamera non-null — vendor UIModule.OnInit() auto-wire 路径 confirmed
+3. **R2.10 UILayer enum R3 verified** (P1): vendor enum + UILayerExtensions.GetSortingOrderBase() 5 layer × 100 sorting order base — 0/100/200/300/400 asserts 全 PASS
+4. **vendor CloseUI<T>() sync path 直走 OnDestroy** (P3): 不走 Hide/Close hook (UIWindow.cs:504/509)；推测 Hide/Close 是 HideUI<T>() 路径相关，非 CloseUI 路径
+5. **⭐ V3 Type-8 candidate dp1 实战 NEW TRIGGER** (P3 second show): vendor **销毁后重建** 而非 spec 假设 **隐藏后重显示** — 完整 init phase replay (ScriptGenerator + BindMemberProperty + RegisterEvent + OnCreate + OnRefresh 4 init methods)；ADR-011 §G UIWindow 显示/隐藏行为 spec amend 候选
+
+**Phase 3 prefab fix issue (中间 1 round 修复)**: 首次 prefab 生成时 root 缺 Canvas + GraphicRaycaster → vendor UIWindow.cs:484 `_panel.GetComponent<Canvas>()` throw "Not found Canvas in panel" → P2 直接 fail；Editor 脚本 `S5_08_MockPanelGenerator.cs` 加 `root.AddComponent<Canvas>()` + `root.AddComponent<GraphicRaycaster>()` 修复后重新生成 prefab → 4/4 PASS first-run
+
+**Code 改动汇总**:
+
+- **新增 (4 files + 1 prefab)**:
+  - `Assets/GameScripts/HotFix/GameLogic/UI/UILayerExtensions.cs` (~50 行)
+  - `Assets/GameScripts/HotFix/GameLogic/DevTest/Spikes/S5_08_MockMinimalPanel.cs` (~190 行)
+  - `Assets/GameScripts/HotFix/GameLogic/DevTest/Spikes/S5-08_UIModuleSetup.cs` (~430 行)
+  - `Assets/Editor/DevTest/S5_08_MockPanelGenerator.cs` (~135 行)
+  - `Assets/Resources/UI/S5_08_MockMinimalPanel.prefab` (Editor generated)
+- **改 (1 file)**:
+  - `Assets/GameScripts/HotFix/GameLogic/GameApp.cs` RegisterDevSpikes 切 S51cSpike → S508Spike
+- **不改 vendor**: `Assets/GameScripts/HotFix/GameLogic/Module/UIModule/` 0 patch
+
+**ADR-029 V3 dp 累计现状 (本 story 贡献)**:
+- Type-5 'spec/tooling ↔ reality drift': **3 unique dp** (dp1 S5-01 + dp2 S5-08 #4 + dp3 S5-08 #5) — **超 promote 阈值** → Sprint 5 retro 强烈建议 promote
+- Type-8 'UIWindow second show 行为 spec vs vendor': **1 dp NEW** (S5-08 #6 R3 P3 实战) — ADR-011 §G UIWindow 显示/隐藏行为 spec amend 候选
+
+**Sprint 5 retro action items (本 story 累计贡献)**:
+1. promote V3 Type-5 candidate (split Type-5a tooling silent failure + Type-5b spec wording drift / 或 unified)
+2. ADR-011 §G systematic amendment — UILayer enum 命名 + ShowUI/CloseUI/HideUI API 命名 + UIWindow 7+2 lifecycle method 命名 + second show 行为描述 (vendor 销毁后重建 vs spec OnRefresh-only)
+3. SP-002 systematic amendment — UIWindow lifecycle 4 method → 7+2 method + OnDestroy ≠ OnClose wording
+4. 新建 Type-8 candidate — UIWindow second show 行为 spec vs vendor drift；后续 ui-system stories monitor
+
+**Sign-off**: 4/4 R3 case PASS first-run (29/29 asserts) + 完整 evidence dump + V3 Type-8 dp1 NEW 实战触发 + 0 unexpected console error/warning + 0 vendor patch + AC matrix 10/10 PASS。**S5-08 DONE**，解锁 S5-02 (Chapter 1 end-to-end 5 系统串通 happy path) dev-story 实施。
+
+**Audit Trail Cross-references**:
+- Evidence doc: `production/qa/playmode-uimodule-setup-2026-05-11.md` (~280 行)
+- JSON: `~/Library/Application Support/DefaultCompany/Unity/S5-08_Result.json` 2026-05-11 18:20:35
+- Session 26 #4 commit: 9a669a4 (R2 evidence + wording drift amend [D])
+- Session 26 #5 commit: b394add (readiness gate R3 collision resolved [A])
+- Phase 2 C# commit: 1a2ee93 (4 C# files)
+- Phase 2.3 prefab generator commit: bfc0145 (Editor)
+- Phase 5 closure commit: 见后续
+
+---
 
 ### 2026-05-11 Session 26 #5 — /story-readiness gate R3 stub type collision discovery + amendment (per 决策 [A])
 

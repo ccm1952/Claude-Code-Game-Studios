@@ -64,6 +64,9 @@ namespace GameLogic.Editor.DevTest
         private static GameObject BuildHierarchy()
         {
             // ---------- Root ----------
+            // vendor 强制要求 panel root 含 Canvas component (UIWindow.cs:484-488:
+            // `_canvas = _panel.GetComponent<Canvas>(); if (_canvas == null) throw Exception("Not found Canvas in panel ...")`)
+            // GraphicRaycaster 是 Button.onClick path raycast 前置 (P4 case 必需)
             var root = new GameObject("S5_08_MockMinimalPanel");
             var rootRect = root.AddComponent<RectTransform>();
             rootRect.anchorMin = Vector2.zero;
@@ -71,6 +74,11 @@ namespace GameLogic.Editor.DevTest
             rootRect.offsetMin = Vector2.zero;
             rootRect.offsetMax = Vector2.zero;
             rootRect.pivot = new Vector2(0.5f, 0.5f);
+
+            // sub-Canvas (vendor 用 overrideSorting=true 接 UIRoot 主 Canvas 下；本 prefab 仅 AddComponent,
+            // vendor InternalLoad → Handle_Completed 内会 set overrideSorting + sortingOrder)
+            root.AddComponent<Canvas>();
+            root.AddComponent<GraphicRaycaster>();
 
             var bg = root.AddComponent<Image>();
             bg.color = new Color(0.10f, 0.12f, 0.15f, 0.75f);
