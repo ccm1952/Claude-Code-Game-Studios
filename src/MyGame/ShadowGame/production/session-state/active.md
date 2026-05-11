@@ -1,8 +1,9 @@
 # ShadowGame — Session State
 
-> Last updated: 2026-05-11 (Session 26 #1 — S5-02 Draft 落盘 + Sprint 5 序列 [A] serial 决策 + S5-08 promote Must Have + S5-2b Sprint 6 backlog；详细 sprint 数据见 `production/sprint-status.yaml`)
-> Phase: **Vertical Slice (VS)** — **Sprint 5 IN PROGRESS** (start 2026-05-06 / end 2026-05-20；Track B 三个 P1 ADR production code 全部 ✅ DONE 2026-05-06~05-08；**Track A VS Chapter 1 Build 进行中** — S5-01 ✅ DONE 2026-05-09 + S5-1b ✅ DONE 2026-05-09 + S5-1c ✅ DONE 2026-05-09 + **S5-02 Draft 2026-05-11**；ADR-030 §VS Build commitment 第 1 项 ~85% 进度，剩 S5-02 dev-story 实施)
-> Next milestone (Sprint 5 [A] serial 序列 2026-05-11 决策): **S5-04 art-bible sign-off** → **S5-08 UIModule Setup dev-story** (promote Must Have 2026-05-11；S5-02 hard prerequisite) → **S5-02 dev-story 实施** (Draft → /story-readiness gate → Ready → /dev-story 5 R3 cases) → **S5-07 Chapter 1 第 1 次 internal playtest**。
+> Last updated: 2026-05-11 (Session 26 #2 — S5-04 art-bible sign-off DONE ✅ Sprint 5 Track C governance story closed；详细 sprint 数据见 `production/sprint-status.yaml`)
+> Phase: **Vertical Slice (VS)** — **Sprint 5 IN PROGRESS** (start 2026-05-06 / end 2026-05-20；Track B 三个 P1 ADR production code 全部 ✅ DONE 2026-05-06~05-08；**Track A VS Chapter 1 Build 进行中** — S5-01 ✅ DONE 2026-05-09 + S5-1b ✅ DONE 2026-05-09 + S5-1c ✅ DONE 2026-05-09 + **S5-02 Draft 2026-05-11**；**Track C governance** — S5-04 art-bible ✅ DONE 2026-05-11 (VS art readiness gate ✅ open)；ADR-030 §VS Build commitment 第 1 项 ~85% 进度)
+> Next milestone (Sprint 5 [A] serial 序列；S5-04 ✅ DONE 2026-05-11): **S5-08 UIModule Setup dev-story** (promote Must Have 2026-05-11；S5-02 hard prerequisite；art-bible 已 Accepted unlocks S5-08) → **S5-02 dev-story 实施** (Draft → /story-readiness gate → Ready → /dev-story 5 R3 cases) → **S5-07 Chapter 1 第 1 次 internal playtest**。
+> S5-04 sign-off summary: art-bible.md Draft → Accepted (Version 1.0 → 1.1)；4 维 review PASS (完整性/内部一致性/GDD对齐/Chapter 1实施对齐)；1 项 minor inconsistency close (物件库 "书籍/相框" Ch.3-5 → Ch.1-5)；Outstanding polish items (Reference Board 参考图片 / 影子技术验证 / 物件库剩 8 prop / PP Profile asset baked) 留 Sprint 6+。
 > S5-02 scope (per 2026-05-11 4 决策): [A] in_vs_ch1 (file 放在 vs-chapter-1 epic dir) + [A] minimal_inline (main menu 仅 2 Button + 完整 main menu UIWindow 留 Sprint 6) + [B] split_2 (S5-02 happy path 2 SP + S5-2b error/restart 1 SP Sprint 6 placeholder) + [A] serial (Sprint 5 串行序列)。
 
 > **S5-1b/S5-1c 全部 deficiency 已 closed (2026-05-09 Phase A + S5-1c)**:

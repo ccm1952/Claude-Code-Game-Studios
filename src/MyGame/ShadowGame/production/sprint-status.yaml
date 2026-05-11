@@ -8,7 +8,7 @@ goal: "VS Chapter 1 Build 启动 (per ADR-030 Sprint 5-6 双 sprint commitment) 
 start: "2026-05-06"
 end: "2026-05-20"
 generated: "2026-05-06"
-updated: "2026-05-11 (Session 26 #1 — S5-02 Draft 落盘 + Sprint 5 序列 [A] serial 决策落实 + S5-08 promote should-have → must-have + S5-2b Sprint 6 backlog placeholder; story-002-end-to-end-flow.md Draft (10 sections / 293 lines) created in vs-chapter-1 epic dir per [A] location decision; main menu UI [A] minimal inline 决策 (S5-02 内仅 2 Button + 完整 main menu UIWindow 留 Sprint 6); story split [B] (S5-02 happy path 2 SP + S5-2b error/restart 1 SP Sprint 6); EPIC.md update reflect 5 stories + supersede 原 'S5-02 不在本 epic dir' 注解; 5 大块 wiring R2 uncertainty 待 /story-readiness gate 实证 (R2.5 必待 S5-08 done); Earlier session: Session 25 #3 — S5-1c Track A 第 3 story DONE ✅ Sprint 5 ADR-030 §VS Build commitment 第 1 项 ~85% 进度; story-001c ADR-009 spec ↔ impl 1:1 alignment fix; SceneManager.cs +DriveTransitionAsync UniTaskVoid 自闭环 listener-path driver; DevTestState F4 dev-only stub 永久移除; ADR-009 §History 2026-05-09 dusk amendment entry; PlayMode R3 5/5 PASS + 24/24 asserts; 10/10 AC PASS; M1 dual-layer 第 2 次实战 (P1-P3 production reflection + P4-P5 isolated local SceneManager); V2-5 listener self-removal pattern 第 4 次实战 (S5-03/S5-05/S5-06/S5-1b/S5-1c); Watch List Hooks V3 Type-2(c) candidate 实战触发: sync-subscribe race after F4 stub removal (DevTestState.OnEnter 调用顺序 + spike subscribe Awake() vs Start() 时机) — Sprint 5 retro 评估 promote 为 V3 candidate Type-6 'spike subscribe race'; Phase A 清理收口 (S5-1b 尾巴) 两 commit (1a858f9 α + c0cfc20 β) clean — S5-01 evidence amendment + chapter scene MainCamera AudioListener removal; evidence: production/qa/playmode-listener-path-driver-2026-05-09.md)"
+updated: "2026-05-11 (Session 26 #2 — S5-04 art-bible sign-off DONE ✅ Sprint 5 Track C governance story closed; art-bible.md Draft → Accepted (V1.0 → V1.1) per 选项 [B] 4-dim review PASS + 1 minor inconsistency close (物件库 '书籍/相框' Ch.3-5 → Ch.1-5); VS art readiness gate ✅ open; Unlocks S5-08 dev-story per Sprint 5 [A] serial 序列 S5-04 ✅ → S5-08 → S5-02 → S5-07. Earlier in Session 26 #1: S5-02 Draft 落盘 + Sprint 5 序列 [A] serial 决策落实 + S5-08 promote should-have → must-have + S5-2b Sprint 6 backlog placeholder; story-002-end-to-end-flow.md Draft (10 sections / 293 lines) created in vs-chapter-1 epic dir per [A] location decision; main menu UI [A] minimal inline 决策 (S5-02 内仅 2 Button + 完整 main menu UIWindow 留 Sprint 6); story split [B] (S5-02 happy path 2 SP + S5-2b error/restart 1 SP Sprint 6); EPIC.md update reflect 5 stories + supersede 原 'S5-02 不在本 epic dir' 注解; 5 大块 wiring R2 uncertainty 待 /story-readiness gate 实证 (R2.5 必待 S5-08 done); Earlier session: Session 25 #3 — S5-1c Track A 第 3 story DONE ✅ Sprint 5 ADR-030 §VS Build commitment 第 1 项 ~85% 进度; story-001c ADR-009 spec ↔ impl 1:1 alignment fix; SceneManager.cs +DriveTransitionAsync UniTaskVoid 自闭环 listener-path driver; DevTestState F4 dev-only stub 永久移除; ADR-009 §History 2026-05-09 dusk amendment entry; PlayMode R3 5/5 PASS + 24/24 asserts; 10/10 AC PASS; M1 dual-layer 第 2 次实战 (P1-P3 production reflection + P4-P5 isolated local SceneManager); V2-5 listener self-removal pattern 第 4 次实战 (S5-03/S5-05/S5-06/S5-1b/S5-1c); Watch List Hooks V3 Type-2(c) candidate 实战触发: sync-subscribe race after F4 stub removal (DevTestState.OnEnter 调用顺序 + spike subscribe Awake() vs Start() 时机) — Sprint 5 retro 评估 promote 为 V3 candidate Type-6 'spike subscribe race'; Phase A 清理收口 (S5-1b 尾巴) 两 commit (1a858f9 α + c0cfc20 β) clean — S5-01 evidence amendment + chapter scene MainCamera AudioListener removal; evidence: production/qa/playmode-listener-path-driver-2026-05-09.md)"
 
 # ========================================
 # Sprint 4 Final Result Reference（详见 sprint-4-retrospective.md）
@@ -941,14 +941,34 @@ sprint_5_stories:
     name: "S4-08 carryover — Art bible AD-ART-BIBLE 正式 sign-off (VS art readiness gate)"
     file: "design/art/art-bible.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: ""
     complexity_points: 1
     type: Art / Governance
     depends_on: ["S4-08 descoped→Sprint 5", "ADR-030 §VS Build commitment"]
     blocker: ""
-    completed: ""
-    notes: "art-director 走 /art-bible-review 或 AD-ART-BIBLE pass；art-bible.md Status: Draft → Accepted 2026-05-XX；as VS art readiness gate；与 S5-01 chapter 1 art asset 协调；如 NEEDS REVISION 则 chapter 1 用 placeholder 启动等 sign-off 完后升级"
+    completed: "2026-05-11"
+    evidence: "design/art/art-bible.md §History 2026-05-11 entry"
+    closure_summary: |
+      Sprint 5 Track C governance story DONE 2026-05-11 — art-bible.md Status: Draft → Accepted (Version 1.0 → 1.1; Last Updated 2026-04-16 → 2026-05-11)。VS art readiness gate ✅ open。
+      Review verdict: APPROVED (无阻塞，1 项 minor inconsistency 处理 close — 物件库 "书籍/相框" 章节分布 Ch.3-5 → Ch.1-5；chapter 1 `Object_02_Book` 与原 art-bible 物件库分布 soft conflict close-out)。
+      Review coverage 4 dim PASS:
+        1. 完整性: 16 H2 章节 (superset of template 11) — 4 个项目特殊章节 (物件设计规范 / Post-Processing Pipeline / Performance Budget / Technical Art Notes) 已被 S5-01 实际使用
+        2. 内部一致性: 5 章弧线在 4 张表格交叉对齐 (Color Palette 章节色彩弧线 / Character 影子 5 章状态变化 / Environment 5 章环境氛围 / Post-Processing 章节可变效果)
+        3. GDD 对齐: 与 design/concept/shadow-memory.md 主题 "影子是关系" / 5 章名 / 物件叙事 design pillar 完全对齐
+        4. Chapter 1 实施对齐: art-bible Ch.1 (4000-4500K / Spot lighting / URP Lit / 空旷感) ↔ S5-01 实际 (4500K / Spot light / URP/Lit × 3 / 13 GameObject) 四维对齐 PASS
+      Outstanding polish items (不阻塞 Sprint 5 VS gate；留 Sprint 6+ polish):
+        - Reference Board 实际参考图片资产配置 (design/art/references/)
+        - 影子可读性技术验证 (Shadow Map 2048 / 明暗比 ≥3:1 真机 perf-profile 实测)
+        - 物件库 10 prop 剩 8 prop (雨伞/窗帘/桌子/鞋架/衣架/钥匙/椅子×2/台灯) chapter 2-5 epic 逐步落实
+        - Post-Processing Profile asset (5 个 ChapterXX_PPProfile.asset URP Volume System baked)
+      Sign-off authority: User 决策落盘 (选项 [B] 2026-05-11；art-bible Status: Draft → Accepted + 物件库 close inconsistency + History 段新建)。
+      Audit trail cross-references:
+        - Sprint 5 plan: production/sprints/sprint-5.md §Must Have Track C — S5-04
+        - ADR governance: docs/architecture/adr-030-project-workflow-vs-late-pattern.md §VS Build commitment
+        - S5-01 chapter 1 evidence: production/qa/s501-scene-build-2026-05-09.md (实证 art-bible Ch.1 实施对齐)
+      Unlocks: S5-08 UIModule Setup dev-story (Sprint 5 [A] serial 序列：S5-04 ✅ → S5-08 → S5-02 → S5-07)
+    notes: "✅ DONE 2026-05-11. art-bible.md sign-off (Draft → Accepted; Version 1.0 → 1.1; Last Updated 2026-04-16 → 2026-05-11)。VS art readiness gate ✅ open。Review verdict APPROVED 无阻塞；1 项 minor inconsistency close (物件库 '书籍/相框' Ch.3-5 → Ch.1-5 让 S5-01 Object_02_Book 名正言顺)。4 维 review PASS (完整性/内部一致性/GDD对齐/Chapter 1实施对齐)。Outstanding polish items (Reference Board 参考图片 / 影子技术验证 / 物件库剩 8 prop / PP Profile asset baked) 留 Sprint 6+。Unlocks S5-08 dev-story per Sprint 5 [A] serial 序列。"
 
   - id: "S5-05"
     epic: "narrative-event"

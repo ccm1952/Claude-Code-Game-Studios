@@ -3,10 +3,10 @@
 # Art Bible: 影子回忆 (Shadow Memory)
 
 ## Document Status
-- **Version**: 1.0
-- **Last Updated**: 2026-04-16
+- **Version**: 1.1
+- **Last Updated**: 2026-05-11
 - **Owned By**: art-director
-- **Status**: Draft
+- **Status**: **Accepted** *(2026-05-11 S5-04 sign-off — VS art readiness gate；详 §History)*
 
 ---
 
@@ -267,7 +267,7 @@ UI 必须**隐于体验**——玩家的注意力应始终在场景和影子上�
 | 鞋架 | 横档 + 鞋的轮廓 | 两双鞋/一双鞋/空架子 | Ch.2-5 |
 | 衣架 | 三角形肩部轮廓 + 钩 | 挂着两件外套/一件外套/空衣架 | Ch.3-5 |
 | 钥匙 | 小而锐利的特征轮廓 | 两把钥匙在一起/分开/只剩一把 | Ch.2-5 |
-| 书籍/相框 | 矩形薄体 | 翻开/合上/面朝下——暗示"是否愿意回看" | Ch.3-5 |
+| 书籍/相框 | 矩形薄体 | 翻开/合上/面朝下——暗示"是否愿意回看" | Ch.1-5 *(2026-05-11 sign-off 扩展：原 Ch.3-5；chapter 1 `靠近` 可作为试探性叙事入口物件出现，如咖啡桌上一本静置的书暗示主角阅读习惯)* |
 
 ### 物件建模规范
 
@@ -451,3 +451,42 @@ tex_cup_ceramic_albedo.png       — 贴图：杯子 Albedo
 - 投影墙面专用材质：自定义 Shader Graph，确保阴影接收 + 可控对比度
 - 物件材质变体通过 Material Property Block 控制，避免材质实例化爆炸
 - 所有材质必须在 URP Shadow 开启状态下测试视觉效果，不接受"关掉阴影更好看"的材质
+
+---
+
+## History
+
+### 2026-05-11 — S5-04 Sign-off (Draft → Accepted; VS art readiness gate)
+
+**Reviewer**: agent-assisted art-bible-review (Sprint 5 Track C governance story S5-04)
+**Verdict**: **APPROVED**（无阻塞；1 项 minor inconsistency 处理 close）
+**Trigger**: ADR-030 §VS Build commitment 要求 art-bible Accepted 作为 Sprint 5 VS art readiness gate；S5-01 chapter 1 scene 实施已实证 art-bible 五章弧线 Ch.1 部分（4500K 色温 / Spot light / URP/Lit material / 13 GameObject 空旷感）。
+
+**Review Coverage**:
+
+1. **完整性 PASS**: 16 H2 章节，superset of template 11 章节，多出 4 个项目特殊章节（物件设计规范 / Post-Processing Pipeline / Performance Budget / Technical Art Notes）已被 S5-01 实际使用
+2. **内部一致性 PASS**: 5 章弧线在 4 张表格交叉对齐（Color Palette / Character 影子状态 / Environment 环境氛围 / Post-Processing 章节可变效果）；Visual Hierarchy 铁律 (L100) ↔ VFX 禁用清单一致
+3. **GDD 对齐 PASS**: 与 `design/concept/shadow-memory.md` "影子是关系" 主题 / 5 章名（靠近/共同空间/共同生活/松动/缺席与重新理解）/ 物件叙事 design pillar 完全对齐
+4. **Chapter 1 实施对齐 PASS**: art-bible Ch.1 描述（4000-4500K / 自然光为主 / Spot lighting / URP Lit / 空旷感）vs S5-01 实际产出（4500K / Spot light / URP/Lit × 3 / 13 GameObject）四个维度均对齐
+
+**Sign-off Changes (本次)**:
+
+- §Document Status: Version 1.0 → 1.1；Last Updated 2026-04-16 → 2026-05-11；Status: Draft → **Accepted**
+- §物件设计规范 §核心物件库 "书籍/相框" 章节分布：**Ch.3-5 → Ch.1-5**（close S5-01 Chapter 1 `Object_02_Book` 与原物件库章节分布的 soft inconsistency；chapter 1 `靠近` 可作为试探性叙事入口物件出现）
+- §History 段新建（本段，未来 amendment 写在此处累积）
+
+**Outstanding Polish Items** *(不阻塞 Sprint 5 VS gate；留 Sprint 6+ polish)*:
+
+- Reference Board 章节（§Reference Board L19-32）实际参考图片资产尚未配置（目前只列 reference 描述；polish 时需收集真实参考图入 `design/art/references/` 并 cross-link）
+- 影子可读性技术验证：art-bible §Character Art L127-131 描述 Shadow Map ≥2048（mobile 可降 1024）+ 影子/墙面明暗比 ≥3:1（推荐 5:1）— polish 期需 Tech Art 在真机 perf-profile 实测验收
+- 物件库 10 prop 仅 Ch.1 `咖啡杯` + `书`（S5-01 实施）+ Ch.X TBD；剩 8 prop（雨伞 / 窗帘 / 桌子 / 鞋架 / 衣架 / 钥匙 / 椅子 ×2 / 台灯）需 chapter 2-5 epic 内逐步落实
+- Post-Processing Profile asset：§Post-Processing Pipeline §章节可变效果 5 列参数尚未在 Unity URP Volume System asset 内 baked；S5-04 sign-off 后由 technical-artist 创建 5 个 `Chapter01..05_PPProfile.asset`
+
+**Sign-off Authority**: User 决策落盘 (选项 [B] 2026-05-11)
+
+**Audit Trail Cross-references**:
+
+- Sprint 5 plan: `production/sprints/sprint-5.md` §Must Have Track C — S5-04
+- Sprint status: `production/sprint-status.yaml` story id `S5-04` (本 commit 后将更新 status: ready-for-dev → done)
+- ADR governance: `docs/architecture/adr-030-project-workflow-vs-late-pattern.md` §VS Build commitment
+- S5-01 chapter 1 evidence: `production/qa/s501-scene-build-2026-05-09.md`（实证 art-bible Ch.1 实施对齐）
