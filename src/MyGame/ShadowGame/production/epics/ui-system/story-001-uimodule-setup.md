@@ -8,7 +8,7 @@
 > **GDD Requirement**: TR-ui-001 (All UI via TEngine UIModule), TR-ui-002 (5 UI layer levels — UILayer 枚举部分；Popup Queue/Auto InputBlocker 完整行为 → story-008 cover)
 > **ADR References**: ADR-011 (UIWindow Management), ADR-001 (TEngine Framework), SP-002 (UIWindow Lifecycle), ADR-029 V2.0 (R3 mandatory), ADR-027 (Event Layer)
 > **Sprint**: **Sprint 5** *(2026-05-11 promote should-have → must-have per Sprint 5 [A] serial 序列：S5-04 ✅ → S5-08 → S5-02 → S5-07；详 §History)*
-> **Status**: **Draft** *(2026-05-11 amend pending /story-readiness gate)*
+> **Status**: **Ready** *(2026-05-11 Session 26 #5 — /story-readiness gate R1+R2+R3 全 PASS after amendments per 决策 [D]+[A]：R1 ✅ 0 forbidden listener pattern / R2 ✅ DEFICIENCY-FLAGGED PASS / R3 ✅ stub type collision resolved by reusing vendor UILayer enum + UILayerExtensions helper)*
 > **Manifest Version**: 2026-05-11
 
 ## Context
@@ -68,6 +68,15 @@ UIModule 本身由 TEngine 提供，位于 `Assets/GameScripts/HotFix/GameLogic/
   + `UIWindow` extends `UIBase` 加 2 hook: `Hide()` (UIWindow.cs:504) + `Close()` (UIWindow.cs:509)
 - **R2.4 ✅** UIRoot Canvas — TEngine vendor 已提供 `Assets/TEngine/Settings/Prefab/UIRoot.prefab` + main.unity scene 内已实例化 UIRoot GameObject (含 Canvas + UICamera)；`UIModule.OnInit()` (UIModule.cs:49) 自动 `GameObject.Find("UIRoot")` → 拿 Canvas transform → 拿 UI Camera → `DontDestroyOnLoad` 持久化 → 设 UI layer。**S5-08 dev-story 不需要 production code 创建 UIRoot**（已存在），spike 仅 verify scene 已 instantiate + UIModule.OnInit() 正确 wire
 - `UIWindow` abstract base class ✅ R2.3 — `Assets/GameScripts/HotFix/GameLogic/Module/UIModule/UIWindow.cs` namespace `GameLogic`；继承 `UIBase`（同 namespace）
+- **R2.10 ⚠️ DRIFT (新发现 Session 26 #5)** — `UILayer` enum vendor 已存在！`Assets/GameScripts/HotFix/GameLogic/Module/UIModule/WindowAttribute.cs:8` `public enum UILayer : int { Bottom=0, UI=1, Top=2, Tips=3, System=4 }`（namespace `GameLogic`）。vendor 实际命名 vs ADR-011 spec 命名第 3 例 wording drift：
+  - vendor `Bottom = 0` ≈ ADR-011 spec `Background` (底层背景)
+  - vendor `UI = 1` ≈ ADR-011 spec `HUD` (主 UI 层)
+  - vendor `Top = 2` ≈ ADR-011 spec `Popup` (顶层/弹窗)
+  - vendor `Tips = 3` ≈ ADR-011 spec `Overlay` (Tips/Toast/Overlay)
+  - vendor `System = 4` = ADR-011 spec `System` (系统层同名)
+
+  **vendor `[Window]` attribute (WindowAttribute.cs) 已使用 `UILayer` 作参数类型**；vendor LogUI.cs:8 实际用法 `[Window(UILayer.System, fromResources: true)]`。本 story 跟 **vendor wording** (Bottom/UI/Top/Tips/System)，不新建 collision enum；ADR-011 spec wording amend 留 Sprint 5 retro 评估 (累计 V3 Type-5 candidate dp 第 3 例)
+- `WindowAttribute` ✅ R2.11 — vendor 已 4 ctor overload 支持 `UILayer windowLayer` + optional location/fromResources/fullScreen/hideTimeToClose 参数 (WindowAttribute.cs:45-76)；mock panel 可用 `[Window(UILayer.UI, fromResources: true)]` 类似 vendor LogUI.cs:8 用法 wire
 
 **Performance**: R3 mandatory Integration type；S5-08 dev-story 总 workshift ≤ 3.5h（estimation 2 SP）。
 
@@ -87,7 +96,7 @@ UIModule 本身由 TEngine 提供，位于 `Assets/GameScripts/HotFix/GameLogic/
 
 *Integration type — Framework boundary + R3 PlayMode probe MANDATORY (ADR-029 V2.0)*
 
-- [ ] **AC-1 (UILayer 枚举定义)**: 创建 `Assets/GameScripts/HotFix/GameLogic/UI/UILayer.cs` enum：`Background = 0`, `HUD = 1`, `Popup = 2`, `Overlay = 3`, `System = 4`；每层 sorting order base = `layer × 100`；含 1 helper static method `GetSortingOrderBase(UILayer layer)` 返回 `(int)layer * 100`
+- [ ] **AC-1 (UILayer enum verify + helper extension method)**: vendor `UILayer` enum 已在 `Assets/GameScripts/HotFix/GameLogic/Module/UIModule/WindowAttribute.cs:8` 提供 5 值 `{Bottom=0, UI=1, Top=2, Tips=3, System=4}` (namespace `GameLogic`)，**本 story 不新建 UILayer.cs**（per R2.10 collision discovery）；改为创建 `Assets/GameScripts/HotFix/GameLogic/UI/UILayerExtensions.cs` 含 1 static extension method `GetSortingOrderBase(this UILayer layer)` 返回 `(int)layer * 100`（每层 sorting order base = layer × 100）；XML doc 注释明示 vendor enum 路径 + ADR-011 spec wording 映射 (Bottom≈Background / UI≈HUD / Top≈Popup / Tips≈Overlay / System=System)
 - [ ] **AC-2 (UIRoot scene 实例化 verify + UIModule.OnInit wire 路径)**: scene 内 `UIRoot` GameObject 已 instantiate (per TEngine vendor `Assets/TEngine/Settings/Prefab/UIRoot.prefab` 引用；main.unity scene 已含 `R2.4 ✅`)；spike 通过 reflection 拿 `UIModule.UIRoot` static property (UIModule.cs:36) verify non-null + `_instanceRoot.gameObject.layer == LayerMask.NameToLayer("UI")` + 父节点 `DontDestroyOnLoad` (UIModule.cs:65)。**不需要 production code 创建 UIRoot Canvas** — 已存在，本 AC 仅 verify 自动 wire 路径
 - [ ] **AC-3 (GameModule.UI 静态门面通路)**: `GameModule.UI` 已暴露且 non-null（不抛 NullReferenceException）；spike 通过 reflection 或直接调用 `GameModule.UI` accessor 拿到 UIModule instance；该 instance 可调用 **`ShowUI<T>()`** / **`CloseUI<T>()`** / **`HideUI<T>()`** API（vendor 实际 wording per R2.2；签名 `where T : UIWindow, new()` + `params object[] userDatas`）
 - [ ] **AC-4 (UIWindow ShowUI/CloseUI API 通路 verify)**: 创建 1 个 mock minimal UIWindow 子类 `S5_08_MockMinimalPanel.cs`（**仅本 story spike 用**，DevTest 命名空间，不进入 GameLogic.UI production 路径）继承 `GameLogic.UIWindow` base class；spike `GameModule.UI.ShowUI<S5_08_MockMinimalPanel>()` 后该 panel 实例化到 UIRoot 子节点 + active=true + `UIModule._uiStack` 内含此 panel；`GameModule.UI.CloseUI<S5_08_MockMinimalPanel>()` 后 panel inactive / removed from stack
@@ -97,7 +106,7 @@ UIModule 本身由 TEngine 提供，位于 `Assets/GameScripts/HotFix/GameLogic/
   - **UIWindow 额外 2 hook**: `Hide` (UIWindow.cs:504 隐藏不销毁) / `Close` (UIWindow.cs:509)
 
   mock panel 每个 lifecycle method 内 `Debug.Log` 记录调用顺序便于 R3 PlayMode verify
-- [ ] **AC-6 (UIModule 程序集路径注释)**: `UILayer.cs` 顶部含代码注释明示 UIModule 所在程序集路径：`Assets/GameScripts/HotFix/GameLogic/Module/UIModule/`（GameLogic 热更程序集，非 TEngine Runtime）；防止团队错误地在 TEngine Runtime 中查找
+- [ ] **AC-6 (UIModule 程序集路径注释)**: `UILayerExtensions.cs` 顶部含代码注释明示 (a) UIModule 所在程序集路径：`Assets/GameScripts/HotFix/GameLogic/Module/UIModule/`（GameLogic 热更程序集，非 TEngine Runtime） + (b) `UILayer` enum vendor 路径：`Assets/GameScripts/HotFix/GameLogic/Module/UIModule/WindowAttribute.cs:8` (defined alongside `WindowAttribute` class)；防止团队错误地在 TEngine Runtime 中查找 / 新建 collision enum
 - [ ] **AC-7 (Out of Scope 明示)**: story file §Out of Scope 段明示 Popup Queue / Auto InputBlocker / 完整 UIWindow 业务面板 全部由 story-008 / story-002..-007 cover；本 story 不实施
 - [ ] **AC-8 (S5-02 main menu Button mount API verified)**: spike 内验证 `S5_08_MockMinimalPanel` 上可挂 UnityEngine.UI.Button 子组件 + `Button.onClick.AddListener` API 通路；spike 模拟 `Button.onClick.Invoke()` 后 listener handler 被调用（S5-02 minimal main menu 'Start Chapter 1' + 'Next Chapter' Button click path 同前置）
 - [ ] **AC-9 (console clean)**: R3 PlayMode probe 全程 0 unexpected error / 0 unexpected warning（spike 用 `LogAssert.Expect` 主动标记 expected 项；如无 expected error/warning 则 0/0 实测）
@@ -114,8 +123,9 @@ UIModule 本身由 TEngine 提供，位于 `Assets/GameScripts/HotFix/GameLogic/
   - `UIModule.OnInit()` 自动 `GameObject.Find("UIRoot")` (UIModule.cs:51) → 拿 Canvas transform → 拿 UI Camera → `DontDestroyOnLoad` 持久化 → 设 UI layer
   - **S5-08 dev-story 不需要 production code 创建 UIRoot**（已存在）；spike 仅 verify scene 已 instantiate + UIModule.OnInit() 自动 wire 路径
   - chapter scene (`Chapter_01_Approach.unity`) 是否需要 UIRoot prefab 引用？— R2.5 gate 决定（推测：UIRoot DontDestroyOnLoad 后跨 scene 持久化，chapter scene 不需要单独 reference）
-- **UILayer.cs 路径**：`Assets/GameScripts/HotFix/GameLogic/UI/UILayer.cs`（新 enum 文件；不改 TEngine vendor 代码）
-- **Mock minimal panel 路径**：`Assets/GameScripts/HotFix/GameLogic/DevTest/Spikes/S5_08_MockMinimalPanel.cs`（DevTest namespace；继承 `GameLogic.UIWindow` base class；本 story spike 专用，不入 production UI 路径；S5-02 dev-story 实施时改写为正式 minimal main menu panel）
+- **UILayer enum (R2.10 ✅ 实证)**：vendor 已存在！`Assets/GameScripts/HotFix/GameLogic/Module/UIModule/WindowAttribute.cs:8` `public enum UILayer : int { Bottom=0, UI=1, Top=2, Tips=3, System=4 }` (namespace `GameLogic`)；本 story **不新建** `UILayer.cs` (避免 type collision per R2.10)；改为创建 `Assets/GameScripts/HotFix/GameLogic/UI/UILayerExtensions.cs` (~30 行) 含 1 static extension method `public static int GetSortingOrderBase(this UILayer layer) => (int)layer * 100;` + XML doc 注释 vendor enum 路径 + ADR-011 spec wording 映射表
+- **`[Window]` attribute (R2.11 ✅ 实证)**：vendor 已提供 `WindowAttribute` (WindowAttribute.cs:21) + 4 ctor overload；mock panel 用法 `[Window(UILayer.UI, fromResources: true)]` 沿 vendor LogUI.cs:8 precedent
+- **Mock minimal panel 路径**：`Assets/GameScripts/HotFix/GameLogic/DevTest/Spikes/S5_08_MockMinimalPanel.cs`（DevTest namespace；继承 `GameLogic.UIWindow` base class；含 `[Window(UILayer.UI, fromResources: true)]` attribute (per vendor LogUI.cs:8 precedent + R2.11 实证)；本 story spike 专用，不入 production UI 路径；S5-02 dev-story 实施时改写为正式 minimal main menu panel）
 - **Spike 路径**：`Assets/GameScripts/HotFix/GameLogic/DevTest/Spikes/S5-08_UIModuleSetup.cs`（1 file + 3 inner class per S5-1b/1c precedent：`S508Spike : IDevSpike` + `S508Runtime : MonoBehaviour` + `S508Tester` 纯逻辑）
 - **GameApp.cs 改动**：`RegisterDevSpikes` 切换 `S51cSpike` → `S508Spike`（已是项目惯例 per S5-1c precedent）；UIModule 由 TEngine framework 自动 init (Singleton<UIModule>)，本 story **不需要** GameApp 内 `_uiModule` field 或 Init/Dispose 显式调用（TEngine 自动）
 - **TEngine vendor API wording (per R2.2 实证)**:
@@ -163,8 +173,8 @@ UIModule 本身由 TEngine 提供，位于 `Assets/GameScripts/HotFix/GameLogic/
 
 | # | Case | Setup | Action | Assert |
 |---|---|---|---|---|
-| **P1** | UIRootSceneInstantiateVerify | spike `Awake()` 阶段 reflection 拿 `GameModule.UI` accessor + verify non-null；scene root 内 `GameObject.Find("UIRoot")` 拿 UIRoot GameObject reference | spike `Start()` 阶段 reflection 拿 `UIModule.UIRoot` static property (UIModule.cs:36) + walk UIRoot/Canvas 子节点结构 + verify UIModule.OnInit wire 路径完成 | `GameModule.UI != null` + `GameModule.UI is Singleton<UIModule>` + `UIModule.UIRoot != null` (Transform) + UIRoot GameObject layer == UI layer + 父节点已 `DontDestroyOnLoad` + UICamera != null + 与 ADR-011 spec 5 层 sorting order 概念对齐（注：vendor `LAYER_DEEP=2000` / `WINDOW_DEEP=100` 是堆栈深度限制，与 UILayer 枚举 sorting order base × 100 不冲突）|
-| **P2** | ShowMockPanelViaShowUI | post-P1（UIRoot ready）；`S5_08_MockMinimalPanel` (继承 GameLogic.UIWindow) 已 require asset path config（per TEngine vendor convention，UIWindow 需 prefab 路径；spike 可 hardcode mock prefab 或用 `[Window]` 属性 inject）；spike subscribe panel lifecycle Debug.Log event | spike 调用 **`GameModule.UI.ShowUI<S5_08_MockMinimalPanel>()`** (sync immediate) 或 `ShowUIAsyncAwait<S5_08_MockMinimalPanel>()` await 版（per R2.2 vendor wording）| mock panel 实例化到 UIRoot 子节点 + GameObject active=true + `UIModule._uiStack` (UIModule.cs:21, 通过 reflection) 内含此 panel instance + Init phase Log (`ScriptGenerator → BindMemberProperty → RegisterEvent`) 在 `OnCreate` 之前同帧调用 + `OnRefresh` Log 在 `OnCreate` Log 之后同帧 |
+| **P1** | UIRootSceneInstantiateVerify + UILayerExtensions sanity | spike `Awake()` 阶段 reflection 拿 `GameModule.UI` accessor + verify non-null；scene root 内 `GameObject.Find("UIRoot")` 拿 UIRoot GameObject reference | spike `Start()` 阶段 reflection 拿 `UIModule.UIRoot` static property (UIModule.cs:36) + walk UIRoot/Canvas 子节点结构 + verify UIModule.OnInit wire 路径完成；call `UILayer.UI.GetSortingOrderBase()` + 4 other layers 验 extension method | `GameModule.UI != null` + `GameModule.UI is Singleton<UIModule>` + `UIModule.UIRoot != null` (Transform) + UIRoot GameObject layer == LayerMask.NameToLayer("UI") + 父节点已 `DontDestroyOnLoad` + UICamera != null + `UILayer.Bottom.GetSortingOrderBase() == 0` + `UI == 100` + `Top == 200` + `Tips == 300` + `System == 400`（注：vendor `LAYER_DEEP=2000` / `WINDOW_DEEP=100` 是堆栈深度限制 const，与 UILayer 枚举 sorting order base × 100 不冲突）|
+| **P2** | ShowMockPanelViaShowUI | post-P1（UIRoot ready）；`S5_08_MockMinimalPanel` (继承 GameLogic.UIWindow) 含 `[Window(UILayer.UI, fromResources: true)]` attribute (per R2.11 实证 + LogUI.cs:8 precedent；fromResources=true 让 vendor 走 `Resources.Load` path 不需 YooAsset bundle wire；mock prefab 路径走 `[Window]` location 参数或 vendor 默认 lookup convention)；spike subscribe panel lifecycle Debug.Log event | spike 调用 **`GameModule.UI.ShowUI<S5_08_MockMinimalPanel>()`** (sync immediate) 或 `ShowUIAsyncAwait<S5_08_MockMinimalPanel>()` await 版（per R2.2 vendor wording）| mock panel 实例化到 UIRoot 子节点 + GameObject active=true + `UIModule._uiStack` (UIModule.cs:21, 通过 reflection) 内含此 panel instance + Init phase Log (`ScriptGenerator → BindMemberProperty → RegisterEvent`) 在 `OnCreate` 之前同帧调用 + `OnRefresh` Log 在 `OnCreate` Log 之后同帧 |
 | **P3** | UIWindowLifecycleVendorOrder | post-P2（mock panel 已 visible）；spike 持续 listen vendor 7 lifecycle method Debug.Log (ScriptGenerator / BindMemberProperty / RegisterEvent / OnCreate / OnRefresh / OnUpdate / OnDestroy) | spike Tick 等 1 帧 → 调用 **`GameModule.UI.CloseUI<S5_08_MockMinimalPanel>()`** → 等 1 帧 → 再次 `ShowUI<S5_08_MockMinimalPanel>()` | 完整 TEngine vendor lifecycle 顺序 capture：first show: `ScriptGenerator → BindMemberProperty → RegisterEvent → OnCreate → OnRefresh`（同帧序列）→ `OnUpdate × ≥1 帧 while visible` → CloseUI 触发 → `OnDestroy` （vendor 销毁；**非 OnClose**）；second show: 重新走完整 init + lifecycle 流（per vendor — 注意：此处 mock panel 不复用 vs ADR-011/SP-002 spec "second show 仅 OnRefresh" 假设 — 待 R3 实证；如 drift surfaced 累计 V3 Type-2(c) dp） |
 | **P4** | ButtonOnClickPath | post-P2（mock panel visible 含 UnityEngine.UI.Button 子组件 mounted in spike setup；可由 mock panel `ScriptGenerator` override 添加 Button child 或 spike 后挂）；spike subscribe button.onClick + 加 1 个 listener handler 函数（`_clickCount++`）| spike `button.onClick.Invoke()` 模拟点击 3 次 | listener handler 调用 3 次 + `_clickCount == 3`（验证 S5-02 minimal main menu Button click path 同前置；Button.onClick.AddListener + Invoke API 通路 production verified）|
 
@@ -178,7 +188,7 @@ UIModule 本身由 TEngine 提供，位于 `Assets/GameScripts/HotFix/GameLogic/
   "overall_status": "All Passed",
   "total_time_ms": 1500,
   "cases": [
-    {"id": "P1", "passed": true, "duration_ms": 100, "asserts": ["GameModule.UI!=null", "UIModule.UIRoot!=null", "UIRoot.layer==UI", "UICamera!=null", "DontDestroyOnLoad=true"]},
+    {"id": "P1", "passed": true, "duration_ms": 100, "asserts": ["GameModule.UI!=null", "UIModule.UIRoot!=null", "UIRoot.layer==UI", "UICamera!=null", "DontDestroyOnLoad=true", "UILayer.Bottom.GetSortingOrderBase()==0", "UILayer.UI==100", "UILayer.Top==200", "UILayer.Tips==300", "UILayer.System==400"]},
     {"id": "P2", "passed": true, "duration_ms": 400, "events": ["ScriptGenerator frame=N", "BindMemberProperty frame=N", "RegisterEvent frame=N", "OnCreate frame=N", "OnRefresh frame=N (same frame)"], "asserts": ["panel.parent in UIRoot subtree", "panel.active=true", "_uiStack contains panel"]},
     {"id": "P3", "passed": true, "duration_ms": 600, "events": ["1st show: ScriptGenerator→BindMemberProperty→RegisterEvent→OnCreate→OnRefresh @frame=N", "OnUpdate ×≥1 @frame=N+1..", "CloseUI @frame=M", "OnDestroy @frame=M", "2nd show: full lifecycle replay @frame=M+1 (or partial per vendor TBD)"]},
     {"id": "P4", "passed": true, "duration_ms": 400, "asserts": ["clickCount=3 after 3 button.onClick.Invoke()"]}
@@ -261,13 +271,16 @@ R2 grep + SemanticSearch + static analysis 实证已完成 2026-05-11（Session 
 | **R2.6** | M1 dual-layer pattern 复用 (production reflection 全程) per S5-1c/S5-02 precedent | S5-1c spike PlayMode 5/5 PASS + S5-02 story-002 R3 design 复用 | ✅ S5-1c precedent |
 | **R2.7** | Spike "1 文件 + 3 内类" 惯例 | Glob `Spikes/S*.cs` 全部命中（S301..S5-1c 8 个 spike 全部一致）| ✅ |
 | **R2.8** *(新增)* | chapter scene 是否需要 UIRoot 引用 | DontDestroyOnLoad 持久化后跨 scene 可用；待 R3 dev-story 实施时 verify chapter scene 不需要 UIRoot 引用即可 ShowUI | TBD (R3 dev-story 阶段) |
+| **R2.10** *(Session 26 #5 新增 — story-readiness gate 发现)* | `UILayer` enum 是否需新建 vs vendor 已存在 | **⚠️ DRIFT** vendor 已存在 `WindowAttribute.cs:8` `public enum UILayer : int { Bottom=0, UI=1, Top=2, Tips=3, System=4 }` (namespace `GameLogic`)；新建 `Assets/GameScripts/HotFix/GameLogic/UI/UILayer.cs` 会同 namespace collision；vendor 命名 vs ADR-011 spec wording 第 3 例 drift (Bottom≈Background / UI≈HUD / Top≈Popup / Tips≈Overlay / System=System) | ⚠️ DRIFT (本 story 改用 vendor enum + 新建 UILayerExtensions.cs helper；不 collision) |
+| **R2.11** *(Session 26 #5 新增)* | `[Window]` attribute 是否 vendor 已提供 | ✅ vendor 已提供 `WindowAttribute.cs:21 public class WindowAttribute : Attribute` + 4 ctor overload (`UILayer windowLayer`, optional `string location`/`bool fromResources`/`bool fullScreen`/`int hideTimeToClose`)；vendor `LogUI.cs:8` 实际用法 `[Window(UILayer.System, fromResources: true)]` 模式 | ✅ |
 
 **R2 Verdict**: **DEFICIENCY-FLAGGED PASS** (per ADR-029 V2.0) —— 2 项 wording drift (R2.2 + R2.3) 已通过本次 amend 在 story-001 内对齐 vendor wording；ADR-011 spec / SP-002 系统性 wording amend 留 Sprint 5 retro 评估（per V3 Type-5 dp）。R3 dev-story 可启动。
 
 **R2 Discovery — V3 Type-5 dp 数据点累计** (per ADR-029 V2.0 §V2-7):
 - `R2.2 ShowWindow → ShowUI wording drift` 是 **ADR-011 spec ↔ TEngine vendor API drift** 实战触发
 - `R2.3 4-method → 7-method lifecycle drift + OnClose → OnDestroy wording drift` 同源
-- 累计 V3 Type-5 candidate "tooling/spec ↔ vendor reality drift" dp（与 S5-01 D1~D4 `unity-mcp tooling silent failure` 同 type；首次累积 dp + ADR-011/SP-002 系统性 amend 候选）
+- **`R2.10 UILayer enum vendor 已存在 + wording drift` (Session 26 #5 story-readiness gate 发现)** — vendor `{Bottom/UI/Top/Tips/System}` vs ADR-011 spec `{Background/HUD/Popup/Overlay/System}` 同 namespace `GameLogic`；本 story 跟 vendor wording
+- 累计 V3 Type-5 candidate "tooling/spec ↔ vendor reality drift" dp（与 S5-01 D1~D4 `unity-mcp tooling silent failure` 同 type；本 story 累计 3 个 unique 实战 dp + ADR-011/SP-002 系统性 amend 候选）
 
 ---
 
@@ -294,10 +307,11 @@ S5-02 dev-story 内 spike (`S5-02_EndToEndFlow.cs`) 模拟点击 Button 走 prod
 本 story R3 实施过程中如出现以下情况应 capture 为新 drift type 候选并写入 sprint-status.yaml watch list：
 
 1. **Type-2(c) candidate**: UIWindow 完整 7 lifecycle method 调用顺序与 vendor 实证不符（R3 P3 case 实测）—— first show 顺序 / second show 是否复用 init phase / OnUpdate 是否仅 Visible=true 触发 等任意 drift → framework boundary behavior assumption drift；累计 dp 数据点
-2. **Type-5 candidate (S5-01 dp1 + 本 story R2 双触发累计)**:
+2. **Type-5 candidate (S5-01 dp1 + 本 story R2 + R3 三触发累计)**:
    - **(a) S5-01 D1~D4 dp1**: `unity-mcp` toolchain silent failure (2026-05-09 实证)
-   - **(b) S5-08 R2.2 + R2.3 dp 实战触发 2026-05-11**: **ADR-011 spec / SP-002 spec ↔ TEngine vendor API drift** — `ShowWindow → ShowUI/CloseUI/HideUI` wording (R2.2) + `4 lifecycle → 7 lifecycle + OnClose → OnDestroy` wording (R2.3)；同源 "spec ↔ reality drift" 模式（spec 文档 与 实际工具/vendor 实施 不一致）
-   - **累计**: V3 Type-5 候选 promote 数据点 +1（与 S5-01 D1~D4 同 type；累计 2 个 unique 实战 dp → Sprint 5 retro 评估系统性 promote 为 ADR-029 V3 正式 candidate "spec ↔ reality drift" 类）；对应 ADR-011/SP-002 系统性 amend 候选 action item
+   - **(b) S5-08 R2.2 + R2.3 dp 实战触发 2026-05-11 Session 26 #4**: **ADR-011 spec / SP-002 spec ↔ TEngine vendor API drift** — `ShowWindow → ShowUI/CloseUI/HideUI` wording (R2.2) + `4 lifecycle → 7 lifecycle + OnClose → OnDestroy` wording (R2.3)；同源 "spec ↔ reality drift" 模式（spec 文档 与 实际工具/vendor 实施 不一致）
+   - **(c) S5-08 R2.10 dp 实战触发 2026-05-11 Session 26 #5 — story-readiness gate R3 阶段发现**: **ADR-011 spec UILayer wording ↔ TEngine vendor UILayer wording drift** — vendor `{Bottom=0, UI=1, Top=2, Tips=3, System=4}` vs spec `{Background=0, HUD=1, Popup=2, Overlay=3, System=4}` 第 3 例 wording drift；同源；avoid type collision 改用 vendor enum + helper extension method
+   - **累计**: V3 Type-5 候选 promote 数据点 +2 (本 story 共贡献 dp2+dp3 两个 unique dp)；与 S5-01 D1~D4 同 type；累计 3 个 unique 实战 dp (1 toolchain failure + 2 ADR-011 spec ↔ vendor wording drift)；超过 V3 promote ROI 阈值 (≥ 3 unique dp) → Sprint 5 retro **强烈建议 promote** 为 ADR-029 V3 正式 candidate "spec ↔ reality drift" 类 (split or unified) + ADR-011 §G implementation expand + SP-002 系统性 wording amend (含 UILayer enum 命名 / ShowUI API 命名 / 7 lifecycle method 命名) 高优 action item
 3. **Type-6 candidate (S5-1c lessons memo promote 候选累计)**: spike subscribe race 如再次出现（UIModule init 同步 fire event 路径或类似）→ 累计 V3 #6 dp 数据点；本 story spike Awake() subscribe 已采纳防御
 4. **Type-7 candidate (新)**: UIRoot DontDestroyOnLoad 跨 scene 持久化路径如出现 race（如 chapter scene load 时 UIRoot reference 丢失 / Canvas 渲染异常）→ 累计 V3 candidate `boot-order / scene-transition drift` dp 数据点（R3 P1 + S5-02 R3 dev-story 实施时 verify）
 5. **Type-8 candidate (本 story R2 surfaced)**: UIWindow second show 行为 — ADR-011/SP-002 假设 "second show 仅 OnRefresh" vs vendor 实际是否完整 init phase replay？R3 P3 case 实证后如 drift → 累计 V3 dp（spec 假设 vs vendor 实际另一类）
@@ -307,6 +321,59 @@ S5-02 dev-story 内 spike (`S5-02_EndToEndFlow.cs`) 模拟点击 Button 走 prod
 ---
 
 ## History
+
+### 2026-05-11 Session 26 #5 — /story-readiness gate R3 stub type collision discovery + amendment (per 决策 [A])
+
+**Trigger**: 2026-05-11 Session 26 #5 /story-readiness gate R1+R3 复审阶段；R3 stub type construction signatures grep 发现 vendor `WindowAttribute.cs:8` 已存在 `public enum UILayer : int { Bottom=0, UI=1, Top=2, Tips=3, System=4 }` (namespace `GameLogic`)；story-001 AC-1 新建 `Assets/GameScripts/HotFix/GameLogic/UI/UILayer.cs` 含 `{Background/HUD/Popup/Overlay/System}` 与 vendor enum 同 namespace **C# type collision 阻塞编译**。同时发现 vendor `WindowAttribute.cs:21` 已提供 `WindowAttribute` 4 ctor overload (R2.11)。
+
+**R3 stub type construction Verdict**: ❌ collision discovered → 升级为 NEEDS WORK；本次 amend 后转回 PASS
+
+**R3 Findings**:
+
+1. **R2.10 ⚠️ DRIFT** — `UILayer` enum vendor 已存在 (WindowAttribute.cs:8 namespace GameLogic 5 值 Bottom/UI/Top/Tips/System)；新建 `UILayer.cs` 必 collision；wording 与 ADR-011 spec drift (Bottom≈Background / UI≈HUD / Top≈Popup / Tips≈Overlay / System=System)
+2. **R2.11 ✅ EXIST** — `WindowAttribute` vendor 已提供 4 ctor overload (`UILayer windowLayer`, optional `string location`/`bool fromResources`/`bool fullScreen`/`int hideTimeToClose`)；vendor LogUI.cs:8 实际用法 `[Window(UILayer.System, fromResources: true)]`
+
+**Amendments (本次 per 决策 [A] — 跟 vendor wording 对齐 与 Session 26 #4 [D] 同源原则)**:
+
+1. **§Engine Notes**: 加 R2.10 ⚠️ DRIFT (UILayer vendor 已存在 + spec wording 映射表) + R2.11 ✅ (WindowAttribute 已提供) 两 bullet
+2. **§Acceptance Criteria**:
+   - AC-1 重写: 不新建 UILayer.cs → 改为创建 `UILayerExtensions.cs` 含 `GetSortingOrderBase(this UILayer)` extension method + XML doc 注释 vendor 路径 + wording 映射表
+   - AC-6 改: 注释指向 vendor enum 路径 (`WindowAttribute.cs:8`) 而非新 UILayer.cs
+3. **§Implementation Notes**:
+   - UILayer.cs bullet 替换为 UILayer enum R2.10 实证 (vendor 已存在 + 新建 UILayerExtensions.cs helper 描述)
+   - 新增 `[Window]` attribute R2.11 实证 bullet (vendor 已 4 ctor overload)
+   - Mock minimal panel 加 `[Window(UILayer.UI, fromResources: true)]` attribute 用法 (沿 LogUI.cs:8 precedent)
+4. **§R3 PlayMode probe**:
+   - P1 case 加 UILayerExtensions sanity verify (调用 5 layer GetSortingOrderBase + assert 0/100/200/300/400)
+   - P2 case 加 `[Window(UILayer.UI, fromResources: true)]` 设置说明 (vendor attribute 路径)
+   - JSON evidence schema P1 asserts 加 5 个 UILayer.X.GetSortingOrderBase() asserts
+5. **§Assumptions Validated 表**: 加 R2.10 row (DRIFT) + R2.11 row (✅)
+6. **§ADR-029 V3 Watch List Hooks Type-5 candidate**:
+   - (b) Session 26 #4 dp 标注
+   - **(c) Session 26 #5 R2.10 dp 新增**: ADR-011 spec UILayer wording ↔ vendor wording drift
+   - **累计**: V3 Type-5 dp 第 3 例 → 超 V3 promote ROI 阈值 (≥ 3 unique dp) → Sprint 5 retro **强烈建议 promote** 为正式 candidate；ADR-011 §G + SP-002 系统性 amend 高优 action item
+
+**Rationale**:
+- vendor 是 ground truth — 已 实际用法 (LogUI.cs:8 `[Window(UILayer.System, fromResources: true)]`)
+- ADR-011 spec wording 是 historical (Sprint 0 / Sprint 3 framework time)
+- 新建 collision enum 不可行 (C# type collision 阻塞编译)
+- 改名差异化方案 ([B]) 会导致 vendor `[Window]` 与业务 sorting order 用两套 enum，团队混淆成本高
+- vendor patch ([C]) 侵入性大；vendor 命名虽不完全符合 ADR-011 spec 但功能等价 (Bottom 等价 Background 等)
+- 删除整 UILayer 工作 ([D]) 牺牲 helper method 价值 (后续 story 仍需 sorting order 计算)
+- 跟 vendor wording 是与 Session 26 #4 [D] 同源原则 (vendor 优先 / wording 对齐 / 累计 dp / 留 retro 系统性 amend)
+
+**R3 stub type Verdict after amendment**: ✅ PASS (collision avoided；用 vendor enum + extension method)
+
+**Sign-off**: User 决策落盘 (选项 [A] 2026-05-11 Session 26 #5 — 跟 vendor wording 对齐 + V3 Type-5 dp3 累计 retro 强烈建议 promote)
+
+**Audit Trail Cross-references**:
+- TEngine vendor sync: c5f8952 (2026-05-09 — TEngine 6.2.1 vendor sync)
+- vendor UILayer enum 引用: `Assets/GameScripts/HotFix/GameLogic/Module/UIModule/WindowAttribute.cs:8`
+- vendor `[Window]` attribute 实际用法: `Assets/GameScripts/HotFix/GameLogic/Module/UIModule/ErrorLogger/LogUI.cs:8`
+- V3 Type-5 dp 累计: sprint-status.yaml `sprint_5_adr_029_v3_watch_list` (S5-01 D1~D4 dp1 + S5-08 dp2 + dp3 三 dp)
+- ADR-011 spec wording 系统性 amend action item: Sprint 5 retro 高优 (含 UILayer enum 命名 / ShowUI API 命名 / 7 lifecycle method 命名)
+
+---
 
 ### 2026-05-11 Session 26 #4 — R2 evidence collection + wording drift amendment (per 决策 [D])
 
