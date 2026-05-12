@@ -4,15 +4,15 @@
 
 ## Status
 
-Accepted with patch (Promoted 2026-05-06 — bulk ceremony post Sprint 3 closure / ADR-029 V2.0 review B-1 + B-2 CONFLICT-008 §7 sample fix applied same session; UI sprint upcoming) **+ Amendment 2026-05-13 (Sprint 6 S6-05 systematic wording amend — ADR-029 V3.0 §V3-1.b Type-5 dp2/dp3 + Type-8 dp1 vendor reality align)**
+Accepted with patch (Promoted 2026-05-06 — bulk ceremony post Sprint 3 closure / ADR-029 V2.0 review B-1 + B-2 CONFLICT-008 §7 sample fix applied same session; UI sprint upcoming) **+ Amendment 2026-05-13 (Sprint 6 S6-05 systematic wording amend — ADR-029 V3.0 §V3-1.b Type-5 dp2/dp3 + Type-8 dp1 vendor reality align)** **+ Hotfix 2026-05-13 evening (Sprint 6 S6-07 Phase 0 R2 verify — ADR-029 V3.0 §V3-1.b Type-5 dp7 NEW visibility modifier drift correction: `public override` → `protected override` for all 7+2 lifecycle method overrides)**
 
 ## Date
 
-2026-04-22 (initial) / **2026-05-13 amend** (Sprint 6 S6-05 systematic wording amend)
+2026-04-22 (initial) / **2026-05-13 amend** (Sprint 6 S6-05 systematic wording amend) / **2026-05-13 evening hotfix** (Sprint 6 S6-07 Phase 0 dp7 NEW visibility modifier)
 
 ## Last Verified
 
-**2026-05-11** — Sprint 5 S5-08 UIModule Setup R3 P3 PlayMode 实证 (`UIWindowLifecycleVendorOrder` 4/4 R3 PASS) confirmed vendor 7+2 lifecycle + 'destroy-and-recreate' mode; R2 evidence collection confirmed `ShowUI`/`CloseUI`/`HideUI`/`CloseAll` API + UILayer enum `{Bottom, UI, Top, Tips, System}` + `[Window]` attribute 4 ctor overload
+**2026-05-13 evening** — Sprint 6 S6-07 Phase 0 R2 verify: vendor source UIBase.cs:144/151/158/165/172/184/197 全 7 lifecycle method (`ScriptGenerator` / `BindMemberProperty` / `RegisterEvent` / `OnCreate` / `OnRefresh` / `OnUpdate` / `OnDestroy`) 是 `protected virtual void XxxName()`；UIWindow.cs:504/509 extra 2 hook (`Hide` / `Close`) 同 `protected virtual void XxxName()`；ErrorLogger/LogUI.cs sample 业务 override 用 `protected override`；S5-02 production MainMenuPanel.cs 同样 `protected override` (与 vendor source 一致)。**Sprint 5 S5-08 UIModule Setup R3 P3 PlayMode 实证 (`UIWindowLifecycleVendorOrder` 4/4 R3 PASS) confirmed vendor 7+2 lifecycle + 'destroy-and-recreate' mode**（前一 Verified 仍持续有效）
 
 ## Decision Makers
 
@@ -173,7 +173,7 @@ Technical Director, Lead Programmer, Game Designer
 public class HUDPanel : UIWindow
 {
     // RegisterEvent: BindMemberProperty 之后 — 业务 listener subscribe 入口
-    public override void RegisterEvent()
+    protected override void RegisterEvent()
     {
         _onChapterCompleted = OnChapterCompleted;
         GameEvent.AddEventListener<int>(IChapterStateEvent_Event.OnChapterComplete, _onChapterCompleted);
@@ -181,27 +181,27 @@ public class HUDPanel : UIWindow
 
     // OnCreate: RegisterEvent 之后 — 业务 UI 引用绑定 + 静态资源 setup
     // ⭐ 注意：vendor 'destroy-and-recreate' 模式下，second show 也会再次调用 OnCreate
-    public override void OnCreate()
+    protected override void OnCreate()
     {
         // FindChild / GetComponent for UI references
         // AddUIEvent() for internal widget events
     }
 
     // OnRefresh: OnCreate 之后（首次 + 每次 show）— 业务数据刷新 + userDatas 参数处理
-    public override void OnRefresh()
+    protected override void OnRefresh()
     {
         // Update display data, refresh counts/status
     }
 
     // OnUpdate: per-frame, vendor guard 仅 IsPrepare && Visible 时执行
-    public override void OnUpdate()
+    protected override void OnUpdate()
     {
         // Per-frame UI logic (animations, timers)
     }
 
     // OnDestroy: CloseUI<T>() 调用 OR CloseAll — 业务 cleanup 入口
     // ⚠️ 不是 OnClose — legacy spec wording drift (V3.0 §V3-1.b Type-5 dp2)
-    public override void OnDestroy()
+    protected override void OnDestroy()
     {
         // Cleanup: unsubscribe events, release references
         if (_onChapterCompleted != null)
@@ -319,6 +319,8 @@ AddUIEvent(buttonId, OnButtonClicked);
 | Extra 2 | `Close()` | `CloseUI<T>()` 路径 + OnDestroy 之前 (UIWindow.cs:504-509) | （deprecated，建议用 OnDestroy） | ⚠️ deprecated |
 
 > ⚠️ **OnDestroy ≠ OnClose**: legacy spec wording `OnClose` 与 vendor reality `OnDestroy` drift（V3.0 §V3-1.b Type-5 dp2）。新代码全部 override `OnDestroy`；现有 `OnClose` override（如有）逐步迁移到 `OnDestroy`。
+
+> ⚠️ **Visibility modifier is `protected`, NOT `public`** (V3.0 §V3-1.b Type-5 **dp7 NEW** — S6-07 Phase 0 R2 verify surfaced 2026-05-13): vendor `UIBase.cs:144/151/158/165/172/184/197` 全 7 lifecycle method 实际签名是 `protected virtual void XxxName()`（不是 `public virtual`）；vendor `UIWindow.cs:504/509` extra 2 hook `Hide()` / `Close()` 同样 `protected virtual`。**业务侧 override 必须用 `protected override`**（与 vendor LogUI.cs sample + S5-02 production MainMenuPanel.cs 一致）。如用 `public override` 会因 visibility modifier mismatch 触发 `CS0507: cannot change access modifiers when overriding` 编译错。本 ADR §G Key Interfaces code block 已 hotfix amend (2026-05-13 evening) — earlier Sprint 6 S6-05 commit 45ae96b 误用 `public override` 是新 spec wording drift，已通过本 hotfix 修正。
 
 > ✅ **Open Question resolved (Sprint 5 S5-08 R3 P3 2026-05-11)**: TEngine `UIWindow` 首次打开回调顺序已通过 PlayMode 实证 4/4 R3 PASS — vendor 实际是 7+2 lifecycle (ScriptGenerator → BindMemberProperty → RegisterEvent → OnCreate → OnRefresh → OnUpdate per frame / OnDestroy)；`OnRefresh` 在 `OnCreate` 之后**自动**调用，业务侧无需在 OnCreate 末尾手动调用刷新逻辑。Sprint 0 spike 风险消除。**second show 实证结论**: 是 'destroy-and-recreate' 模式而非 spec 假设的 'hide-and-reshow' — 见 §5 + V3.0 §V3-1.b Type-8 dp1。
 
@@ -516,3 +518,4 @@ namespace GameLogic
 - **2026-05-11** (Sprint 5 S5-08 R2/R3): 多处 vendor wording drift surfaced (R2.2 ShowWindow→ShowUI / R2.3 4 lifecycle→7+2 lifecycle / R2.10 UILayer enum / R2.11 [Window] attribute) + R3 P3 PlayMode 实证 'destroy-and-recreate' 模式（与 spec 'hide-and-reshow' 假设冲突）→ ADR-029 V3 Type-5 dp2/dp3 + Type-8 dp1 NEW
 - **2026-05-12** (ADR-029 V3.0 promote): Type-5 dp2 (ShowUI wording) + dp3 (UILayer enum) + Type-8 dp1 (UIWindow second show destroy-and-recreate) 累积纳入 V3.0 §V3-1.b 修复模式；ADR-011 systematic amend 排入 Sprint 6 S6-05 (ADR-011 + SP-002 + ADR-014 + ADR-016 + ADR-017 + ADR-028) 6 file batch
 - **2026-05-13** (Sprint 6 S6-05 systematic wording amend — V3.0 §V3-1.b 修复模式实战 propagation): 整 ADR systematic wording amend — Status/Date/Last Verified/Summary/Engine Compatibility/FR-1/FR-7/Architecture diagram/5 UI Layer Levels table/Key Interfaces code/Implementation Guidelines §5/§6/Migration Plan Step 6/Risks/Validation Criteria/GDD Requirements 全 16 处 wording 对齐 vendor reality；OnClose→OnDestroy；ShowWindow/CloseWindow→ShowUI/CloseUI/HideUI；4 hook→7+2 lifecycle；layer enum 业务 mapping 表 (Bottom→Background, UI→HUD, Top→Popup, Tips→Overlay, System→System)；Open Question (OnCreate/OnRefresh 时序) resolved；§History 新增；与 SP-002 amend (2026-05-13) + ADR-014/-016/-017/-028 amend 系统性 align
+- **2026-05-13 evening (Sprint 6 S6-07 Phase 0 R2 verify hotfix — V3.0 §V3-1.b Type-5 dp7 NEW visibility modifier drift)**: 本 ADR §G Key Interfaces code block 5 处 `public override` → `protected override` (RegisterEvent / OnCreate / OnRefresh / OnUpdate / OnDestroy) hotfix amend。**Drift surfaced 在 S6-07 Phase 0 vendor source R2 verify**: vendor `UIBase.cs:144/151/158/165/172/184/197` 7 lifecycle method 实际是 `protected virtual` (不是 `public virtual`)；S6-05 commit 45ae96b amend 时未对 visibility modifier 做 R2 grep verify vendor source → 引入新 wording drift。修复路径: hotfix amend 同 commit 标 V3.0 §V3-1.b Type-5 dp7 NEW。**讽刺地**：本 hotfix 实证 V2.0 §V2-1.b R2 增量子条款 (S6-06 amend) 必要性 — spec amend 时必须**先 read vendor source list 全部 signatures → 逐 modifier verify**，否则会引入新 drift。更广泛地反映 V3.0 §V3-1.b governance 启示: ADR amend 工作必须遵守 R2 协议自身，**不能 spec wording amend 时假设自己已知 vendor reality**。

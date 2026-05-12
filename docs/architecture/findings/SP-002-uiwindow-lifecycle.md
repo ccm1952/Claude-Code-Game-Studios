@@ -105,6 +105,8 @@ if (!IsPrepare || !Visible)
 
 > **OnDestroy ≠ OnClose**：早期 spec wording 用 `OnClose`，vendor 实际是 `OnDestroy`。Sprint 5 S5-08 R2.3 evidence collection (Session 26 #4) 实证。
 
+> **Visibility modifier: `protected virtual` / `protected override`** (V3.0 §V3-1.b Type-5 **dp7 NEW** — S6-07 Phase 0 R2 verify surfaced 2026-05-13): vendor `UIBase.cs:144/151/158/165/172/184/197` 7 lifecycle method + `UIWindow.cs:504/509` extra 2 hook (`Hide` / `Close`) 全部签名是 `protected virtual void XxxName()`（不是 `public virtual`）。**业务侧 override 必须用 `protected override`** (LogUI.cs sample + S5-02 production MainMenuPanel.cs 一致；如用 `public override` 触发 `CS0507: cannot change access modifiers when overriding` 编译错)。Sprint 6 S6-05 commit 45ae96b ADR-011 §G Key Interfaces code block 5 处 `public override` 是新 spec wording drift，已通过 2026-05-13 evening hotfix amend 修正。
+
 ## UILayer enum（vendor WindowAttribute.cs:8 实证）
 
 ```csharp
@@ -187,3 +189,4 @@ public sealed class HUDPanel : UIWindow { ... }
 - **2026-05-11** (Sprint 5 S5-08 R2/R3): ⚠️ Multiple vendor wording drift surfaced (R2.2 ShowWindow→ShowUI; R2.3 4 lifecycle→7+2 lifecycle; R2.10 UILayer enum {Background→Bottom, HUD→UI, Popup→Top, Overlay→Tips, System→System}; R2.11 [Window] attribute 4 ctor overload); R3 P3 PlayMode frame=30/59 vendor 'destroy-and-recreate' 模式实证（与 spec 'hide-and-reshow' 假设冲突）→ ADR-029 V3 Type-5 dp2/dp3 + Type-8 dp1 NEW
 - **2026-05-12** (Sprint 5 retro AI-2 衍生): SP-002 systematic align 计入 Sprint 6 S6-05 (ADR-011/SP-002/ADR-014/-016/-017/-028) 6 file batch amend
 - **2026-05-13** (Sprint 6 S6-05 systematic wording amend — V3.0 §V3-1.b 修复模式实战 propagation): SP-002 整 doc rewrite — vendor 7+2 lifecycle reality + 'destroy-and-recreate' 模式 + UILayer enum + [Window] attribute + vendor ShowUI/CloseUI/HideUI/CloseAll API + business override 推荐入口；§History 追加；与 ADR-011 §G amend (next commit) 系统性 align
+- **2026-05-13 evening** (Sprint 6 S6-07 Phase 0 R2 verify hotfix — V3.0 §V3-1.b Type-5 dp7 NEW visibility modifier drift): SP-002 line 107 后插入 visibility modifier note (`protected virtual` / `protected override` 是 vendor 实际签名；`public override` 触发 CS0507 编译错)。Drift surfaced 在 S6-07 Phase 0 vendor source R2 verify (UIBase.cs:144-197 全 7 method 是 `protected virtual`)；S6-05 commit 45ae96b 引入的 `public override` 是新 spec drift，已经 hotfix 修正。dp7 NEW 是 V3.0 governance maturity 关键警示 — **ADR amend 时必须遵守 R2 协议自身 (S6-06 V2.0 §V2-1.b R2 增量子条款 read vendor source → list signatures → 逐 modifier verify)，不能假设已知 vendor reality**。讽刺地，本 dp7 是 V2.0 §V2-1.b R2 增量子条款 (S6-06 amend) 的最佳 reinforcement 实证案例。
