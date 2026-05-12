@@ -3,7 +3,7 @@
 # Story 002: Chapter 1 end-to-end 5 系统串通可玩（happy path）
 
 > **Epic**: VS Chapter 1
-> **Status**: **Draft** *(待 /story-readiness gate 通过转 Ready)*
+> **Status**: **Ready** *(2026-05-12 Session 27 #1 — /story-readiness gate R1+R2+R3 amendment per 决策 [A]：R1 ✅ 0 forbidden listener pattern / R2 DEFICIENCY-FLAGGED PASS (R2.1 wording drift 修复 + R2.2 wiring gap explicit Required Framework Extension flag 标记 + R2.3 chapter scene 物件 component 留 dev-story Phase 1.5 unity-mcp 实查 + R2.4/R2.5 PASS) / R3 ✅ propagate fix P2/P3 Assert wording 完成)*
 > **Layer**: Vertical Slice (VS) — cross-system integration
 > **Type**: Integration
 > **SP**: 2 *(happy path only — error/restart path 拆 S5-02b backlog Sprint 6)*
@@ -75,24 +75,32 @@ T13 SceneManager unload chapter 1 → OnSceneUnloadBegin → OnSceneTransitionEn
 - **ADR-030 (Accepted)** §VS Build commitment 第 1 项核心交付（chapter 1 end-to-end + ≥3 playtest sessions Sprint 5-6）
 - **ADR-011 (Accepted)** UIModule UGUI — S5-08 prerequisite
 
-**Engine Notes** *(R2 待 /story-readiness gate 实测；本 story 5 大块 wiring uncertainty 见 §Assumptions)*:
+**Engine Notes** *(R2 grep 实证完成 2026-05-12 Session 27 #1 per ADR-029 V2.0 /story-readiness gate；5 大块 wiring uncertainty 实测结果见 §Assumptions Validated 表)*:
 
 - `ISceneEvent.OnRequestSceneChange(int)` listener handler 由 S5-1c verified（SceneManager 自闭环 DriveTransitionAsync）
-- `IShadowMatchEvent.OnNearMatchEnter` ↔ `PuzzleStateMachine.HandleNearMatchEnter` listener wiring ⚠️ 需 R2 grep verify production listener handler 已挂
-- `IShadowPuzzleEvent.OnPuzzleComplete` ↔ `NarrativeSequencePlayer` listener wiring ⚠️ 需 R2 grep verify
-- `INarrativeEvent.OnRequestSequence` ↔ `NarrativeSequencePlayer.HandleRequestSequence` listener wiring（per S5-05 ✅ verified）
+- **⚠️ WORDING DRIFT 修复 (R2.1 Session 27 #1 实测)**: 接口归属错位 — story 原写 `IShadowMatchEvent.OnNearMatchEnter` 但实际：
+  - `IShadowMatchEvent` (IShadowMatchEvent.cs:21) 仅含 1 method `OnMatchScoreUpdated(int puzzleId, float newScore)` (sender: future ADR-012 `ShadowMatchCalculator`；MVP 阶段 spike fire mock；listener: PuzzleStateMachine)
+  - `OnNearMatchEnter(int puzzleId)` 位于 **`IShadowPuzzleEvent`** (IShadowPuzzleEvent.cs:23)，**`PuzzleStateMachine.cs:228` 是 sender 不是 listener**
+  - **实际正确链路**: T5 InteractableObject snap → `IShadowMatchEvent.OnMatchScoreUpdated(puzzleId=1, score)` (MVP spike fire) → `PuzzleStateMachine.cs:119` `AddEventListener<int, float>(IShadowMatchEvent_Event.OnMatchScoreUpdated, _onMatchScoreUpdated)` ✅ listener 已挂 → state transit → 派发 `IShadowPuzzleEvent.OnNearMatchEnter(puzzleId=1)` (PuzzleStateMachine 是 sender)
+  - payload 类型: `int puzzleId` 不是 string `token`；本 story 全文 token wording 同步 propagate fix 至 puzzleId
+- **❌ WIRING GAP (R2.2 Session 27 #1 实测) → `**Required Framework Extension**` flag**:
+  - `IShadowPuzzleEvent.OnPuzzleComplete` listener handler 在 production code **0-hit** (`rg "AddEventListener.*OnPuzzleComplete" Assets/.../HotFix` → 0 matches)
+  - `NarrativeSequencePlayer.cs:127-132` 仅 listen `INarrativeEvent.OnRequestSequence`，无 `OnPuzzleComplete` listener
+  - **chain 断裂**: PuzzleStateMachine.cs:284 派发 `OnPuzzleComplete` ✅ → ❓ 无 bridge → NarrativeSequencePlayer 等不到 `OnRequestSequence`
+  - **Required Framework Extension (本 story dev-story Phase 2 实施)**: 新建 `Assets/GameScripts/HotFix/GameLogic/GameFlow/PuzzleCompleteToNarrativeBridge.cs` (清洁分离 — 推荐路径)，listen `IShadowPuzzleEvent.OnPuzzleComplete(puzzleId, completionType)` + emit `INarrativeEvent.OnRequestSequence(triggerSourceId=puzzleId, NarrativeSequenceType.MemoryReplay)`。备选路径: (B) ChapterStateManager.cs:276 OnPuzzleComplete 内 emit / (C) NarrativeSequencePlayer 直加 listener (violates SRP)。dev-story Phase 2 内 AskQuestion 决策 (A)/(B)/(C)
+- `INarrativeEvent.OnRequestSequence` ↔ `NarrativeSequencePlayer.cs:127-132` listener wiring ✅ verified (per S5-05 ✅)
 - `IAudioEvent.OnDuckingRequest` ↔ `AudioManager.HandleDuckingRequest` listener wiring（per S5-06 ✅ verified）
-- UIModule `Button.onClick` → `GameEvent.Get<ISceneEvent>().OnRequestSceneChange(...)` dispatch — S5-08 dev-story 实施时确定具体 hook 路径
-- chapter 1 `Chapter_01_Approach.unity` 内 `Object_01_CoffeeMug` / `Object_02_Book` 是否含 InteractableObject MonoBehaviour 与 puzzle config 注入 ⚠️ 需 R2 verify（S5-01 evidence doc §10b 待补：物件 prefab vs scene-instance 状态）
+- UIModule `Button.onClick` → `GameEvent.Get<ISceneEvent>().OnRequestSceneChange(...)` dispatch — S5-08 ✅ DONE：vendor UIWindow.Button.onClick 路径 via `Button.onClick.AddListener(handler)` + handler 内 `GameEvent.Get<ISceneEvent>().OnRequestSceneChange(targetId)`；具体 hook 在 main menu UIWindow OnCreate 内挂
+- **⚠️ R2.3 TBD (留 dev-story Phase 1.5 unity-mcp 实查)**: chapter 1 `Chapter_01_Approach.unity` 内 `Object_01_CoffeeMug` / `Object_02_Book` 是否含 `InteractableObject` MonoBehaviour + puzzle config injection — grep-based readiness gate 无法验 Unity scene 内 component；dev-story Phase 1.5 self-check 阶段用 `unity-mcp manage_gameobject get_components` 实查；如缺失则 dev-story Phase 2 内补 component + puzzle config 注入 (Sprint 5 [A] serial 序列内不产生 prerequisite 调整)
 
 **Performance**: end-to-end success path total time < 10s（含 ~5s scene load + ~5s puzzle/narrative/audio inline）；R3 mandatory Integration type。
 
 **Control Manifest Rules (this layer)**:
 
 - **Required**: main menu Button onClick → `ISceneEvent.OnRequestSceneChange(1)` dispatch → SceneManager handler (S5-1c) → DriveTransitionAsync 11-step
-- **Required**: chapter 1 内 InteractableObject (S2-08 ✅) drag/snap → `IShadowMatchEvent.OnNearMatchEnter`（chapter 1 puzzle 1 token）
-- **Required**: PuzzleStateMachine (S5-03 ✅) state transition Active → NearMatch → PerfectMatch → Complete → 派发 `IShadowPuzzleEvent.OnPuzzleComplete`
-- **Required**: NarrativeSequencePlayer (S5-05 ✅) listen `IShadowPuzzleEvent.OnPuzzleComplete` → 派发 `INarrativeEvent.OnRequestSequence(chapter 1 sequence id)` → SequencePlayer 串行播放 atomic effects
+- **Required**: chapter 1 内 InteractableObject (S2-08 ✅) drag/snap → `IShadowMatchEvent.OnMatchScoreUpdated(puzzleId=1, score)` 派发（MVP 阶段 spike fire mock；future ADR-012 ShadowMatchCalculator 取代）→ `PuzzleStateMachine.cs:119` ✅ listener 已挂
+- **Required**: PuzzleStateMachine (S5-03 ✅) state transition Active → NearMatch (派发 `IShadowPuzzleEvent.OnNearMatchEnter(puzzleId=1)`) → PerfectMatch (派发 `IShadowPuzzleEvent.OnPerfectMatchEnter`) → Complete (派发 `IShadowPuzzleEvent.OnPuzzleComplete(puzzleId=1, completionType)`)
+- **Required (本 story dev-story Phase 2 实施 — R2.2 Required Framework Extension)**: 新 wiring bridge `PuzzleCompleteToNarrativeBridge` (or alt path per dev-story 决策) listen `IShadowPuzzleEvent.OnPuzzleComplete` → 派发 `INarrativeEvent.OnRequestSequence(triggerSourceId=puzzleId=1, NarrativeSequenceType.MemoryReplay)` → NarrativeSequencePlayer.cs:127-132 listener ✅ 已挂 → SequencePlayer 串行播放 atomic effects
 - **Required**: AudioManager (S5-06 ✅) listen `IAudioEvent.OnDuckingRequest` / `OnPlayMusic` → real `GameModule.Audio` framework dispatch
 - **Required**: 'Next Chapter' Button onClick → `ISceneEvent.OnRequestSceneChange(0)` → SceneManager unload chapter 1 → state=Idle
 - **Required**: 5 系统间 cross-system listener wiring **必须**走 production code（S5-08 UIModule + S5-02 内 wiring 路径），**不**在 spike 内手挂 listener handler 模拟 production
@@ -110,9 +118,9 @@ T13 SceneManager unload chapter 1 → OnSceneUnloadBegin → OnSceneTransitionEn
 
 - [ ] **AC-1 (UIModule + main menu Button minimal inline)**: S5-08 dev-story DONE 后，vs-chapter-1 chapter 1 入口 main menu base canvas 已挂载 + 2 个 placeholder Button：`Start Chapter 1` Button + `Next Chapter` Button（minimal inline impl per 决策 [A]）；按 ADR-011 UIModule UGUI 接入
 - [ ] **AC-2 (main menu trigger → chapter 1 boot)**: `Start Chapter 1` Button onClick → `ISceneEvent.OnRequestSceneChange(1)` dispatch → SceneManager 内 `DriveTransitionAsync(1)` 11-step → spike listener 监听 `OnSceneTransitionEnd(1)` 完成 + `_sceneManager.CurrentLoadedChapterIdForTest == 1` + `CurrentState == Idle`
-- [ ] **AC-3 (chapter 1 物件 drag/snap → IShadowMatchEvent)**: chapter 1 内 InteractableObject prefab 实例（S2-08 + S4-06 ✅）spike 自动 drag → snap → `IShadowMatchEvent.OnNearMatchEnter` 派发 (chapter 1 puzzle 1 token；PuzzleStateConfigFromLuban chapter 1 puzzle 1 fixture per S5-03 ✅)
-- [ ] **AC-4 (PuzzleStateMachine state transition)**: `IShadowMatchEvent.OnNearMatchEnter` → PuzzleStateMachine `Active` → `NearMatch` → `PerfectMatch` → `Complete`（5 个 state transitions；per S5-03 ✅ ADR-014 DONE）；spike snapshot 5 transition 各发生 1 次
-- [ ] **AC-5 (PuzzleComplete → Narrative trigger)**: `IShadowPuzzleEvent.OnPuzzleComplete` (S5-03 派发) → NarrativeSequencePlayer listener handler → `INarrativeEvent.OnRequestSequence` 派发 → `OnSequenceStart` (chapter 1 puzzle 1 sequence id；hardcoded fixture per S5-05 NarrativeSequenceConfigFromLuban ✅)
+- [ ] **AC-3 (chapter 1 物件 drag/snap → IShadowMatchEvent.OnMatchScoreUpdated)**: chapter 1 内 InteractableObject prefab 实例（S2-08 + S4-06 ✅）spike 自动 drag → snap → `IShadowMatchEvent.OnMatchScoreUpdated(puzzleId=1, score)` 派发（MVP 阶段 spike fire mock score；future ADR-012 ShadowMatchCalculator production；PuzzleStateConfigFromLuban.InitWithDefaults() puzzle id=1 fixture per S5-03 ✅）→ `PuzzleStateMachine.cs:119` listener `_onMatchScoreUpdated` 接收
+- [ ] **AC-4 (PuzzleStateMachine state transition)**: `IShadowMatchEvent.OnMatchScoreUpdated` → PuzzleStateMachine `Active` → `NearMatch` (派发 `IShadowPuzzleEvent.OnNearMatchEnter(puzzleId=1)`) → `PerfectMatch` (派发 `OnPerfectMatchEnter`) → `Complete` (派发 `OnPuzzleComplete(puzzleId=1, completionType)`)；spike snapshot 4 transition + 3 IShadowPuzzleEvent 派发各发生 1 次
+- [ ] **AC-5 (PuzzleComplete → Narrative trigger via PuzzleCompleteToNarrativeBridge)**: `IShadowPuzzleEvent.OnPuzzleComplete(puzzleId=1, completionType)` (PuzzleStateMachine.cs:284 派发) → **本 story dev-story Phase 2 新建 wiring bridge `PuzzleCompleteToNarrativeBridge` (或 alt path per dev-story 决策) ✅ listen + emit** → `INarrativeEvent.OnRequestSequence(triggerSourceId=1, NarrativeSequenceType.MemoryReplay)` 派发 → `NarrativeSequencePlayer.cs:127-132` listener `_onRequestSequence` ✅ → `OnSequenceStart` (chapter 1 puzzle 1 sequence id；hardcoded fixture per S5-05 NarrativeSequenceConfigFromLuban ✅)
 - [ ] **AC-6 (Narrative → Audio cue)**: chapter 1 sequence atomic effects 串行（per S5-05 ✅）至少含 1 `AudioDuckingEffect` → AudioManager (S5-06 ✅) listener 收 `IAudioEvent.OnDuckingRequest` → real `GameModule.Audio` Music layer ducking dispatch + spike 通过 reflection 验 `AudioManager._music.framework_sound_volume` 衰减比例 ≈ 0.3 (default duck level per S5-06 P4)
 - [ ] **AC-7 (Sequence Complete + Next chapter Button → unload)**: `INarrativeEvent.OnSequenceComplete` fires → `Next Chapter` Button 可被 spike 模拟点击 → `ISceneEvent.OnRequestSceneChange(0)` → SceneManager unload chapter 1 → `OnSceneUnloadBegin` → `OnSceneTransitionEnd(0)` → state=Idle (S3-02 ✅)
 - [ ] **AC-8 (end-to-end performance)**: success path total time（T0 → T13）< 10s 真实墙钟时间；spike Stopwatch metric collected
@@ -136,9 +144,9 @@ T13 SceneManager unload chapter 1 → OnSceneUnloadBegin → OnSceneTransitionEn
 | # | Case | Setup | Action | Assert |
 |---|---|---|---|---|
 | **P1** | MainMenuButtonBootChapter1 | spike `Awake()` subscribe production scene events；main menu base canvas + Button 实例已挂载 (S5-08 done prerequisite) | spike `Button.onClick.Invoke()` 模拟点击 'Start Chapter 1' | listener 收到 8 lifecycle event 顺序 (`OnSceneTransitionBegin(-1, 1)` → `OnSceneLoadProgress` ≥1 次 → `OnSceneLoadComplete(1, "")` → `OnSceneReady(1)` → `OnSceneTransitionEnd(1)`) + `_sceneManager.CurrentLoadedChapterIdForTest == 1` + `CurrentState == Idle` |
-| **P2** | ObjectInteractionToShadowMatch | post-P1（chapter 1 active）；spike subscribe `IShadowMatchEvent.OnNearMatchEnter`；reflection 拿 chapter 1 内 `Object_01_CoffeeMug` InteractableObject 实例 + 验 puzzle config 已 inject | spike 模拟 InteractableObject Drag → Snap (per S2-08 InteractableObject FSM)；snap target = chapter 1 puzzle 1 expected position | `IShadowMatchEvent.OnNearMatchEnter(token)` 派发 ≥1 次 + token == "chapter_1_puzzle_1" (per S5-03 PuzzleStateConfigFromLuban hardcoded chapter 1) |
-| **P3** | PuzzleStateTransitionToComplete | post-P2（NearMatchEnter fired）；spike subscribe `IShadowPuzzleEvent.OnPuzzleComplete` + reflection 拿 PuzzleStateMachine instance；spike 持续模拟 InteractableObject snap 维持时间 ≥ NearMatchHold + PerfectMatchHold timer (per S5-03 hardcoded duration) | spike Tick 等 PerfectMatchHold timer expire | PuzzleStateMachine 5 transition 各发生 1 次 (`Active` → `NearMatch` → `PerfectMatch` → `Complete`) + `IShadowPuzzleEvent.OnPuzzleComplete(chapter_1_puzzle_1)` 派发 ≥1 次 + final state == Complete |
-| **P4** | NarrativeSequenceWithAudioDuck | post-P3（OnPuzzleComplete fired）；spike subscribe `INarrativeEvent.OnSequenceStart` / `OnSequenceComplete` / `IAudioEvent.OnDuckingRequest` + reflection 拿 AudioManager Music layer | spike 等 NarrativeSequencePlayer listener 自动响应 OnPuzzleComplete | `INarrativeEvent.OnRequestSequence(chapter_1_puzzle_1_sequence)` 派发 + `OnSequenceStart` 派发 + `IAudioEvent.OnDuckingRequest(0.3, ...)` 派发 ≥1 次 + AudioManager Music layer `framework_sound_volume` ≈ 0.3 (samples sample) + `OnSequenceComplete` 派发 |
+| **P2** | ObjectInteractionToShadowMatch | post-P1（chapter 1 active）；spike subscribe `IShadowMatchEvent.OnMatchScoreUpdated` (sender path) + `IShadowPuzzleEvent.OnNearMatchEnter` (PuzzleStateMachine sender after state transit)；reflection 拿 chapter 1 内 `Object_01_CoffeeMug` InteractableObject 实例 + 验 puzzle config injected (puzzleId=1) | spike 模拟 InteractableObject Drag → Snap (per S2-08 InteractableObject FSM)；snap target = chapter 1 puzzle 1 expected position；spike 直接 fire mock `IShadowMatchEvent.OnMatchScoreUpdated(puzzleId=1, score=0.5)` (≥ nearMatchThreshold=0.40) | (a) `IShadowMatchEvent.OnMatchScoreUpdated(1, 0.5f)` 派发 ≥1 次 + puzzleId == 1 (int) + score ≥ 0.40f (per PuzzleStateConfigFromLuban id=1 nearMatchThreshold) + (b) PuzzleStateMachine listener `_onMatchScoreUpdated` 已接收 → 派发 `IShadowPuzzleEvent.OnNearMatchEnter(puzzleId=1)` 1 次 |
+| **P3** | PuzzleStateTransitionToComplete | post-P2（OnNearMatchEnter fired by PuzzleStateMachine）；spike subscribe `IShadowPuzzleEvent.OnPerfectMatchEnter` + `IShadowPuzzleEvent.OnPuzzleComplete` + reflection 拿 PuzzleStateMachine instance；spike 持续 fire mock `OnMatchScoreUpdated(puzzleId=1, score=0.95)` (≥ perfectMatchThreshold=0.85) 维持时间 ≥ NearMatchHold + PerfectMatchHold timer (per PuzzleStateConfigFromLuban id=1 hardcoded duration) | spike Tick 等 PerfectMatchHold timer expire | PuzzleStateMachine 4 transition (`Active` → `NearMatch` → `PerfectMatch` → `Complete`) + 3 IShadowPuzzleEvent 派发 各 1 次 (`OnNearMatchEnter(1)` post-P2 + `OnPerfectMatchEnter(1)` + `OnPuzzleComplete(1, PerfectMatch)`) + final state == Complete |
+| **P4** | NarrativeSequenceWithAudioDuck | post-P3（OnPuzzleComplete fired by PuzzleStateMachine）；spike subscribe `INarrativeEvent.OnRequestSequence` / `OnSequenceStart` / `OnSequenceComplete` / `IAudioEvent.OnDuckingRequest` + reflection 拿 AudioManager Music layer | spike 等 **PuzzleCompleteToNarrativeBridge** (本 story Phase 2 新建) listener 自动响应 `OnPuzzleComplete(puzzleId=1, ...)` → emit `OnRequestSequence(triggerSourceId=1, MemoryReplay)` → NarrativeSequencePlayer.cs:127 listener 接收 → start sequence | (a) `INarrativeEvent.OnRequestSequence(1, MemoryReplay)` 派发 ≥1 次 (bridge emit) + (b) `OnSequenceStart(1)` 派发 + (c) atomic effects 串行播放 (至少含 1 `AudioDuckingEffect` per S5-05 fixture) → `IAudioEvent.OnDuckingRequest(0.3f, fadeDuration)` 派发 ≥1 次 + (d) AudioManager Music layer `framework_sound_volume` 实测 ≈ 0.3 (reflection sample) + (e) `OnSequenceComplete(1)` 派发 |
 | **P5** | NextChapterButtonUnloadToIdle | post-P4（OnSequenceComplete fired）；spike subscribe `OnSceneUnloadBegin` / `OnSceneTransitionEnd` | spike 'Next Chapter' `Button.onClick.Invoke()` 模拟点击 | `ISceneEvent.OnRequestSceneChange(0)` dispatch → `OnSceneUnloadBegin(1)` 派发 + `OnSceneTransitionEnd(0)` 派发 + `_sceneManager.CurrentState == Idle` + `CurrentLoadedChapterIdForTest == NoChapterId` (chapter 0 = main menu return; chapter 1 unloaded) |
 
 **evidence JSON schema** (`Application.persistentDataPath/S5-02_Result.json`):
@@ -151,10 +159,10 @@ T13 SceneManager unload chapter 1 → OnSceneUnloadBegin → OnSceneTransitionEn
   "overall_status": "All Passed",
   "total_time_ms": 8765,
   "cases": [
-    {"id": "P1", "passed": true, "duration_ms": 5500, "events": ["OnSceneTransitionBegin(-1,1)", ...]},
-    {"id": "P2", "passed": true, "duration_ms": 800, "events": ["OnNearMatchEnter('chapter_1_puzzle_1')"]},
-    {"id": "P3", "passed": true, "duration_ms": 1200, "events": ["state=NearMatch", "state=PerfectMatch", "state=Complete", "OnPuzzleComplete(...)"]},
-    {"id": "P4", "passed": true, "duration_ms": 1500, "events": ["OnRequestSequence(...)", "OnSequenceStart(...)", "OnDuckingRequest(0.3,...)", "OnSequenceComplete(...)"]},
+    {"id": "P1", "passed": true, "duration_ms": 5500, "events": ["OnSceneTransitionBegin(-1,1)", "OnSceneLoadProgress(...)", "OnSceneLoadComplete(1,'')", "OnSceneReady(1)", "OnSceneTransitionEnd(1)"]},
+    {"id": "P2", "passed": true, "duration_ms": 800, "events": ["OnMatchScoreUpdated(1, 0.5f)", "OnNearMatchEnter(1)"]},
+    {"id": "P3", "passed": true, "duration_ms": 1200, "events": ["state=NearMatch", "state=PerfectMatch", "state=Complete", "OnPerfectMatchEnter(1)", "OnPuzzleComplete(1, PerfectMatch)"]},
+    {"id": "P4", "passed": true, "duration_ms": 1500, "events": ["OnRequestSequence(1, MemoryReplay)", "OnSequenceStart(1)", "OnDuckingRequest(0.3f, ...)", "OnSequenceComplete(1)"]},
     {"id": "P5", "passed": true, "duration_ms": 800, "events": ["OnSceneUnloadBegin(1)", "OnSceneTransitionEnd(0)"]}
   ]
 }
@@ -244,35 +252,56 @@ T13 SceneManager unload chapter 1 → OnSceneUnloadBegin → OnSceneTransitionEn
 
 ---
 
-## Assumptions Validated (R2 — TBD readiness gate phase)
+## Assumptions Validated (R2 — Session 27 #1 /story-readiness gate 实测完成 2026-05-12)
 
-R2 grep verify 待 `/story-readiness` gate 时实证。**5 大块 wiring uncertainty 必须 R2 阶段 grep 实证**（不实证不写 dev-story）：
+**R2 grep + 静态读 + S5-08 ✅ DONE 后实测**。5 大块 wiring uncertainty 实测结果：
 
-| # | 假设 | 实测 grep evidence (待) | 结果 |
-|---|------|----------------------|------|
-| **R2.1** | `IShadowMatchEvent.OnNearMatchEnter` ↔ `PuzzleStateMachine.HandleXxx` listener wiring 已挂在 production code | `rg "AddEventListener.*OnNearMatchEnter" Assets/GameScripts/HotFix/GameLogic/ShadowPuzzle/` ≥ 1 hit | TBD |
-| **R2.2** | `IShadowPuzzleEvent.OnPuzzleComplete` ↔ `NarrativeSequencePlayer` listener wiring 已挂 | `rg "AddEventListener.*OnPuzzleComplete" Assets/GameScripts/HotFix/GameLogic/NarrativeEvent/` ≥ 1 hit | TBD |
-| **R2.3** | chapter 1 `Chapter_01_Approach.unity` 内 `Object_01_CoffeeMug` / `Object_02_Book` 已含 `InteractableObject` MonoBehaviour 与 puzzle config injection | unity-mcp `manage_gameobject get_components` for Object_01/02 + check InteractableObject component | TBD |
-| **R2.4** | chapter 1 PuzzleStateConfig 通过 ChapterDataProvider / Luban / fixture 注入 production code | `rg "chapter_1_puzzle_1\|chapter 1.*puzzle.*config" Assets/GameScripts/HotFix/GameLogic/` ≥ 1 hit + read S5-03 PuzzleStateConfigFromLuban hardcoded chapter 1 lookup | TBD |
-| **R2.5** | UIModule base canvas 接入 main menu Button 路径 production API（`GameModule.UI.SetUIRoot` / `AddPanel` 等） | read `production/epics/ui-system/story-001-uimodule-setup.md` AC + `rg "GameModule.UI.*Button\|UIRoot\|SetCanvas" Assets/GameScripts/HotFix/GameLogic/` ≥ 1 hit | TBD（待 S5-08 done）|
-| **R2.6** | M1 dual-layer pattern 复用 (production reflection 全程) per S5-1c precedent | S5-1c spike `S5-1c_ListenerPathDriver.cs` PlayMode 5/5 PASS first-run (after sync-subscribe race fix) verified | ✅ S5-1c precedent |
+| # | 假设 | 实测 grep evidence | 结果 |
+|---|------|------------------|------|
+| **R2.1** | `IShadowMatchEvent.OnNearMatchEnter` ↔ `PuzzleStateMachine` listener wiring 已挂 | `rg "OnNearMatchEnter" Assets/.../HotFix` → 接口归属错位：`OnNearMatchEnter` 不在 `IShadowMatchEvent` (该接口仅 `OnMatchScoreUpdated`) 而在 `IShadowPuzzleEvent.cs:23`；`PuzzleStateMachine.cs:228` 是 sender 不是 listener。正确链路: `IShadowMatchEvent.OnMatchScoreUpdated` ↔ `PuzzleStateMachine.cs:119` `AddEventListener<int, float>(IShadowMatchEvent_Event.OnMatchScoreUpdated, _onMatchScoreUpdated)` ✅ listener 已挂 | ⚠️ **WORDING DRIFT 修复** (story 全文 5 处 propagate fix Session 27 #1) |
+| **R2.2** | `IShadowPuzzleEvent.OnPuzzleComplete` ↔ `NarrativeSequencePlayer` listener wiring 已挂 | `rg "AddEventListener.*OnPuzzleComplete" Assets/.../HotFix` → **0 hit**；`NarrativeSequencePlayer.cs:127-132` 仅 listen `INarrativeEvent.OnRequestSequence` | ❌ **WIRING GAP** → §Engine Notes `**Required Framework Extension**` flag (本 story dev-story Phase 2 新建 `PuzzleCompleteToNarrativeBridge.cs` 或 alt path) |
+| **R2.3** | chapter 1 `Chapter_01_Approach.unity` 内 `Object_01_CoffeeMug` / `Object_02_Book` 已含 `InteractableObject` MonoBehaviour 与 puzzle config injection | grep-based readiness gate 无法验 Unity scene component — 留 dev-story Phase 1.5 self-check `unity-mcp manage_gameobject get_components` 实查 | ⚠️ **TBD** (留 dev-story Phase 1.5) |
+| **R2.4** | chapter 1 PuzzleStateConfig 通过 fixture 注入 production code | `PuzzleConfigFromLuban.cs:34` `_configs[1] = new PuzzleStateConfig(id: 1, isAbsencePuzzle: false, nearMatchThreshold: 0.40f, perfectMatchThreshold: 0.85f, ..., tutorialGracePeriod: 3.0f)` ✅；`InitWithDefaults()` chapter 1 puzzle id=1 hardcoded | ✅ PASS |
+| **R2.5** | UIModule base canvas + main menu Button 路径 production API | S5-08 ✅ DONE 2026-05-11 verify: `GameModule.UI` Singleton + `ShowUIAsync<T>()` / `CloseUI<T>()` / `HideUI<T>()` API + UIRoot 自动 init + `[Window(UILayer.X, fromResources: true, location: "UI/...")]` attribute pattern (per LogUI.cs:8 precedent) + Button.onClick path via `UIWindow.OnCreate` override 内 `_panel.GetComponentInChildren<Button>()` + `Button.onClick.AddListener(handler)` | ✅ PASS (per S5-08 4/4 R3 PlayMode + 29/29 asserts) |
+| **R2.6** | M1 dual-layer pattern 复用 (production reflection 全程) per S5-1c precedent | S5-1b / S5-1c / S5-08 spike PlayMode 5/5 / 5/5 / 4/4 PASS first-run verified | ✅ S5-1b/1c/-08 precedent |
 | **R2.7** | spike `Awake()` subscribe 协议 (per S5-1c lessons memo `problem_2026-05-09_spike-sync-subscribe-race.md`) | S5-1c spike Awake() subscribe verified | ✅ S5-1c precedent |
-| **R2.8** | Spike "1 文件 + 3 内类" 惯例 | Glob `Spikes/S*.cs` 全部命中（S301..S5-1c 8 个 spike 全部一致）| ✅ |
+| **R2.8** | Spike "1 文件 + 3 内类" 惯例 | Glob `Spikes/S*.cs` 全部命中（S301..S5-08 9 个 spike 全部一致）| ✅ |
 
-**R2 PASS 路径**: 8/8 ✅ → 写 dev-story；任意 R2 0-hit → DEFICIENCY-FLAGGED PASS 路径（ADR-029 V2.0 deficiency-flag 协议）—— dev-story 阶段先补 wiring（production listener handler 挂 / chapter 1 prefab 含 InteractableObject + puzzle config / ...）然后跑 R3。
+**R2 综合 verdict**: **DEFICIENCY-FLAGGED PASS** (per ADR-029 V2.0 §V2-2 R2 deficiency-flagged path)
+- 6/8 ✅ PASS (R2.1 wording drift 在 story 内修复后 wiring 本身 ✅；R2.4 / R2.5 / R2.6 / R2.7 / R2.8 all ✅)
+- 1/8 ❌ R2.2 wiring gap → §Engine Notes explicit `**Required Framework Extension**` flag (dev-story Phase 2 实施)
+- 1/8 ⚠️ R2.3 TBD → dev-story Phase 1.5 unity-mcp 实查 (可补可不补)
 
-**5 大 wiring uncertainty 中 R2.5 必待 S5-08 done 才能 verify**（UIModule Setup dev-story 后才有 production API 路径可 grep）。Sprint 5 serial 序列保证此先后。
+**Reactive cost**: R2 grep + 静态读 ~15 min + story-002 12 sections amend ~30 min ≈ 45 min total。Proactive 价值: avoid dev-story Phase 3 PlayMode 实跑时 surprise wiring gap + interface 归属错位导致 P2/P3 case 直接 fail。
 
 ---
 
 ## ADR-029 V3 Watch List Hooks
 
-本 story R3 实施过程中如出现以下情况应 capture 为新 drift type 候选并写入 sprint-status.yaml watch list：
+### ⭐ Session 27 #1 实战触发 NEW (2026-05-12 /story-readiness gate R2 实证)
 
-1. **Type-2(c) candidate**: 5 系统 cross-system listener wiring 任何 event 顺序 drift（e.g. `OnPuzzleComplete` → `OnRequestSequence` 不 fires；`OnDuckingRequest` → AudioManager Music ducking real dispatch 不生效；UIModule `Button.onClick` → `OnRequestSceneChange` dispatch 不通）—— framework boundary behavior assumption drift；累计 dp 数据点
-2. **Type-2(c) candidate**: chapter 1 `Object_01_CoffeeMug` / `Object_02_Book` prefab 内不含 `InteractableObject` MonoBehaviour 或 puzzle config injection 缺失（S5-01 closure_summary line 805 列出 GameObject 名但是否 component 完整 ⚠️ R2.3 待 verify）
-3. **Type-5 candidate (S5-01 dp1 promote 候选累计)**: `unity-mcp` toolchain 在 R2 阶段 verify chapter 1 prefab 状态时如再次撞 silent failure（D1~D4 类型）→ 累计 V3 #2 dp1 数据点
-4. **Type-6 candidate (S5-1c lessons memo promote 候选累计)**: spike subscribe race 如再次出现（main menu Button onClick → OnRequestSceneChange 同步 fire 路径或类似）→ 累计 V3 #6 dp1 数据点；本 story spike Awake() subscribe + 调用顺序前置已采纳防御
+**Type-5 dp4 实战 NEW TRIGGER (spec/tooling ↔ reality drift)** — `IShadowMatchEvent` vs `IShadowPuzzleEvent` 接口归属错位：
+
+- ADR/spec 文档 / story-002 原 wording 假设 `OnNearMatchEnter(string token)` 位于 `IShadowMatchEvent`
+- vendor production code 实测: `IShadowMatchEvent` (IShadowMatchEvent.cs:21) **仅含** `OnMatchScoreUpdated(int puzzleId, float newScore)` 1 method；`OnNearMatchEnter(int puzzleId)` 位于 **`IShadowPuzzleEvent`** (IShadowPuzzleEvent.cs:23)
+- payload 类型 drift: spec `string token` (e.g. "chapter_1_puzzle_1") ↔ vendor `int puzzleId` (e.g. 1)
+- 累计 V3 Type-5 dp 现状: **dp1 S5-01 toolchain silent failure + dp2 S5-08 #4 ShowUI wording + dp3 S5-08 #5 UILayer wording + dp4 S5-02 #1 IShadowMatch/Puzzle interface 归属 + payload 类型 = 4 unique dp**
+- **远超 V3 promote ROI 阈值 (≥3 unique dp)** → Sprint 5 retro **必须 promote** 为 ADR-029 V3 正式 candidate Type-5 'spec ↔ reality drift'
+
+**Type-2(c) dp NEW TRIGGER (framework boundary 'OnPuzzleComplete → OnRequestSequence' wiring gap)**:
+
+- ADR-014 / ADR-016 / GDD shadow-puzzle-system / GDD narrative-event-system 隐含假设 OnPuzzleComplete → 触发 narrative sequence 是"自动 chain"
+- 实测: PuzzleStateMachine.cs:284 派发 `OnPuzzleComplete` 后无 listener (production code 0-hit `AddEventListener.*OnPuzzleComplete`)；NarrativeSequencePlayer 仅 listen `OnRequestSequence`，**chain 断裂**
+- 实质是 ADR 间 contract gap (ADR-014 ↔ ADR-016 双方都不负责 bridge wiring)；本 story dev-story Phase 2 补 wiring bridge
+- Sprint 5 retro action item 候选: ADR-014 §G + ADR-016 §G 明示 bridge wiring 责任归属
+
+### 持续监控候选 (本 story R3 PlayMode 实施过程中如出现)
+
+1. **Type-2(c) candidate**: 5 系统 cross-system listener wiring 任何其他 event 顺序 drift（e.g. `OnDuckingRequest` → AudioManager Music ducking real dispatch 不生效；UIModule `Button.onClick` → `OnRequestSceneChange` dispatch 不通）—— framework boundary behavior assumption drift；累计 dp
+2. **Type-2(c) candidate**: R2.3 chapter 1 `Object_01_CoffeeMug` / `Object_02_Book` prefab 内不含 `InteractableObject` MonoBehaviour 或 puzzle config injection 缺失（dev-story Phase 1.5 unity-mcp verify 时如发现 → 累计 dp）
+3. **Type-5 candidate (dp4 已实战触发)**: `unity-mcp` toolchain 在 dev-story Phase 1.5 verify chapter 1 prefab 状态时如再次撞 silent failure（D1~D4 类型）→ 累计 V3 dp5
+4. **Type-6 candidate**: spike subscribe race 如再次出现（main menu Button onClick → OnRequestSceneChange 同步 fire 路径或类似）→ 累计 V3 Type-6 dp2；本 story spike Awake() subscribe + 调用顺序前置已采纳防御
+5. **Type-8 candidate (S5-08 #6 dp1)**: UIWindow second show 行为 spec vs vendor drift 是否在本 story main menu UIWindow 'Next Chapter' Button 二次显示场景再次触发 → 累计 V3 Type-8 dp2
 
 如出现以上任一，per ADR-029 V2.0 §V2-7：sprint-status.yaml `watch_list` triggers 内追加 drift type 描述 + 关联 story-002 R3 case 编号 + 沉淀 problem memo 到 `.claude/memory/`。
 
@@ -282,10 +311,70 @@ R2 grep verify 待 `/story-readiness` gate 时实证。**5 大块 wiring uncerta
 
 本 story DONE 后 Sprint 5 Must Have 全部 ✅ 收官（S5-01/-1b/-1c/-02/-03/-04/-05/-06/-08）；ADR-030 §VS Build commitment 第 1 项 100% 完成；Sprint 5 retro action items：
 
-- ADR-029 V3 candidate 评估 promote（Type-5 tooling silent failure / Type-6 spike subscribe race / V3 #8 dp 累计 close-out）
+- ADR-029 V3 candidate 评估 promote（Type-5 'spec/tooling ↔ reality drift' 4 unique dp 远超阈值 → 强制 promote / Type-6 spike subscribe race / Type-8 UIWindow second show 行为 / V3 #8 dp 累计 close-out）
+- ADR-014 §G + ADR-016 §G 明示 OnPuzzleComplete → OnRequestSequence bridge wiring 责任归属 (本 story R2.2 wiring gap 表征 contract gap)
 - IPuzzleLockEvent 跨 ADR contract design alignment（ADR-014 vs ADR-016 token-based vs parameter-less；S5-05 dp5 surfaced）
 - AudioModule activation gate 文档对齐（ADR-028 §1 + ADR-017 §B drift-v1/v2 cleanup）
+- ADR-011 §G + SP-002 systematic amendment (UILayer enum 命名 / ShowUI API / 7+2 lifecycle / second show 行为；本 story 累积本 dp4 trigger)
 - Sprint 6 启动：≥2 playtest sessions + report + gate-check rerun + stage.txt: Pre-Production → Production
+
+---
+
+## History
+
+### 2026-05-12 Session 27 #1 — /story-readiness gate R1+R2+R3 amendment per 决策 [A] (Status: Draft → Ready)
+
+**Trigger**: 2026-05-11 Session 26 #6 S5-08 ✅ DONE 解锁 S5-02；2026-05-12 Session 27 #1 启动 /story-readiness S5-02 gate。
+
+**R1 ✅ PASS**: 0 hit `AddEventListener<I\w+Event>\(this\)` + 0 hit `class \w+\s*:\s*\w+,\s*I\w+Event` (forbidden per-event listener self-handler pattern)。
+
+**R2 DEFICIENCY-FLAGGED PASS** (per ADR-029 V2.0 §V2-2 R2 deficiency-flagged path):
+
+R2 grep + 静态读 5 大块 wiring uncertainty 实测：
+1. **R2.1 ⚠️ WORDING DRIFT (5 处 fix)**: 接口归属错位 — `OnNearMatchEnter` 不在 `IShadowMatchEvent` 而在 `IShadowPuzzleEvent`；payload `string token` ↔ `int puzzleId` 类型 drift；正确链路 `IShadowMatchEvent.OnMatchScoreUpdated` ↔ `PuzzleStateMachine.cs:119` listener ✅。
+2. **R2.2 ❌ WIRING GAP** → **Required Framework Extension** flag：`OnPuzzleComplete` listener 0-hit；NarrativeSequencePlayer 仅 listen `OnRequestSequence`；dev-story Phase 2 新建 `PuzzleCompleteToNarrativeBridge.cs` (推荐路径 [A]) 或 alt path。
+3. **R2.3 ⚠️ TBD** → dev-story Phase 1.5 unity-mcp `manage_gameobject get_components` 实查 chapter 1 物件 component。
+4. **R2.4 ✅ PASS**: `PuzzleConfigFromLuban.cs:34` puzzle id=1 chapter 1 hardcoded fixture verified。
+5. **R2.5 ✅ PASS**: S5-08 ✅ DONE 后 UIModule API 通路 (GameModule.UI + ShowUIAsync API + UIRoot + Button.onClick) all verified。
+
+**R3 ✅ propagate fix**: P2/P3/P4 case Assert wording 同步修复 (5 处 propagate from R2.1)；JSON evidence schema events 同步更新；R3 spike pattern (M1 + 1 file + 3 inner class) per S5-1b/1c/-08 precedent ✅。
+
+**story-002 amend 12 sections (Session 27 #1)**:
+1. **Status**: Draft → Ready
+2. **Engine Notes** — R2.1 wording drift 修复块 + R2.2 Required Framework Extension flag (含 wiring bridge 3 候选路径) + R2.3 TBD note
+3. **Control Manifest Rules** — Required 3 项 wording propagate fix (`OnMatchScoreUpdated`/PuzzleStateMachine sender/`PuzzleCompleteToNarrativeBridge` bridge)
+4. **AC-3** 重写: `OnMatchScoreUpdated(puzzleId=1, score)` → PuzzleStateMachine listener `_onMatchScoreUpdated`
+5. **AC-4** 重写: 4 transition + 3 IShadowPuzzleEvent 派发 (OnNearMatchEnter / OnPerfectMatchEnter / OnPuzzleComplete)
+6. **AC-5** 重写: PuzzleCompleteToNarrativeBridge wiring + NarrativeSequencePlayer.cs:127-132 listener ✅
+7. **R3 P2 case** Setup/Action/Assert 改 OnMatchScoreUpdated wording + spike fire mock score
+8. **R3 P3 case** Setup/Action/Assert 改 OnMatchScoreUpdated 持续 fire + 3 IShadowPuzzleEvent 派发 verify
+9. **R3 P4 case** Setup/Action/Assert 改 bridge listener 路径
+10. **JSON evidence schema** P1-P5 events 同步 wording fix
+11. **R2 Assumptions Validated 表** 8 row 实测结果填入 (R2.1 ⚠️ WORDING DRIFT / R2.2 ❌ WIRING GAP / R2.3 TBD / R2.4 ✅ / R2.5 ✅ / R2.6-8 ✅)
+12. **V3 Watch List Hooks** dp4 NEW + Type-2(c) wiring gap dp + dp5 Type-8 monitor + History Session 27 #1 entry
+
+**ADR-029 V3 dp 累计 (本 story 贡献)**:
+- Type-5 'spec ↔ reality drift' **dp4 实战 NEW** = S5-01 dp1 + S5-08 dp2 + S5-08 dp3 + **S5-02 dp4** = 4 unique dp **远超 promote 阈值 (≥3)** → Sprint 5 retro **强制 promote**
+- Type-2(c) wiring gap dp1 NEW (ADR-014 ↔ ADR-016 contract gap) — ADR-014/-016 §G amend 高优 retro action item
+
+**Reactive cost**: R2 grep + 静态读 ~15 min + story-002 12 sections amend ~30 min ≈ 45 min total。
+
+**Proactive 价值**: avoid dev-story Phase 3 PlayMode 实跑时 P2/P3/P4 case 直接 fail (interface 归属错位 + wiring gap 双叠加 fail) 预估 saved cost ~60 min。
+
+**Sign-off**: R1 ✅ PASS + R2 DEFICIENCY-FLAGGED PASS + R3 ✅ propagate fix → ADR-029 verdict **DEFICIENCY-FLAGGED PASS** (acceptable per V2.0 §V2-2)；主 verdict **READY**。Status: Draft → Ready。
+
+**Audit Trail Cross-references**:
+- 上一 Session 26 #6 commit: 43b0880 (S5-08 done) + 9f7e928 (UIWindow Canvas lessons memo)
+- 本 amend 之 commit: 待 Phase 5 commit
+- 实测 grep evidence:
+  - `IShadowPuzzleEvent.cs:23` OnNearMatchEnter(int) define
+  - `IShadowMatchEvent.cs:21-33` OnMatchScoreUpdated(int, float) define
+  - `PuzzleStateMachine.cs:119` AddEventListener<int, float>(IShadowMatchEvent_Event.OnMatchScoreUpdated, _onMatchScoreUpdated)
+  - `PuzzleStateMachine.cs:228` GameEvent.Get<IShadowPuzzleEvent>().OnNearMatchEnter(_puzzleId) sender
+  - `PuzzleStateMachine.cs:284` GameEvent.Get<IShadowPuzzleEvent>().OnPuzzleComplete sender
+  - `NarrativeSequencePlayer.cs:127-132` AddEventListener for OnRequestSequence only
+  - `PuzzleConfigFromLuban.cs:34` puzzle id=1 chapter 1 hardcoded
+  - `S5-08 ✅ DONE 2026-05-11` UIModule API 通路 + 4/4 R3 PASS
 
 
 
