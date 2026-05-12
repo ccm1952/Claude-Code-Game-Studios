@@ -364,8 +364,10 @@ namespace GameLogic
 | `Evt_AudioDuckingRequest` (effect) | `IAudioEvent.OnDuckingRequest(float duckRatio, float fadeDuration)` (defined in ADR-017 expand) |
 | `Evt_PlaySFXRequest` (effect) | `IAudioEvent.OnPlaySFX(int sfxId, float delay, float volume)` (defined in ADR-017 expand) |
 | `Evt_PuzzleSnapToTarget` (effect) | `IObjectInteractionEvent.OnSnapToTarget(int objectId, Vector3 pos, Quaternion rot, float duration, EaseType easing)` (defined in ADR-013) |
-| `Evt_PuzzleLockAll` (cascade) | `IPuzzleLockEvent.OnPuzzleLockAll(string token)` (existing — ADR-013) |
-| `Evt_PuzzleUnlock` (cascade) | `IPuzzleLockEvent.OnPuzzleUnlock(string token)` (existing — ADR-013) |
+| `Evt_PuzzleLockAll` (cascade) | `IPuzzleLockEvent.OnPuzzleLockAll(PuzzleLockPayload payload)` (contract source ADR-027 §4) ⚠️ **Deprecated production override** Sprint 5 S5-05 — production 实际通过 `IInputBlockerEvent.OnPushBlocker(string token)` single-layer pattern 实现 lock effect |
+| `Evt_PuzzleUnlock` (cascade) | `IPuzzleLockEvent.OnPuzzleUnlock(PuzzleLockPayload payload)` (contract source ADR-027 §4) ⚠️ **Deprecated production override** Sprint 5 S5-05 — production 实际通过 `IInputBlockerEvent.OnPopBlocker(string token)` single-layer pattern 实现 unlock effect |
+
+> ⚠️ **IPuzzleLockEvent contract drift note** (V3.0 §V3-1.b Type-5 dp5 + Sprint 6 S6-05 amend 2026-05-13): legacy reference 写作 `(existing — ADR-013)` + `(string token)` signature 均是 spec wording drift — IPuzzleLockEvent 实际定义在 **ADR-027 §4** (multi-sender token stack 协议)，签名是 `OnPuzzleLockAll(PuzzleLockPayload payload)` / `OnPuzzleUnlock(PuzzleLockPayload payload)`（不是 `(string token)`）。本 ADR cascade comment (§A line 337/340 `IPuzzleLockEvent.OnPuzzleLockAll` reference) 仅作 event name 占位，**不携带 signature 信息**；signature ground truth 见 ADR-027 §4。**Production reality drift**：Sprint 5 S5-05 选用 InputBlocker single-layer 替代 multi-sender token stack pattern；NarrativeSequencePlayer impl 时按 ADR-026 + S5-05 reality 通过 `IInputBlockerEvent.OnPushBlocker / OnPopBlocker` 实现 lock cascade，**不直接 publish IPuzzleLockEvent 接口事件**。IPuzzleLockEvent 接口完整 deprecation 决策推到 Sprint 7+ polish phase 与 ADR-027 §4 一并 systematic review。
 
 **ADR-027 §5 ⚠️ Framework knowledge fact applies**: 任何订阅 `INarrativeEvent` 方法的 listener 必须 handler 内 self-remove + `_handler = null` (null-out) + 外部 cleanup `if (_handler != null) RemoveEventListener(...)` (null-check guard)。
 

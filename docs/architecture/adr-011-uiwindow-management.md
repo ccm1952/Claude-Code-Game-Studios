@@ -4,15 +4,15 @@
 
 ## Status
 
-Accepted with patch (Promoted 2026-05-06 — bulk ceremony post Sprint 3 closure / ADR-029 V2.0 review B-1 + B-2 CONFLICT-008 §7 sample fix applied same session; UI sprint upcoming)
+Accepted with patch (Promoted 2026-05-06 — bulk ceremony post Sprint 3 closure / ADR-029 V2.0 review B-1 + B-2 CONFLICT-008 §7 sample fix applied same session; UI sprint upcoming) **+ Amendment 2026-05-13 (Sprint 6 S6-05 systematic wording amend — ADR-029 V3.0 §V3-1.b Type-5 dp2/dp3 + Type-8 dp1 vendor reality align)**
 
 ## Date
 
-2026-04-22
+2026-04-22 (initial) / **2026-05-13 amend** (Sprint 6 S6-05 systematic wording amend)
 
 ## Last Verified
 
-2026-04-22
+**2026-05-11** — Sprint 5 S5-08 UIModule Setup R3 P3 PlayMode 实证 (`UIWindowLifecycleVendorOrder` 4/4 R3 PASS) confirmed vendor 7+2 lifecycle + 'destroy-and-recreate' mode; R2 evidence collection confirmed `ShowUI`/`CloseUI`/`HideUI`/`CloseAll` API + UILayer enum `{Bottom, UI, Top, Tips, System}` + `[Window]` attribute 4 ctor overload
 
 ## Decision Makers
 
@@ -20,7 +20,9 @@ Technical Director, Lead Programmer, Game Designer
 
 ## Summary
 
-《影子回忆 (Shadow Memory)》拥有 9 个已识别的 UI 面板，分布在 5 个层级中。本 ADR 确立基于 TEngine 6.0 UIModule 的 UI 管理策略——所有面板通过 `GameModule.UI.ShowWindow<T>()` / `CloseWindow<T>()` 管理生命周期，5 层级排序系统自动分配 sorting order，Popup 和 Overlay 层自动推入 InputBlocker，弹窗队列限制同时仅显示 1 个 Popup，安全区适配通过 TEngine `SetUISafeFitHelper` 实现，所有 UI prefab 通过 YooAsset 异步加载。
+《影子回忆 (Shadow Memory)》拥有 9 个已识别的 UI 面板，分布在 5 个层级中。本 ADR 确立基于 TEngine 6.0 UIModule 的 UI 管理策略——所有面板通过 `GameModule.UI.ShowUI<T>()` / `CloseUI<T>()` 管理生命周期，5 层级排序系统自动分配 sorting order，Popup 和 Overlay 层自动推入 InputBlocker，弹窗队列限制同时仅显示 1 个 Popup，安全区适配通过 TEngine `SetUISafeFitHelper` 实现，所有 UI prefab 通过 YooAsset 异步加载。
+
+> ⚠️ **Vendor wording reality** (per Sprint 5 S5-08 R2/R3 evidence + Sprint 6 S6-05 amend): legacy spec 假设的 `ShowWindow<T>()` / `CloseWindow<T>()` / 4 hook (OnCreate/OnRefresh/OnUpdate/**OnClose**) / 'hide-and-reshow' second-show 模式与 vendor TEngine 6.0 UIModule.cs (under HotFix) 实际 API 均存在 drift。**vendor 实际**：`ShowUI<T>()` / `CloseUI<T>()` / `HideUI<T>()` / `CloseAll(bool)`，7+2 lifecycle (ScriptGenerator → BindMemberProperty → RegisterEvent → OnCreate → OnRefresh → OnUpdate / OnDestroy / Hide / Close)，CloseUI 路径是 **destroy-and-recreate**（销毁后下次 ShowUI 新建 instance），UILayer enum 是 `{Bottom, UI, Top, Tips, System}`（业务侧通过 mapping 表保留 Background/HUD/Popup/Overlay/System 设计语义）。本 ADR 整文档已按 V3.0 §V3-1.b Type-5 dp2/dp3 + Type-8 dp1 修复模式 systematic amend；historical wording 仅在 §History 与本段 audit trail 中保留作决策史。
 
 ## Engine Compatibility
 
@@ -28,10 +30,10 @@ Technical Director, Lead Programmer, Game Designer
 |-------|-------|
 | **Engine** | Unity 2022.3.62f2 (LTS) |
 | **Domain** | UI / UGUI |
-| **Knowledge Risk** | MEDIUM — TEngine 6.0 UIModule API（`ShowWindow`、`CloseWindow`、layer registration）可能不在 LLM 训练数据中；必须从项目源码验证 |
-| **References Consulted** | Project source (`TEngine/` directory), `docs/engine-reference/unity/VERSION.md`, `.claude/docs/technical-preferences.md`, ADR-001 (TEngine Framework) |
-| **Post-Cutoff APIs Used** | `GameModule.UI.ShowWindow<T>()`, `GameModule.UI.CloseWindow<T>()`, TEngine `UIWindow` / `UIWidget` lifecycle callbacks, `SetUISafeFitHelper` |
-| **Verification Required** | Sprint 0 spike: confirm UIWindow lifecycle callback ordering (OnCreate → OnRefresh on first open), layer sorting order assignment, `SetUISafeFitHelper` behavior on notched devices |
+| **Knowledge Risk** | ~~MEDIUM~~ → **LOW** (vendor reality fully verified Sprint 5 S5-08 R2/R3) — TEngine 6.0 UIModule API（`ShowUI`、`CloseUI`、`HideUI`、`CloseAll`、layer registration）已通过 Sprint 5 S5-08 R2.2 evidence collection + R3 P3 PlayMode 实证完整验证 |
+| **References Consulted** | Project source (`TEngine/Runtime/Module/UIModule/UIBase.cs:144-197` + `UIWindow.cs:504-509` + `WindowAttribute.cs:8/21` + `Assets/GameScripts/HotFix/GameLogic/Module/UIModule/UIModule.cs:250-460` 业务侧实现), `docs/engine-reference/unity/VERSION.md`, `.claude/docs/technical-preferences.md`, ADR-001 (TEngine Framework), **SP-002 UIWindow Lifecycle Findings** (post-2026-05-13 amend) |
+| **Post-Cutoff APIs Used** | `GameModule.UI.ShowUI<T>()`, `GameModule.UI.ShowUIAsync<T>()`, `GameModule.UI.ShowUIAsyncAwait<T>()`, `GameModule.UI.CloseUI<T>()`, `GameModule.UI.HideUI<T>()`, `GameModule.UI.CloseAll(bool)`, TEngine `UIWindow` / `UIWidget` 7+2 lifecycle callbacks (ScriptGenerator/BindMemberProperty/RegisterEvent/OnCreate/OnRefresh/OnUpdate/OnDestroy + Hide/Close), `[Window(UILayer.X, fromResources, sortOrderOffset, fullScreen)]` attribute, `SetUISafeFitHelper` |
+| **Verification Required** | ✅ Sprint 0 spike 替代为 **Sprint 5 S5-08 R3 PlayMode 实证** (2026-05-11) — `UIWindowLifecycleVendorOrder` 4/4 R3 PASS confirmed (a) vendor 7+2 lifecycle method 完整列表 (b) 'destroy-and-recreate' second show 模式 (frame=30 first / frame=59 new instance) (c) layer sorting order via `[Window]` attribute (d) `SetUISafeFitHelper` 在 mobile 设备的 safe area 行为 |
 
 > **Note**: If Knowledge Risk is MEDIUM or HIGH, this ADR must be re-validated if the
 > project upgrades engine versions. Flag it as "Superseded" and write a new ADR.
@@ -76,14 +78,14 @@ Technical Director, Lead Programmer, Game Designer
 
 ### Requirements
 
-- **FR-1**: 9 个面板通过 `GameModule.UI.ShowWindow<T>()` / `CloseWindow<T>()` 统一管理
-- **FR-2**: 5 层级排序系统，每层分配 100 间隔的 sorting order base
+- **FR-1**: 9 个面板通过 `GameModule.UI.ShowUI<T>()` / `CloseUI<T>()` / `HideUI<T>()` 统一管理（`ShowUIAsync<T>` / `ShowUIAsyncAwait<T>` 异步形态视 caller 上下文按需选用）
+- **FR-2**: 5 层级排序系统，每层分配 100 间隔的 sorting order base；layer enum 业务 mapping = `Bottom→Background, UI→HUD, Top→Popup, Tips→Overlay, System→System`
 - **FR-3**: Popup 和 Overlay 层面板打开时自动推入 InputBlocker，关闭时自动弹出
 - **FR-4**: Popup 队列——同一时间最多 1 个 Popup 可见，多余的进入 FIFO 队列
 - **FR-5**: 安全区适配通过 `SetUISafeFitHelper` 应用到根 Canvas
-- **FR-6**: UI prefab 全部通过 `GameModule.Resource.LoadAssetAsync` 异步加载
-- **FR-7**: UIWindow 生命周期严格遵循 OnCreate → OnRefresh → OnUpdate → OnClose
-- **FR-8**: 面板内部交互使用 `UIWindow.AddUIEvent()`；跨系统事件通过 `GameEvent`
+- **FR-6**: UI prefab 全部通过 `GameModule.Resource.LoadAssetAsync` 异步加载 (or `[Window(..., fromResources: true)]` 用 Resources 走 hot-update fast path)
+- **FR-7**: UIWindow 7+2 lifecycle 严格遵循 vendor 顺序：**ScriptGenerator → BindMemberProperty → RegisterEvent → OnCreate → OnRefresh → OnUpdate (per frame, IsPrepare && Visible 时)**；销毁路径 **OnDestroy**（替代 legacy `OnClose` 命名）；可选 hook **Hide** (`HideUI<T>` 路径) / **Close** (`CloseUI<T>` 路径，deprecated，建议用 OnDestroy)
+- **FR-8**: 面板内部交互使用 `UIWindow.AddUIEvent()`；跨系统事件通过 `GameEvent` `[EventInterface]` C# 接口（ADR-027）
 - **PR-1**: UI prefab 实例化必须为异步，不阻塞主线程
 - **PR-2**: 仅可见 UIWindow 接收 OnUpdate 调用
 
@@ -97,31 +99,33 @@ Technical Director, Lead Programmer, Game Designer
 ┌─────────────────────────────────────────────────────────────────┐
 │                      Game Systems Layer                         │
 │  (Shadow Puzzle, Narrative, Chapter, Tutorial, Settings, etc.)  │
-│              ↓ ShowWindow / CloseWindow                         │
+│              ↓ ShowUI / CloseUI / HideUI / CloseAll             │
 ├─────────────────────────────────────────────────────────────────┤
 │                  UIManager (TEngine UIModule)                    │
-│  GameModule.UI.ShowWindow<T>()  /  CloseWindow<T>()             │
+│  GameModule.UI.ShowUI<T>()  /  CloseUI<T>()  /  HideUI<T>()     │
+│  GameModule.UI.ShowUIAsync<T>()  /  ShowUIAsyncAwait<T>()       │
+│  GameModule.UI.CloseAll(bool includingSystem)                   │
 │                                                                 │
-│  ┌───────────────── Layer Stack ──────────────────────┐         │
-│  │  Layer 4: System  (400)  — SaveIndicatorPanel      │         │
-│  │  Layer 3: Overlay (300)  — ChapterTransition,      │         │
-│  │                            MemoryReplay            │         │
-│  │  Layer 2: Popup   (200)  — Pause, Settings,        │         │
-│  │                            ChapterSelect           │         │
-│  │  Layer 1: HUD     (100)  — HUDPanel, Tutorial,     │         │
-│  │                            HintPanel               │         │
-│  │  Layer 0: Background (0) — (reserved)              │         │
-│  └────────────────────────────────────────────────────┘         │
+│  ┌───────── Layer Stack (vendor enum → 业务 mapping) ─────┐     │
+│  │  System (400)  — SaveIndicatorPanel                    │     │
+│  │  Tips   (300)  — ChapterTransition, MemoryReplay       │     │
+│  │  Top    (200)  — Pause, Settings, ChapterSelect        │     │
+│  │  UI     (100)  — HUDPanel, Tutorial, HintPanel         │     │
+│  │  Bottom (0)    — (reserved background)                 │     │
+│  └────────────────────────────────────────────────────────┘     │
 │                                                                 │
 │  ┌── Auto InputBlocker ──┐  ┌── Popup Queue ───────┐           │
-│  │ Popup → auto push     │  │ Max 1 visible popup  │           │
-│  │ Overlay → auto push   │  │ FIFO queue for rest  │           │
+│  │ Top → auto push       │  │ Max 1 visible Top    │           │
+│  │ Tips → auto push      │  │ FIFO queue for rest  │           │
 │  │ Others → no blocker   │  │ Auto-dequeue on close│           │
 │  └───────────────────────┘  └──────────────────────┘           │
 ├─────────────────────────────────────────────────────────────────┤
-│               UIWindow Lifecycle (per panel)                    │
-│  OnCreate (first open) → OnRefresh (each show) →               │
-│  OnUpdate (per frame, visible only) → OnClose (destroy)        │
+│             UIWindow 7+2 Lifecycle (per panel)                  │
+│  Init: ScriptGenerator → BindMemberProperty →                   │
+│        RegisterEvent → OnCreate → OnRefresh                     │
+│  Loop: OnUpdate (per frame, IsPrepare && Visible only)          │
+│  End:  OnDestroy (CloseUI path) / Hide (HideUI path)            │
+│  ⭐ second ShowUI 后是 **destroy-and-recreate** 新 instance     │
 ├─────────────────────────────────────────────────────────────────┤
 │  Safe Area: SetUISafeFitHelper on root Canvas                   │
 ├───────────────────────┬─────────────────────────────────────────┤
@@ -150,69 +154,101 @@ Technical Director, Lead Programmer, Game Designer
 
 ### 5 UI Layer Levels
 
-| Level | Name | Sort Order Base | Purpose | Auto InputBlocker |
-|:-----:|------|:---------------:|---------|:-----------------:|
-| 0 | Background | 0 | 背景元素（预留） | No |
-| 1 | HUD | 100 | 游戏 HUD，始终可见 | No |
-| 2 | Popup | 200 | 模态弹窗（Pause、Settings、ChapterSelect） | Yes |
-| 3 | Overlay | 300 | 全屏覆盖层（Transitions、Replays） | Yes |
-| 4 | System | 400 | 系统指示器（Save、Loading） | No |
+| Level | Vendor enum (per `WindowAttribute.cs:8`) | 业务 mapping (设计语义) | Sort Order Base | Purpose | Auto InputBlocker |
+|:-----:|------------------------------------------|------------------------|:---------------:|---------|:-----------------:|
+| 0 | `UILayer.Bottom` | Background | 0 | 背景元素（预留） | No |
+| 1 | `UILayer.UI` | HUD | 100 | 游戏 HUD，始终可见 | No |
+| 2 | `UILayer.Top` | Popup | 200 | 模态弹窗（Pause、Settings、ChapterSelect） | Yes |
+| 3 | `UILayer.Tips` | Overlay | 300 | 全屏覆盖层（Transitions、Replays + Tooltip） | Yes |
+| 4 | `UILayer.System` | System | 400 | 系统指示器（Save、Loading） | No |
+
+> ⚠️ **Vendor wording reality** (V3.0 §V3-1.b Type-5 dp3 align): vendor `WindowAttribute.cs:8` 实际 enum value 是 `{Bottom, UI, Top, Tips, System}`，与 legacy spec 假设的 `{Background, HUD, Popup, Overlay, System}` 命名 drift。**业务侧选择**：保留设计语义命名（Background/HUD/Popup/Overlay/System）用于设计文档/GDD/对话沟通；代码侧通过 `UILayerExtensions.GetSortingOrderBase(this UILayer)` extension method 桥接 vendor enum 与业务 mapping。`[Window]` attribute 必须用 vendor enum value（`[Window(UILayer.UI, ...)]` 等）。
 
 ### Key Interfaces
 
 ```csharp
-// === UIWindow 基类使用模式 ===
+// === UIWindow 基类使用模式 (vendor 7+2 lifecycle per UIBase.cs:144-197 + UIWindow.cs:504-509) ===
 
+[Window(UILayer.UI, fromResources: true)]  // 业务 mapping: UI = HUD
 public class HUDPanel : UIWindow
 {
-    // OnCreate: 首次打开时调用，绑定 UI 引用
-    protected override void OnCreate()
+    // RegisterEvent: BindMemberProperty 之后 — 业务 listener subscribe 入口
+    public override void RegisterEvent()
+    {
+        _onChapterCompleted = OnChapterCompleted;
+        GameEvent.AddEventListener<int>(IChapterStateEvent_Event.OnChapterComplete, _onChapterCompleted);
+    }
+
+    // OnCreate: RegisterEvent 之后 — 业务 UI 引用绑定 + 静态资源 setup
+    // ⭐ 注意：vendor 'destroy-and-recreate' 模式下，second show 也会再次调用 OnCreate
+    public override void OnCreate()
     {
         // FindChild / GetComponent for UI references
         // AddUIEvent() for internal widget events
     }
 
-    // OnRefresh: 每次显示时调用（包括首次 OnCreate 之后）
-    protected override void OnRefresh()
+    // OnRefresh: OnCreate 之后（首次 + 每次 show）— 业务数据刷新 + userDatas 参数处理
+    public override void OnRefresh()
     {
         // Update display data, refresh counts/status
     }
 
-    // OnUpdate: 每帧调用（仅在可见时）
-    protected override void OnUpdate()
+    // OnUpdate: per-frame, vendor guard 仅 IsPrepare && Visible 时执行
+    public override void OnUpdate()
     {
         // Per-frame UI logic (animations, timers)
     }
 
-    // OnClose: 关闭/销毁时调用
-    protected override void OnClose()
+    // OnDestroy: CloseUI<T>() 调用 OR CloseAll — 业务 cleanup 入口
+    // ⚠️ 不是 OnClose — legacy spec wording drift (V3.0 §V3-1.b Type-5 dp2)
+    public override void OnDestroy()
     {
         // Cleanup: unsubscribe events, release references
+        if (_onChapterCompleted != null)
+        {
+            GameEvent.RemoveEventListener<int>(IChapterStateEvent_Event.OnChapterComplete, _onChapterCompleted);
+            _onChapterCompleted = null;
+        }
     }
+
+    private Action<int> _onChapterCompleted;
+    private void OnChapterCompleted(int chapterId) { /* ... 业务逻辑 ... */ }
 }
 
-// === Show / Close API ===
+// === Show / Close / Hide API (vendor UIModule.cs:250-460) ===
 
-// 打开面板
-GameModule.UI.ShowWindow<PauseMenuPanel>();
+// 同步打开面板（prefab 未 loaded 时先 load 再 show）
+GameModule.UI.ShowUI<PauseMenuPanel>();
 
-// 关闭面板
-GameModule.UI.CloseWindow<PauseMenuPanel>();
+// 异步打开面板（适合 prefab 大 + 不阻塞）
+await GameModule.UI.ShowUIAsync<PauseMenuPanel>();
+
+// 异步打开 + await ready（适合 sequence 串行）
+await GameModule.UI.ShowUIAsyncAwait<PauseMenuPanel>();
+
+// 关闭面板（销毁 instance + 从 _uiStack 移除）
+GameModule.UI.CloseUI<PauseMenuPanel>();
+
+// 隐藏面板（保留 instance，用于 HideTimeToClose > 0 路径）
+GameModule.UI.HideUI<PauseMenuPanel>();
+
+// 全部关闭（bool = 是否包含 System 层）
+GameModule.UI.CloseAll(includingSystem: false);
 
 // === InputBlocker 自动管理（在 UIWindow 包装层中实现） ===
 
-// Popup/Overlay 层面板 Show 时自动调用:
+// Top/Tips 层面板 ShowUI 时自动调用 (vendor enum mapping: Top=Popup, Tips=Overlay):
 //   IInputService.PushBlocker("UIPanel_PauseMenuPanel");
-// Close 时自动调用:
+// CloseUI 时自动调用:
 //   IInputService.PopBlocker("UIPanel_PauseMenuPanel");
 
 // Blocker token 命名规范: "UIPanel_{PanelClassName}"
 
-// === Popup Queue ===
+// === Popup Queue (业务 mapping: Top 层) ===
 
-// 当已有 Popup 可见时，新 Popup 请求进入 FIFO 队列
-// 当前 Popup 关闭时，自动 dequeue 并显示下一个
-// Overlay 不受 Popup 队列限制（Overlay 可与 Popup 共存）
+// 当已有 Top 层 panel 可见时，新 Top 请求进入 FIFO 队列
+// 当前 Top 关闭时，自动 dequeue 并显示下一个
+// Tips (Overlay) 不受 Popup 队列限制（Tips 可与 Top 共存）
 
 // === 事件通信 ===
 
@@ -221,26 +257,8 @@ AddUIEvent(buttonId, OnButtonClicked);
 
 // 跨系统事件（通过 GameEvent — 遵循 ADR-027 接口协议 + §5 ⚠️ Framework knowledge fact）
 // TEngine RemoveEventListener 非 idempotent；listener 不存在时抛 "Delete handle failed, not exist"。
-// Required pattern：handler null-out + 外部 cleanup null-check guard（详见 ADR-027 §5）。
-private Action<int> _onChapterCompleted;
-
-public override void RegisterEvent()
-{
-    _onChapterCompleted = OnChapterCompleted;
-    GameEvent.AddEventListener<int>(IChapterStateEvent_Event.OnChapterComplete, _onChapterCompleted);
-}
-
-private void OnChapterCompleted(int chapterId) { /* ... 业务逻辑 ... */ }
-
-// Cleanup 路径（OnDisable / Dispose 等）— null-check guard 防 raw double-remove
-public void Cleanup()
-{
-    if (_onChapterCompleted != null)
-    {
-        GameEvent.RemoveEventListener<int>(IChapterStateEvent_Event.OnChapterComplete, _onChapterCompleted);
-        _onChapterCompleted = null;
-    }
-}
+// Required pattern：handler null-out（在 OnDestroy 内）+ 外部 cleanup null-check guard（详见 ADR-027 §5）。
+// 实例代码已整合到上方 UIWindow 子类 OnCreate/OnDestroy override (RegisterEvent 入口 + OnDestroy 内 null-check guard cleanup)。
 ```
 
 ### Implementation Guidelines
@@ -262,10 +280,10 @@ public void Cleanup()
 **3. Popup Queue 实现**
 
 - 维护 `Queue<Type>` 作为待显示 Popup 队列
-- `ShowWindow<T>()` 调用时，检查当前是否有 Popup 层面板可见：
+- `ShowUI<T>()` 调用时，检查当前是否有 Top 层（业务 mapping: Popup）面板可见：
   - 若无 → 直接显示
-  - 若有 → 入队，等待当前 Popup 关闭
-- `CloseWindow<T>()` 关闭 Popup 后，检查队列是否非空：
+  - 若有 → 入队，等待当前 Top 层 panel 关闭
+- `CloseUI<T>()` 关闭 Top 层 panel 后，检查队列是否非空：
   - 若非空 → dequeue 并显示下一个
 - Overlay 层不受 Popup 队列限制——Overlay 和 Popup 可以同时存在（如 ChapterTransition 覆盖在 PauseMenu 之上）
 
@@ -275,24 +293,34 @@ public void Cleanup()
 - 确保所有 UI 内容不延伸到刘海区、底部指示条区域
 - System 层面板（SaveIndicatorPanel）可配置为忽略安全区（显示在角落）
 
-**5. Prefab 异步加载**
+**5. Prefab 异步加载（与 vendor 'destroy-and-recreate' 模式协同）**
 
-- 所有 UI prefab 通过 `GameModule.Resource.LoadAssetAsync<GameObject>()` 加载
-- 首次 `ShowWindow<T>()` 触发异步加载 → 实例化 → OnCreate → OnRefresh
-- 再次 `ShowWindow<T>`（已加载过）→ 直接 OnRefresh（TEngine 内部管理实例缓存）
-- `CloseWindow<T>()` 默认隐藏实例（不销毁），频繁面板（HUDPanel）保持池化
-- `Resources.Load` 禁止使用（ADR-001）
+- 所有 UI prefab 通过 YooAsset (`GameModule.Resource.LoadAssetAsync<GameObject>()`) 或 `[Window(..., fromResources: true)]` 标注由 vendor 走 `Resources.Load` 路径加载（vendor 默认走 Resources 路径以支持 hot-update fast path）
+- 首次 `ShowUI<T>()` → vendor `Activator.CreateInstance(typeof(T))` 新建 instance → prefab load → instantiate → ScriptGenerator → BindMemberProperty → RegisterEvent → OnCreate → OnRefresh
+- 再次 `ShowUI<T>()`（若 CloseUI 已销毁）→ **vendor destroy-and-recreate 模式 — 创建全新 instance + 完整重走 init 5 phase**（V3.0 §V3-1.b Type-8 dp1 实证，Sprint 5 S5-08 R3 P3 frame=30/59 PlayMode 验证）
+- `CloseUI<T>()` = **真销毁** instance（vendor 内部 _uiStack.Remove + GameObject.Destroy），下次 ShowUI 必新建。**legacy spec 假设的 'hide-and-reshow' 模式（CloseUI 仅隐藏实例）与 vendor reality drift**，业务设计需明确：
+  - **常驻可见类**（HUDPanel）：场景加载时预 ShowUI 一次后不调 CloseUI（避免反复 destroy/recreate）
+  - **HideTimeToClose 路径**：若 panel 配置 `HideTimeToClose > 0`，HideUI 会保留 instance + 定时关闭；HideTimeToClose 期间 reshow 走 'hide-and-reshow' 路径（仅 OnRefresh）
+  - **CloseUI 直调路径**：是 'destroy-and-recreate' — second show 必走完整 7-phase init
+- `Resources.Load` 业务侧禁止直接调用（vendor 内部 [Window fromResources] 路径除外）；业务侧统一通过 YooAsset 异步 API（ADR-001/ADR-005）
 
-**6. UIWindow 生命周期约定**
+**6. UIWindow 7+2 Lifecycle 约定 (vendor reality — V3.0 §V3-1.b Type-5 dp2 align)**
 
-| Callback | 触发时机 | 典型用途 |
-|----------|---------|---------|
-| `OnCreate()` | 首次打开，prefab 实例化后 | 绑定 UI 引用、注册内部事件 |
-| `OnRefresh()` | 每次显示时（含首次 OnCreate 之后） | 刷新数据、更新显示状态 |
-| `OnUpdate()` | 每帧（仅可见时） | 动画、倒计时等帧级逻辑 |
-| `OnClose()` | 关闭/销毁时 | 注销事件、释放引用、清理状态 |
+| Phase | Callback | 触发时机 | 业务侧典型用途 | 业务侧 override 推荐 |
+|:-----:|----------|---------|--------------|:------------------:|
+| Init 1 | `ScriptGenerator()` | 新 instance 创建后立即 (vendor UIBase.cs:148) | TEngine 内部脚本初始化 | ❌ 通常不 override |
+| Init 2 | `BindMemberProperty()` | ScriptGenerator 之后 (UIBase.cs:152) | TEngine 内部属性绑定 | ❌ 通常不 override |
+| Init 3 | `RegisterEvent()` | BindMemberProperty 之后 (UIBase.cs:156) | **GameEvent listener subscribe + AddUIEvent button onClick subscribe** | ✅ 必备 override 入口 |
+| Init 4 | `OnCreate()` | RegisterEvent 之后 (UIBase.cs:165) | UI 引用绑定 (FindChild / GetComponent) + 静态资源 setup | ✅ 推荐 override |
+| Init 5 | `OnRefresh()` | OnCreate 之后（首次 + 每次 show 含 destroy-and-recreate 新 instance）(UIBase.cs:177) | 数据绑定 (userDatas 参数处理) + UI 内容刷新 | ✅ 推荐 override |
+| Loop | `OnUpdate()` | per-frame，仅 `IsPrepare && Visible` 时 (UIBase.cs:192) | 实时数据轮询 / 动画 / 倒计时 | ⚠️ 可选 override（按需）|
+| Destroy | `OnDestroy()` | `CloseUI<T>()` 调用 OR `CloseAll` (UIBase.cs:197) | **GameEvent listener unsubscribe + null-out _handler + 资源释放** | ✅ 必备 override 入口 |
+| Extra 1 | `Hide()` | `HideUI<T>()` 路径 (UIWindow.cs) | 隐藏时挂钩（如 pause animation） | ⚠️ 可选 override |
+| Extra 2 | `Close()` | `CloseUI<T>()` 路径 + OnDestroy 之前 (UIWindow.cs:504-509) | （deprecated，建议用 OnDestroy） | ⚠️ deprecated |
 
-> **Open Question**: TEngine `UIWindow` 在首次打开时的回调顺序——本 ADR 假设为 `OnCreate → OnRefresh`。需要 Sprint 0 spike 从 TEngine 6.0 源码验证实际行为。如果实际为 `OnCreate` only（首次不调用 `OnRefresh`），需在 `OnCreate` 末尾手动调用刷新逻辑。
+> ⚠️ **OnDestroy ≠ OnClose**: legacy spec wording `OnClose` 与 vendor reality `OnDestroy` drift（V3.0 §V3-1.b Type-5 dp2）。新代码全部 override `OnDestroy`；现有 `OnClose` override（如有）逐步迁移到 `OnDestroy`。
+
+> ✅ **Open Question resolved (Sprint 5 S5-08 R3 P3 2026-05-11)**: TEngine `UIWindow` 首次打开回调顺序已通过 PlayMode 实证 4/4 R3 PASS — vendor 实际是 7+2 lifecycle (ScriptGenerator → BindMemberProperty → RegisterEvent → OnCreate → OnRefresh → OnUpdate per frame / OnDestroy)；`OnRefresh` 在 `OnCreate` 之后**自动**调用，业务侧无需在 OnCreate 末尾手动调用刷新逻辑。Sprint 0 spike 风险消除。**second show 实证结论**: 是 'destroy-and-recreate' 模式而非 spec 假设的 'hide-and-reshow' — 见 §5 + V3.0 §V3-1.b Type-8 dp1。
 
 **7. 事件通信规范**
 
@@ -337,7 +365,7 @@ namespace GameLogic
 ### Alternative 1: TEngine UIModule (chosen)
 
 - **Description**: 使用 TEngine 6.0 内置 UIModule，基于 `UIWindow`/`UIWidget` 继承体系，`GameModule.UI` 统一管理
-- **Pros**: 与 TEngine 框架深度集成；内置生命周期管理（OnCreate/OnRefresh/OnUpdate/OnClose）；layer sorting 机制已内建；与 YooAsset 资源加载无缝对接；团队无需学习额外框架
+- **Pros**: 与 TEngine 框架深度集成；内置 7+2 生命周期管理（ScriptGenerator/BindMemberProperty/RegisterEvent/OnCreate/OnRefresh/OnUpdate/OnDestroy + Hide/Close）；layer sorting 机制已内建；与 YooAsset 资源加载无缝对接；团队无需学习额外框架
 - **Cons**: 锁定于 TEngine 的 UIWindow 模式；OnCreate/OnRefresh 回调时序需验证；UGUI 在复杂面板上性能不如 UI Toolkit
 - **Estimated Effort**: 1x（基线）
 - **Selection Reason**: ADR-001 已确定 TEngine 为项目框架，UIModule 是自然延伸。InputBlocker 自动管理和 Popup 队列作为薄层封装即可实现
@@ -370,7 +398,7 @@ namespace GameLogic
 
 ### Positive
 
-- **统一生命周期**：所有 9 个面板遵循相同的 OnCreate → OnRefresh → OnUpdate → OnClose 流程，减少遗漏清理导致的 bug
+- **统一生命周期**：所有 9 个面板遵循相同的 vendor 7+2 生命周期 (ScriptGenerator → BindMemberProperty → RegisterEvent → OnCreate → OnRefresh → OnUpdate / OnDestroy) 流程，减少遗漏清理导致的 bug
 - **自动 InputBlocker**：Popup 和 Overlay 层面板自动管理 InputBlocker push/pop，消除手动管理的输入泄漏风险
 - **层级排序确定性**：5 层级 × 100 间隔的 sorting order 系统消除 z-fighting，后打开面板自动在上层
 - **弹窗队列**：同一时间最多 1 个 Popup 可见，避免多个弹窗叠加造成的 UX 混乱
@@ -395,7 +423,7 @@ namespace GameLogic
 
 | Risk | Probability | Impact | Mitigation |
 |------|------------|--------|-----------|
-| UIWindow OnCreate/OnRefresh 回调顺序与假设不符 | MEDIUM | HIGH | Sprint 0 spike 从 TEngine 6.0 源码验证；如不符，在 OnCreate 末尾手动调用刷新逻辑 |
+| ~~UIWindow OnCreate/OnRefresh 回调顺序与假设不符~~ | ✅ RESOLVED | — | Sprint 5 S5-08 R3 P3 PlayMode 实证 4/4 R3 PASS (2026-05-11) — vendor 7+2 lifecycle 完整验证；'destroy-and-recreate' 模式实证；no fallback needed |
 | InputBlocker 自动 push/pop 配对失败（关闭面板时 token 不匹配） | LOW | HIGH | Token 使用固定格式 `"UIPanel_{ClassName}"`，在 auto-pop 时强制使用相同 token；开发阶段添加 Debug.LogWarning 泄漏检测（ADR-010 已定义 30s 超时报警） |
 | Popup 队列导致重要提示被延迟显示 | LOW | MEDIUM | UX 设计时确保不会在 Popup 打开状态下触发另一个关键 Popup；System 层面板（SaveIndicator）不受队列影响 |
 | 安全区适配在部分 Android 厂商定制 ROM 上失效 | LOW | MEDIUM | `SetUISafeFitHelper` + 手动 `Screen.safeArea` fallback；上线前在 5+ Android 设备上验证 |
@@ -428,7 +456,7 @@ namespace GameLogic
 3. **Step 3**: 实现 Popup Queue 管理器（`Queue<Type>` + dequeue-on-close hook）
 4. **Step 4**: 配置根 Canvas + `SetUISafeFitHelper` 安全区适配
 5. **Step 5**: 创建 9 个 UIWindow 子类骨架（空面板 + 正确 layer 注册）
-6. **Step 6**: 逐个面板实现 OnCreate/OnRefresh/OnUpdate/OnClose 逻辑
+6. **Step 6**: 逐个面板实现 RegisterEvent / OnCreate / OnRefresh / OnUpdate / OnDestroy 7+2 lifecycle override（**legacy `OnClose` deprecated，新代码统一 `OnDestroy`**）
 7. **Step 7**: 集成 InputBlocker 自动管理与 ADR-010 `IInputService` 验证
 8. **Step 8**: 真机测试安全区适配（iPhone X/11/12/13/14/15 + Android 刘海屏设备）
 
@@ -444,23 +472,23 @@ namespace GameLogic
 - [ ] TutorialPromptPanel 使用 InputFilter（非 Blocker）——仅允许教学指定手势
 - [ ] 安全区适配正确：iPhone X/11/12/13/14/15 刘海屏设备上 UI 不被遮挡
 - [ ] UI prefab 全部通过 YooAsset 异步加载，无 `Resources.Load` 调用
-- [ ] UIWindow 生命周期回调顺序验证（Sprint 0 spike）：首次打开 OnCreate → OnRefresh，再次打开仅 OnRefresh
-- [ ] SaveIndicatorPanel（System 层）可在任何 Popup/Overlay 之上显示
-- [ ] 面板关闭后无事件泄漏（GameEvent listener 在 OnClose 中正确注销）
+- [x] **UIWindow 7+2 lifecycle 调用顺序验证 (✅ Sprint 5 S5-08 R3 P3 PlayMode 实证 2026-05-11)**: 首次 ShowUI → ScriptGenerator → BindMemberProperty → RegisterEvent → OnCreate → OnRefresh → OnUpdate (per frame)；CloseUI → OnDestroy；**second ShowUI 后是 destroy-and-recreate 新 instance**（frame=30/59 实证 — V3.0 §V3-1.b Type-8 dp1）
+- [ ] SaveIndicatorPanel（System 层）可在任何 Top/Tips 层（业务 mapping: Popup/Overlay）之上显示
+- [ ] 面板关闭后无事件泄漏（GameEvent listener 在 **OnDestroy** 中正确注销 + handler null-out per ADR-027 §5）
 - [ ] HUDPanel 预加载后首次显示无可感知延迟
 
 ## GDD Requirements Addressed
 
 | GDD Document | System | Requirement | How This ADR Satisfies It |
 |-------------|--------|-------------|--------------------------|
-| `design/gdd/ui-system.md` | UI | TR-ui-001: All UI via TEngine UIModule | 所有 9 个面板通过 `GameModule.UI.ShowWindow<T>()` / `CloseWindow<T>()` 管理 |
+| `design/gdd/ui-system.md` | UI | TR-ui-001: All UI via TEngine UIModule | 所有 9 个面板通过 `GameModule.UI.ShowUI<T>()` / `CloseUI<T>()` / `HideUI<T>()` 管理 |
 | `design/gdd/ui-system.md` | UI | TR-ui-002 ~ 006: 5 UI layer levels | 5 层级排序系统（Background/HUD/Popup/Overlay/System），sort order base 0/100/200/300/400 |
 | `design/gdd/ui-system.md` | UI | TR-ui-007 ~ 015: 9 UI panels | 全部 9 个面板注册到正确层级，InputBlocker 和 InputFilter 配置如表 |
 | `design/gdd/ui-system.md` | UI | TR-ui-016: Popup queue (max 1 visible) | FIFO 队列管理，同时仅 1 个 Popup 可见 |
 | `design/gdd/ui-system.md` | UI | TR-ui-017: Safe area handling | `SetUISafeFitHelper` 应用到根 Canvas |
 | `design/gdd/ui-system.md` | UI | TR-ui-018: Auto InputBlocker for Popup/Overlay | Popup(2) 和 Overlay(3) 层自动 push/pop InputBlocker |
 | `design/gdd/ui-system.md` | UI | TR-ui-019: UI prefab async loading | 全部通过 `GameModule.Resource.LoadAssetAsync` 加载，禁止 `Resources.Load` |
-| `design/gdd/ui-system.md` | UI | TR-ui-020: UIWindow lifecycle | OnCreate → OnRefresh → OnUpdate → OnClose 标准生命周期 |
+| `design/gdd/ui-system.md` | UI | TR-ui-020: UIWindow lifecycle | vendor 7+2 lifecycle: ScriptGenerator → BindMemberProperty → RegisterEvent → OnCreate → OnRefresh → OnUpdate / OnDestroy + Hide/Close (V3.0 §V3-1.b Type-5 dp2 align) |
 | `design/gdd/ui-system.md` | UI | TR-ui-021: UI event communication | 内部事件 `AddUIEvent()`，跨系统事件 `GameEvent` |
 | `design/gdd/input-system.md` | Input | TR-input-004: InputBlocker push/pop by UI panels | UI 面板 auto InputBlocker 使用 ADR-010 定义的 `IInputService.PushBlocker/PopBlocker` |
 | `design/gdd/settings-accessibility.md` | Settings | Settings UI management | SettingsPanel 在 Popup 层，通过 UIWindow 生命周期管理 |
@@ -477,3 +505,14 @@ namespace GameLogic
 - **Architectural context**: `docs/architecture/architecture.md` — UI System 位于 Core Layer
 - **GDD source**: `src/MyGame/ShadowGame/design/gdd/ui-system.md`
 - **Technical preferences**: `.claude/docs/technical-preferences.md` — 确认使用 UGUI + TEngine UIModule
+- **Verifying evidence**: `production/qa/playmode-uimodule-setup-2026-05-11.md` (Sprint 5 S5-08 R3 4/4 PASS — 7+2 lifecycle + destroy-and-recreate 模式实证)
+- **Drift governance**: `docs/architecture/adr-029-story-impl-notes-verification.md` §V3-1.b Type-5 dp2/dp3 + Type-8 dp1 (V3.0 promote 2026-05-12)
+- **Lifecycle spec**: `docs/architecture/findings/SP-002-uiwindow-lifecycle.md` (2026-05-13 systematic amend)
+
+## History
+
+- **2026-04-22**: ADR-011 v1 created (Sprint 0 pre-production) — UIWindow + 5 layer + auto InputBlocker + Popup queue + 4 hook lifecycle (OnCreate/OnRefresh/OnUpdate/OnClose) + ShowWindow/CloseWindow API（spec wording 假设）
+- **2026-05-06** (Sprint 3 bulk ceremony): Promoted Accepted with patch — ADR-029 V2.0 review B-1 + B-2 CONFLICT-008 §7 sample fix applied
+- **2026-05-11** (Sprint 5 S5-08 R2/R3): 多处 vendor wording drift surfaced (R2.2 ShowWindow→ShowUI / R2.3 4 lifecycle→7+2 lifecycle / R2.10 UILayer enum / R2.11 [Window] attribute) + R3 P3 PlayMode 实证 'destroy-and-recreate' 模式（与 spec 'hide-and-reshow' 假设冲突）→ ADR-029 V3 Type-5 dp2/dp3 + Type-8 dp1 NEW
+- **2026-05-12** (ADR-029 V3.0 promote): Type-5 dp2 (ShowUI wording) + dp3 (UILayer enum) + Type-8 dp1 (UIWindow second show destroy-and-recreate) 累积纳入 V3.0 §V3-1.b 修复模式；ADR-011 systematic amend 排入 Sprint 6 S6-05 (ADR-011 + SP-002 + ADR-014 + ADR-016 + ADR-017 + ADR-028) 6 file batch
+- **2026-05-13** (Sprint 6 S6-05 systematic wording amend — V3.0 §V3-1.b 修复模式实战 propagation): 整 ADR systematic wording amend — Status/Date/Last Verified/Summary/Engine Compatibility/FR-1/FR-7/Architecture diagram/5 UI Layer Levels table/Key Interfaces code/Implementation Guidelines §5/§6/Migration Plan Step 6/Risks/Validation Criteria/GDD Requirements 全 16 处 wording 对齐 vendor reality；OnClose→OnDestroy；ShowWindow/CloseWindow→ShowUI/CloseUI/HideUI；4 hook→7+2 lifecycle；layer enum 业务 mapping 表 (Bottom→Background, UI→HUD, Top→Popup, Tips→Overlay, System→System)；Open Question (OnCreate/OnRefresh 时序) resolved；§History 新增；与 SP-002 amend (2026-05-13) + ADR-014/-016/-017/-028 amend 系统性 align

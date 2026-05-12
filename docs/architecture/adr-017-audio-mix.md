@@ -429,6 +429,8 @@ namespace GameLogic
 >
 > 本 §B 原文（含 line 421 `Activate()` 调用、line 488 R3 P8 case 描述）保留作决策史 audit，不修改原文以维护 ADR 决策史完整性。
 
+> 🔖 **Sprint 6 S6-05 batch closure reference (2026-05-13)**: drift-v2-(a) 是 ADR-029 V3.0 §V3-1.b Type-5 (spec/tooling ↔ reality drift) **dp4 数据点 (Sprint 5 S5-06 dev-story v3 framework auto-init pattern)** 的首例闭环案例 — 由本 Amendment 2026-05-09 完成 spec wording amend；Sprint 6 S6-05 batch (ADR-011 + SP-002 + ADR-014/-016/-017/-028) 是 V3.0 §V3-1.b 修复模式实战 propagation 第一批闭环。本 §B 不需要内容上额外 amend；本 reference 仅作 batch closure audit trail。see ADR-029 §V3-1.b dp4 + Sprint 6 plan §S6-05 + sprint-6 retro AI-2 closure。
+
 ADR-028 §1 explicitly defers AudioModule activation 到 "ADR-017 Accept + Audio Sprint 接入"。**ADR-017 已 Accepted 2026-05-06**；本节是 ADR-028 §1 gate 解锁 reference：
 
 ```csharp

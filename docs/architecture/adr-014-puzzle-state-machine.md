@@ -354,7 +354,9 @@ namespace GameLogic
 | `Evt_PerfectMatch` | `IShadowPuzzleEvent.OnPerfectMatch(int puzzleId, float finalMatchScore)` |
 | `Evt_AbsenceAccepted` | `IShadowPuzzleEvent.OnAbsenceAccepted(int puzzleId, float finalMatchScore)` |
 | `Evt_PuzzleComplete` | `IShadowPuzzleEvent.OnPuzzleComplete(int puzzleId, PuzzleCompletionType)` |
-| `Evt_PuzzleLockAll` | `IPuzzleLockEvent.OnPuzzleLockAll()` (existing — ADR-013) |
+| `Evt_PuzzleLockAll` | `IPuzzleLockEvent.OnPuzzleLockAll(PuzzleLockPayload payload)` (contract source ADR-027 §4) ⚠️ **Deprecated production override** Sprint 5 S5-05 — production 实际通过 `IInputBlockerEvent.OnPushBlocker(string token)` single-layer pattern 实现 lock effect (见 ADR-026 InputBlocker single-layer + S5-05 production reality) |
+
+> ⚠️ **IPuzzleLockEvent contract drift note** (V3.0 §V3-1.b Type-5 dp5 + Sprint 6 S6-05 amend 2026-05-13): legacy reference 写作 `(existing — ADR-013)` 是 spec wording drift — IPuzzleLockEvent 实际定义在 **ADR-027 §4** (multi-sender token stack 协议)，签名 `OnPuzzleLockAll(PuzzleLockPayload payload)` / `OnPuzzleUnlock(PuzzleLockPayload payload)`。本 ADR cascade comment (§A line 327-333) 内 `IPuzzleLockEvent.OnPuzzleLockAll` reference 仅作 event name 占位，**不携带 signature 信息**；signature ground truth 见 ADR-027 §4。**Production reality drift**：Sprint 5 S5-05 (Story PauseMenu state lock) 选用 InputBlocker single-layer (`IInputBlockerEvent.OnPushBlocker(token)`) 替代 multi-sender token stack pattern；本 ADR cascade 描述保留 IPuzzleLockEvent 作 spec-level lock 语义占位，业务 impl 时按 ADR-026 + S5-05 reality 选择 single-layer InputBlocker，**不直接 publish IPuzzleLockEvent 接口事件**。IPuzzleLockEvent 接口完整 deprecation 决策推到 Sprint 7+ polish phase 与 ADR-027 §4 一并 systematic review。
 
 **ADR-027 §5 ⚠️ Framework knowledge fact applies**: 任何订阅 `IShadowPuzzleEvent` 方法的 listener 必须 handler 内 self-remove + `_handler = null` (null-out) + 外部 cleanup `if (_handler != null) RemoveEventListener(...)` (null-check guard)。详见 ADR-027 §5。
 

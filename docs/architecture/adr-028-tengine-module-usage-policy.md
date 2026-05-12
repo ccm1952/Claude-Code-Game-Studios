@@ -138,6 +138,8 @@ Technical Director, Lead Programmer
 > - `src/MyGame/ShadowGame/.claude/skills/tengine-dev/references/hotfix-development.md` 「热更入口 GameApp」节（已对齐 2026-05-09）
 > - PlayMode 实证：`production/qa/playmode-audio-mix-architecture-2026-05-08.md`
 
+> 🔖 **Sprint 6 S6-05 batch closure reference (2026-05-13)**: drift-v2-(a) 是 ADR-029 V3.0 §V3-1.b Type-5 (spec/tooling ↔ reality drift) **dp4 数据点 (Sprint 5 S5-06 dev-story v3 framework auto-init pattern)** 的首例闭环案例 — 由本 Amendment 2026-05-09 完成 spec wording amend；Sprint 6 S6-05 batch (ADR-011 + SP-002 + ADR-014/-016/-017/-028) 是 V3.0 §V3-1.b 修复模式实战 propagation 第一批闭环。本 §1 line 103 不需要内容上额外 amend；本 reference 仅作 batch closure audit trail。see ADR-029 §V3-1.b dp4 + Sprint 6 plan §S6-05 + sprint-6 retro AI-2 closure。
+
 ### §2. `GameModule` Facade 强制约定
 
 - **范围限定**：本约定**仅适用于 `Assets/GameScripts/HotFix/` 子树**（即热更程序集 `GameLogic` / `GameProto`）。主包程序集（`Assets/GameScripts/Main/` 的 `GameEntry.Awake` + `Procedure*` 启动流程）按 TEngine 框架原生模式合法直调 `ModuleSystem.GetModule<IXxxModule>()`（参见 `tengine-dev/references/architecture.md` §"启动流程"），**不**在本约定范围内。
