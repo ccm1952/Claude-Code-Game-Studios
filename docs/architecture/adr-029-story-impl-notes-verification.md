@@ -4,22 +4,23 @@
 
 ## Status
 
-**Accepted V2.0** — 2026-04-30 dusk *(was V1.0 2026-04-30 morning; backward-compatible major revision based on Sprint 3 实战 6 数据点 + 7 V2 candidates 全部触发)*
+**Accepted V3.0** — 2026-05-12 evening *(was V2.0 2026-04-30 dusk; backward-compatible minor major revision per Sprint 5 Type-5 candidate 6 unique dp 强制 promote 阈值首次达成 — 跨 3 stories / 4 subsystems / split 三分支 (a) toolchain silent failure / (b) spec ↔ vendor wording drift / (c) spec ↔ vendor API range drift)*
 
 ## Version
 
 | Version | Date | Trigger | Scope |
 |--------|------|---------|------|
 | V1.0 | 2026-04-30 morning | Sprint 2 lessons memo 4 次复用稳态触达 | R1/R2/R3 grep gate 形式化 + 3 skill 集成 + drift metric 跟踪 |
-| **V2.0** | **2026-04-30 dusk** | **Sprint 3 Must Have 4/4 闭环 + 6 数据点 + 7 candidates 实战触发** | **Drift Types V2 (Type-2 拆 a/b/c) + R3 mandatory + Propagation v2 with single source of truth priority + Framework boundary behavior probe checklist + 7 trigger conditions formalized + drift revision time tracking metrics** |
+| V2.0 | 2026-04-30 dusk | Sprint 3 Must Have 4/4 闭环 + 6 数据点 + 7 candidates 实战触发 | Drift Types V2 (Type-2 拆 a/b/c) + R3 mandatory + Propagation v2 with single source of truth priority + Framework boundary behavior probe checklist + 7 trigger conditions formalized + drift revision time tracking metrics |
+| **V3.0** | **2026-05-12 evening** | **Sprint 5 Type-5 candidate 6 unique dp 强制 promote 阈值首次达成 (S5-01 dp1 + S5-08 dp2/dp3 + S5-02 dp4/dp5/dp6)** | **Drift Type-5 'Spec/Tooling ↔ Reality Drift' Official Promotion — split 三分支 (a) toolchain silent failure / (b) spec ↔ vendor wording drift / (c) spec ↔ vendor API range drift + Type-5 检测层总览 + 修复模式总览 + V3 trigger #2 'New drift type' 正式触发标记 + V4 升级触发条件**（Sprint 5 retro AI-1 driven）|
 
 ## Date
 
-2026-04-30 dusk *(V2.0; V1.0 起草于同日 morning)*
+2026-05-12 evening *(V3.0; V2.0 起草于 2026-04-30 dusk；V1.0 起草于 2026-04-30 morning)*
 
 ## Last Verified
 
-2026-04-30 dusk
+2026-05-12 evening
 
 ## Decision Makers
 
@@ -32,6 +33,8 @@ Technical Director, Lead Programmer, dev-story skill maintainer
 - `/dev-story` skill **5min readiness checklist**（实施起手强制验证；升级为 ADR-blessed gate）
 
 本 ADR 闭环 Sprint 2 期间反复出现的 §Implementation Notes drift 模式 —— `/.claude/memory/problem_2026-04-29_story-impl-notes-vs-framework-drift.md` 已 **4 次复用**（S2-09 push/pull / S2-12 整接口订阅 / S2-13 整接口订阅 + 不存在 API + Luban 缺口 / S2-11 整接口订阅 + 缺 RotationStep），稳态触达"该升 ADR 形式化"的工程信号。Sprint 3 起 drift 修订耗时 metric 归零跟踪验证形式化效果。
+
+**V3.0 增量**：Sprint 5 实战累计 ADR-029 §V2-7 V3 升级触发条件 #2 "New drift type 出现（非 Type-1/2/3/4）" **正式触发** — Sprint 5 期间识别出 6 unique data points 跨 3 stories (S5-01 / S5-08 / S5-02) / 4 subsystems (unity-mcp toolchain / TEngine UIModule / IShadowEvent / ISceneEvent)，**远超 V3 promote ROI 阈值 (≥3 unique dp)**；V3.0 promote Type-5 'Spec/Tooling ↔ Reality Drift' 为 official drift category，split 三分支：(a) toolchain silent failure / (b) spec ↔ vendor wording drift / (c) spec ↔ vendor API range drift。详 §Decision V3.0。
 
 ---
 
@@ -366,11 +369,144 @@ Framework boundary behavior facts 应该 propagate 到对应 framework ADR：
 | 信号 | 升 V3 动作 |
 |-----|----------|
 | Sprint 4 平均 Type-1 drift > 5 min | V3 加自动化 grep gate fail（V1.0 Alternative 3 复活）|
-| New drift type 出现（非 Type-1/2/3/4）| V3 加 Type-5 + 分类 |
-| Type-2 (c) framework behavior 发现频率 > 2/sprint | V3 强化 framework boundary behavior probe automation（CI-level grep + spike runner）|
-| Lite propagation v2 ROI < 50% | V3 修订 single source of truth priority（数据驱动调整阈值）|
-| Multi-spike sequential 调度后仍 race | V3 引入 spike scheduler framework（DevBootstrap sequential runner replacing concurrent default）|
-| **VS-skip path Sprint 6 gate-check rerun rate < 100%** (per ADR-030) | V3 修订 VS-late pattern 推荐 timeline（Sprint 5-6 → Sprint 5-7 buffer）；监控 fun loop validation 数据；如多次延期 → 触发 VS-late pattern 反思 |
+| **New drift type 出现（非 Type-1/2/3/4）** | ✅ **TRIGGERED 2026-05-12 → V3.0 promoted (Sprint 5 Type-5 candidate 6 unique dp 强制 promote 阈值达成)**；split 三分支 (a) toolchain silent failure / (b) spec ↔ vendor wording drift / (c) spec ↔ vendor API range drift；详 §Decision V3.0 §V3-1 |
+| Type-2 (c) framework behavior 发现频率 > 2/sprint | V3 强化 framework boundary behavior probe automation（CI-level grep + spike runner）— Sprint 5 Type-2(c) 0 (dp1 retracted)；未触发 |
+| Lite propagation v2 ROI < 50% | V3 修订 single source of truth priority（数据驱动调整阈值）— Sprint 5 ROI sustained；未触发 |
+| Multi-spike sequential 调度后仍 race | V3 引入 spike scheduler framework（DevBootstrap sequential runner replacing concurrent default）— Sprint 5 sync-subscribe race 进 Type-6 候选；未触发 |
+| **VS-skip path Sprint 6 gate-check rerun rate < 100%** (per ADR-030) | V3 修订 VS-late pattern 推荐 timeline（Sprint 5-6 → Sprint 5-7 buffer）；监控 fun loop validation 数据；如多次延期 → 触发 VS-late pattern 反思 — Sprint 6 末评估 |
+
+---
+
+## Decision V3.0 (2026-05-12 evening — Sprint 5 Type-5 candidate 6 unique dp 强制 promote 阈值首次达成)
+
+> **V3.0 触发依据**：Sprint 5 期间 (2026-05-09 ~ 2026-05-12) 累计 Type-5 candidate **6 unique data points** 跨 3 stories (S5-01 / S5-08 / S5-02) / 4 subsystems (unity-mcp toolchain / TEngine UIModule / IShadowEvent / ISceneEvent)，**远超 V3 promote ROI 阈值 (≥3 unique dp)**。**V2.0 §V2-7 #V3 升级触发条件 #2 "New drift type 出现（非 Type-1/2/3/4）" 正式触发** → V3.0 promote Type-5 'Spec/Tooling ↔ Reality Drift' 为 official drift category。
+>
+> **V3.0 与 V2.0 关系**：V3.0 是 V2.0 的 **backward-compatible minor major revision**（无契约冲突；V2.0 §V2-1 ~ §V2-7 不变，V3.0 仅新增 §V3-1 ~ §V3-5 Type-5 official + V4 升级触发条件）。Downstream stories 引用 ADR-029 不需变更（仍引 ADR-029，自动获得 V3.0 内容）。Type-5 split 三分支 (a)/(b)/(c) decision 走 Sprint 5 retro AI-1 决策 [A]，详 sprint-5-retrospective.md。
+
+### §V3-1. Drift Type-5 'Spec/Tooling ↔ Reality Drift' Official Promotion
+
+V2.0 §V2-2 Drift Types V2 table (Type-1/2/3/4) 不变；V3.0 在末尾追加 Type-5 official row + 3 sub-branch detail tables。
+
+**核心定义**：Type-5 描述任何 "spec / spec wording / tooling expected behavior / API parameter range 与实际 vendor / production code / toolchain runtime behavior 不一致" 的 drift 现象。R1/R2 grep gate 仅部分 catch（仅 wording drift 子类的同名 method 部分）；其余 sub-branch 需要 vendor source 静态读 / toolchain ground truth check / vendor API 注释 read 才能 catch。
+
+**Type-5 Drift Types V3 table 追加 rows**:
+
+| Type | 子类 | 描述 | 检测层 | 数据点案例 | 修订时间 |
+|------|-----|------|-------|----------|---------|
+| **Type-5** | **(a)** | **Toolchain silent failure** — toolchain server 返 success=true 但 final state 不符规约 | **Toolchain ground truth check (image hash / config inspection / IHDR signature / native OS preview)** | S5-01 unity-mcp v9.6.x batch_execute 4 类 silent fail (D1-D4) | ~30 min (含 toolchain swap + lessons memo + screenshot 重抓) |
+| **Type-5** | **(b)** | **Spec ↔ Vendor wording drift** — ADR / spec 文档 wording 与 vendor / production code 实际 wording 不一致 (method name / type name / lifecycle hook 顺序 / interface 归属 / parameter 类型 / enum 命名 etc) | **R2 grep vendor source + 静态读 vendor 接口文件 / production code** | S5-08 #4 ShowUI/CloseUI/HideUI ≠ ADR spec ShowWindow/CloseWindow / S5-08 #5 UILayer enum 实际 vendor 名 ≠ spec 名 / S5-02 #1 IShadowMatch interface 归属错位 / S5-02 #2 OnPerfectMatch vs OnPerfectMatchEnter wording | ~25 min × N stories (R2 evidence + story amend) |
+| **Type-5** | **(c)** | **Spec ↔ Vendor API range drift** — spec 假设 parameter value range / API 适用范围 与 vendor 实际允许 range 不一致 (R1/R2 grep ≥1-hit, runtime 才暴露) | **R2 grep + 读 vendor method 注释 / parameter validation 代码** | S5-02 #3 `ISceneEvent.OnRequestSceneChange(0)` 假设合法 ↔ vendor 实际仅支持 `targetChapterId in [1, 5]` | ~15 min (story amend + callsite fix) |
+
+#### §V3-1.a Toolchain Silent Failure (Type-5 (a))
+
+**问题模式**: AI agent 调 toolchain server (e.g. unity-mcp / unity-bridge / 任何 MCP server) 时，server 返 `success=true` + 看似合理的 metadata，但 final state 不符规约 (e.g. 改 prefab 后 actual prefab unchanged / 创 component 后 component 不存在 / image generate 后 image 不是请求内容)。
+
+**为什么 R1/R2 grep 看不见**：
+- Server 返 `success=true` → agent 不主动 verify
+- Agent confirmation bias — 假设 server response = ground truth
+- Schema accepted ≠ runtime applied (manage_gameobject create component_properties 接受 schema vs server 实际 set 行为 drift)
+
+**Sprint 5 实战 dp1 (S5-01 2026-05-09)**:
+
+| # | D1-D4 silent fail 类型 | Detection 方式 | Resolution |
+|---|-----------------------|---------------|------------|
+| D1 | unity-mcp v9.6.x batch_execute component_properties schema accept but server silently 不 set | 用户 macOS Quick Look screenshot 仲裁 | toolchain swap unity-bridge → CoplayDev/unity-mcp v9.6.x |
+| D2 | manage_components properties 字段 inconsistency | image preview md5 三条独立 ground truth | 重新 batch_execute + verify final state |
+| D3 | lighting bug (Spot 4500K) silent state miss | manage_scene get_lighting verify | 修复 lighting + 重抓 evidence |
+| D4 | screenshot reload preview cache | Quick Look 浏览器 cache busting | 改用 native OS preview + IHDR signature |
+
+**修复模式**: toolchain swap + lessons memo + ADR-027 §5 framework knowledge fact 同等 pattern propagation。Sprint 5 累计修复成本 ~30 min。
+
+**检测层 enforcement (Sprint 6+)**:
+- AI agent 调 toolchain 后 **必须 verify ground truth** (server-independent inspection — image hash / config file / actual asset state) — 遇 ≥2 次 "server 说 X 我看到 Y" 冲突时让 user 原生工具仲裁
+- Toolchain schema vs runtime drift 处理 (FASTMCP_CHECK_FOR_UPDATES=off / Cursor 多 MCP 重复配置去重)
+- 同源 lessons memo: `.claude/memory/problem_2026-05-09_unity-bridge-to-coplaydev-switch.md` + `problem_2026-05-09_image-preview-confirmation-bias.md`
+
+#### §V3-1.b Spec ↔ Vendor Wording Drift (Type-5 (b))
+
+**问题模式**: ADR / SP / story spec 文档起草时（通常 framework time / Sprint 0-3 期间）wording 与 vendor 实际 production code 不一致。涵盖 method 名 / type 名 / lifecycle hook 顺序 / interface 归属 / parameter 类型 / enum 命名 等。
+
+**为什么 R1/R2 grep 在 spec 端 0-hit**：
+- Spec wording 与 vendor wording 同义但拼写不同 (e.g. ShowWindow vs ShowUI / OnClose vs OnDestroy)
+- Spec 假设 method 属于 interface A，vendor 实际属于 interface B (R2 grep 仅按 method 名搜，未先 read 接口文件 → 假设 method 归属错位 — Type-9 dp1 衍生)
+- Spec wording 时未读 vendor source → 框架知识 drift 累积
+
+**Sprint 5 实战 dp2/dp3/dp4/dp5 (4 dp)**:
+
+| dp | story | 子型 | spec wording | vendor 实际 | amend cost |
+|----|-------|-----|-------------|-----------|-----------|
+| dp2 | S5-08 #4 (2026-05-11) | API name | `ShowWindow<T>()` / `CloseWindow<T>()` (ADR-011 + SP-002) | `ShowUI<T>()` / `ShowUIAsync<T>()` / `ShowUIAsyncAwait<T>()` / `CloseUI<T>()` / `HideUI<T>()` (UIModule.cs:250-460) | ~25 min |
+| dp3 | S5-08 #5 (2026-05-11) | enum 命名 | UILayer `{Background, HUD, Popup, Overlay, System}` (ADR-011 spec) | UILayer `{Bottom, UI, Top, Tips, System}` (WindowAttribute.cs:8) | ~25 min (含 UILayerExtensions helper 新建) |
+| dp4 | S5-02 #1 (2026-05-12) | interface 归属 | `IShadowMatchEvent.OnNearMatchEnter` (story-002 wording) | `OnNearMatchEnter` 位于 `IShadowPuzzleEvent.cs:23`；`IShadowMatchEvent` 仅含 `OnMatchScoreUpdated(int, float)` | ~30 min (story-002 amend 12 sections) |
+| dp5 | S5-02 #2 (2026-05-12) | method 名 | `OnPerfectMatchEnter` (story-002 wording) | `OnPerfectMatch` (NarrativeSequencePlayer.cs:133 + IShadowPuzzleEvent) | ~30 min (4 处 propagate fix) |
+
+**修复模式**: vendor wording 是 **ground truth** (vendor 是 framework / production code 演化的 single source of truth)；ADR / spec 文档单点 amend 对齐 vendor wording (single source of truth priority per §V2-4)。Sprint 5 累计 4 dp 修复成本 ~110 min；Sprint 6 AI-2 走 systematic batch amend (ADR-011 §G + SP-002 + ADR-014 + ADR-016 + ADR-017 + ADR-028) 预期 ~3 hr 一次性 zero out 已知 spec ↔ vendor wording drift。
+
+**检测层 enforcement (Sprint 6+)**:
+- R2 grep 需先 **read 接口文件** → list method 集 → grep 每 method listener 集 → 再判 chain（per Sprint 6 retro AI-3 ADR-029 V2.0 §V2-2 R2 子条增补；同时是 Type-9 dp1 衍生防御）
+- Sprint mid review (不等 retro) — 每个 spec ↔ vendor wording drift dp 即立项 V3 candidate 评估，避免累积成 amend 重负 (per Sprint 6 AI-8)
+- 同源 lessons memo: `.claude/memory/problem_2026-05-12_r2-grep-completeness-interface-method-set.md` (Type-9 原型 + Type-5(b) cross-link)
+
+#### §V3-1.c Spec ↔ Vendor API Range Drift (Type-5 (c))
+
+**问题模式**: spec 假设 method parameter value range (e.g. `OnRequestSceneChange(0)` 合法) ↔ vendor 实际只允许 subset range (e.g. `targetChapterId in [1, 5]`)；R2 grep ≥1-hit（method 名 + signature 都对；callsite 编译通过）；runtime 时 vendor 进 Error state / 抛 exception / silent return。
+
+**为什么 R1/R2 grep 看不见**：
+- Method 名 + signature 都对 → grep ≥1-hit
+- Range 限制在 vendor implementation 注释 / 内部 validation 代码里，spec 端不可见
+- R3 PlayMode probe **可暴露**（如 Sprint 5 S5-02 P5 spike 暴露 chapter 0 spec drift）— 与 Type-2(c) framework boundary behavior 重叠，但本质是 spec ↔ vendor API range mismatch 而非 framework behavior assumption
+
+**Sprint 5 实战 dp6 (S5-02 #3 2026-05-12)**:
+
+| dp | story | spec 假设 | vendor 实际 | runtime 现象 | amend cost |
+|----|-------|---------|-----------|------------|-----------|
+| dp6 | S5-02 #3 | `ISceneEvent.OnRequestSceneChange(0)` chapter 0 = unload (story spec wording) | `ISceneEvent.cs:24` 注释 `targetChapterId 1-5 valid; 0 not supported`；SceneManager 对 id=0 走 `TryResolveOrFail` → `OnSceneLoadFailed` → `state=Error` | P5 spike FAIL — chapter 1 不被 unload + state=Error 而非 Idle | ~15 min (story amend + chapter 2 placeholder fixture + callsite 改 `OnRequestSceneChange(2)`) |
+
+**修复模式**: 二选一：(1) story / spec 端 amend — 改 callsite 走合法 range (本 dp6 选择 [A])；(2) vendor 端 amend — 扩展 vendor API support range (long-term)。优先 (1) 因 vendor amend 影响面大且需 retest。
+
+**检测层 enforcement (Sprint 6+)**:
+- R2 grep `read vendor method 注释` 加入 ADR-029 V2.0 §V2-2 R2 子条 (per Sprint 6 AI-3)
+- 任何 new ISceneEvent / IGameFlowEvent / 其他 event API method call 必须 read 对应 interface .cs 注释 + parameter validation 代码
+- 真 main menu return 路径 (chapter unload 不 reload) 留 Sprint 6 polish — 需先扩 ISceneEvent spec 或新增 IGameFlowEvent.OnReturnToMainMenu
+
+### §V3-2. Type-5 检测层总览
+
+| Sub-branch | 检测层 | 工具 / 路径 | enforcement 阶段 |
+|-----------|-------|------------|----------------|
+| (a) Toolchain silent failure | Server-independent ground truth check | image hash / IHDR / md5 / config file inspection / native OS preview / 用户原生工具仲裁 | 任何 toolchain server call 后强制 verify |
+| (b) Spec ↔ Vendor wording drift | R2 grep vendor source + 静态读 vendor 接口文件 / production code | rg + Read tool / Glob | /story-readiness gate R2 阶段 |
+| (c) Spec ↔ Vendor API range drift | R2 grep + 读 vendor method `///` 注释 / parameter validation 代码 | rg + Read tool (含 vendor 注释) | /story-readiness gate R2 阶段 + new ISceneEvent / API method call 起草时 |
+
+### §V3-3. Type-5 修复模式总览
+
+| Sub-branch | 修复模式 | 修订单位 | 文档化路径 |
+|-----------|---------|---------|-----------|
+| (a) Toolchain silent failure | Toolchain swap / 配置改 (e.g. FASTMCP_CHECK_FOR_UPDATES=off) + lessons memo | 单点 toolchain (workspace 级) | `.claude/memory/problem_YYYY-MM-DD_<slug>.md` + 跨工程 cursor rule (if 工具级) |
+| (b) Spec ↔ Vendor wording drift | ADR / SP / story 单点 amend 对齐 vendor wording (single source of truth) | ADR / SP / story / 多文档 batch amend | ADR-011 / SP-002 / ADR-014 / ADR-016 / ADR-017 / ADR-028 batch amend (per Sprint 6 AI-2) |
+| (c) Spec ↔ Vendor API range drift | Story / spec amend (改 callsite 走合法 range) OR vendor amend (扩展 vendor support range) | 优先 story / spec amend；vendor amend 留长期 | story amend + 派生 ISceneEvent spec amend (Sprint 6 polish 真 main menu return 路径时同步) |
+
+### §V3-4. V3 Trigger Conditions Status Mapping
+
+V2.0 §V2-7 #V3 升级触发条件 6 项现状映射 (Sprint 5 retro 评估)：
+
+| V3 trigger # | V2.0 起草时设计 | Sprint 5 实战 status | V3.0 落地 |
+|--------------|----------------|---------------------|----------|
+| 1 Type-1 drift > 5 min | V3 加自动化 grep gate fail | Sprint 5 平均 ~3 min/story (within budget) | 未触发；continue monitor |
+| **2 New drift type 出现** | V3 加 Type-5 + 分类 | ✅ **TRIGGERED 2026-05-12** (Type-5 6 unique dp 跨 3 stories / 4 subsystems) | **V3.0 promote (本 amend)** |
+| 3 Type-2(c) framework behavior > 2/sprint | V3 强化 framework boundary behavior probe automation | Sprint 5 Type-2(c) 0 (Session 27 #1 dp1 retracted) | 未触发；continue monitor |
+| 4 Lite propagation v2 ROI < 50% | V3 修订 single source of truth priority | Sprint 5 ROI sustained (S5 ADR amend pattern + Sprint 6 AI-2 systematic 类 propagation) | 未触发；continue monitor |
+| 5 Multi-spike sequential 后仍 race | V3 spike scheduler framework | Sprint 5 sync-subscribe race after sync-fire (S5-1c) — 与 spike scheduler 议题不同；进 Type-6 candidate | 未触发；Type-6 候选 1 dp 留观察 |
+| 6 VS-skip path Sprint 6 gate-check rerun rate < 100% | V3 修订 VS-late pattern timeline | Sprint 5 ADR-030 §VS Build 第 1 项 100% ✅；Sprint 6 gate-check 待跑 | 未触发；Sprint 6 末评估 |
+
+### §V3-5. V4 升级触发条件（V3 → V4）
+
+| 信号 | 升 V4 动作 |
+|-----|----------|
+| Type-5 sub-branch (b) wording drift > 5 dp/sprint | V4 引入 automated spec ↔ vendor wording sync check (CI-level grep + diff report) |
+| Type-5 sub-branch (a) toolchain silent failure 不同 toolchain ≥2 次同源 | V4 引入 cross-toolchain ground truth verification framework (image / config / state 三类 mandatory check) |
+| Type-6 / Type-8 / Type-9 candidate 任一升 V3 official | V4 同 V3 pattern (split or unified) 引入新 Type；V3.0 promote workflow 成熟 (单 ADR amend ~30-45 min) |
+| Sprint 6 retro 评估累计 V2.0 §V2-7 6 项 trigger 多于 1 项 TRIGGERED | V4 系统性整体升级 (vs V3.0 单 type promote) |
+| AI agent 在 dp ≥2 时未自主 V3 candidate 评估 | V4 引入 /retro mid-sprint trigger (Sprint mid review 不等 retro) — per Sprint 6 AI-8 |
 
 ---
 
@@ -581,3 +717,4 @@ ADR-029 R1/R2/R3 grep gate 形式化只能 cover **Type-1**（"API 不存在/签
 - **2026-04-30 dusk (continued #2)**: S3-03 PlayMode 首跑 5/6 PASS — P1 / P2 ADV / P3 / P4 / P6 ADV 全 PASS（v3 fix `_currentLoadedChapterId` + `BeginTransitionAsync` 11 步骨架 + 2 sender 派发顺序全部按预期）；但 **P5 FAIL** — `lastError: "P5 double-remove threw: Delete handle failed, not exist"`。**Root cause**：patch v2 AC-9 假设 TEngine `GameEvent.RemoveEventListener` 是 idempotent，实测 TEngine 抛 Exception。归 **Type-2 cross-method protocol drift 子类 (c) — Framework behavior assumption drift**：API 存在 ✅、单 method 行为契约假设错误 ❌；grep 0 hit 不可发现，仅 R3 PlayMode probe 可暴露；**第 5 数据点**。patch v3 修订（~12 min）：(1) S303 spike 拆 P5 → P5a (self-removal) + P5b (NullOutGuardPattern w/ TestSceneScopedFixture)；(2) story-005 AC-9 reformulate；(3) Engine Notes 加 framework knowledge fact；(4) Control Manifest 加 Required null-out + null-check guard / Forbidden raw double-remove；(5) production code 不变（drift 仅影响 spike 形态 + AC 措辞）。**ADR-029 V2 候选 #7 触发**：R3 PlayMode probe 必须明确包括 framework boundary behavior 测试（listener-not-exists / null-state / over-limit / cancellation 等异常路径），不只是业务 cross-method state 协议；**预测 ROI**：下游 ADR-027 listener pattern stories 在 dev-story 阶段提前发现 framework 行为契约假设，避免 R3 后再修订（节省 ~10-15 min/story）。
 - **2026-04-30 dusk (continued #1)**: S3-03 / story-005-scene-events readiness check (post-S3-02 done) — R2 STOP 抓 8 处 drift（6 Type-4 propagation 滞后 + 2 Type-1 fantasy(fade infra) + 测试路径 pivot）；patch v2 修订估约 ~15 min（**第 4 数据点**）；vs S3-02 Phase 1.5 慢 ~2x，root cause = S3-01 D5 propagation 实战首测 scope 仅含 12 active sprint files (S3-04/-01/-02/...)，未覆盖 ready backlog story-005；**触发 ADR-029 V2 候选 #6** — `propagation scope` rule：必须覆盖所有 `Status: Ready` 及以上的 stories（active sprint + ready backlog），D-level 决策落地后立即扫修订；本 story patch v2 同步引入 **IFadeOverlay placeholder + NoOpFadeOverlay 默认 impl + RegisterFadeOverlay setter** （选 [b] decision），保持 BeginTransitionAsync 11 步骨架完整 + 不引入 future fade story 反向依赖。
 - **2026-04-30 dusk**: S3-02 PlayMode runtime 首跑暴露 **Type-2 cross-method protocol drift**（第 3 数据点）— R1 ✅ R2 ✅ Phase 1.5 全过、grep §1 0-hit / §2 4 项 ≥1-hit、static 实施完整，但 PlayMode S302 spike 6/6 cases FAIL：root cause = `LoadChapterSceneAsync` 仅 set `_currentChapterSceneName`，`_currentChapterId` 仅由 `OnRequestSceneChange` set；`UnloadCurrentChapterAsync` 用前者守卫但前者在 spike 直调路径永 = NoChapterId → silent return；scene 永不被卸；listener 永不 fire；同时暴露生产 driver 路径 sender 派错 chapter id 的 bug。v3 修复（SceneManager.cs）：引入 `_currentLoadedChapterId` 配对字段（与 sceneName atomic 配对作为已加载身份单一事实源），LoadChapterSceneAsync 成功路径同步 set，ClearCurrentChapterSceneName 同步 reset，UnloadCurrentChapterAsync guard 与 sender 都用新字段。R3 cycle 时间 21 min（首跑 6min + 决策矩阵 4min + fix + doc 11min）。**关键 insight**：R1/R2 grep gate 永远抓不到 cross-method state lifecycle 协议不一致；ADR-029 V2 必须把 R3 PlayMode probe 列为 mandatory（非 optional）。Type-2 (cross-method) 加入 ADR-029 V2 候选 trigger condition：任何新建 SceneManager-scope public method 必须 PlayMode spike 验证后才算 readiness PASS。
+- **2026-05-12 evening (V3.0 promote — Sprint 5 Type-5 candidate 6 unique dp 强制 promote 阈值首次达成)**: 升级 ADR-029 V2.0 → V3.0 (backward-compatible minor major revision per Sprint 5 retro AI-1 [A] split 决策)。新增 §Decision V3.0 5 sections：(§V3-1) Drift Type-5 'Spec/Tooling ↔ Reality Drift' Official Promotion — split 三分支 (a) toolchain silent failure (dp1 S5-01 unity-mcp v9.6.x 2026-05-09) / (b) spec ↔ vendor wording drift (dp2 S5-08 #4 ShowUI + dp3 S5-08 #5 UILayer + dp4 S5-02 #1 IShadowMatch interface 归属 + dp5 S5-02 #2 OnPerfectMatch wording) / (c) spec ↔ vendor API range drift (dp6 S5-02 #3 ISceneEvent chapter 0 spec drift)；(§V3-2) Type-5 检测层总览 (a)(b)(c) 三分支独立 detection layer；(§V3-3) Type-5 修复模式总览；(§V3-4) V3 trigger conditions 6 项 status mapping — only #2 'New drift type' ✅ TRIGGERED → V3.0 promote；其他 5 项未触发 continue monitor；(§V3-5) V4 升级触发条件 5 项 (留 Sprint 6+)。**V3.0 起草投入** ~40 min (结构 5 min + V3-1 三分支 detail 25 min + V3-2/3/4/5 10 min；与 V2.0 起草预测 V3 ~15 min 偏离 +25 min 因 split 三分支细化 outweigh structure pre-formed 收益 — Sprint 6 后续 V4 升级如选 unified 增量可降至 ~15 min)。**V2.0 → V3.0 升级影响**：downstream stories 引用 ADR-029 不需变更（仍引 ADR-029，自动获得 V3.0）；Sprint 6 AI-2 ADR-011 §G + SP-002 + ADR-014 + ADR-016 + ADR-017 + ADR-028 systematic wording amend 是 V3.0 §V3-1.b 修复模式的实战 propagation（per single source of truth priority §V2-4）；Sprint 6 AI-3 ADR-029 V2.0 §V2-2 R2 grep 完备性子条增补 是 V3.0 §V3-1.b/.c enforcement layer 的精化。Status: Accepted V3.0 (2026-05-12 evening)。sprint-status.yaml Type-5 trigger 同步升级 TRIGGERED → PROMOTED stable V3.0 (本 commit 一并 sync)。
