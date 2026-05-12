@@ -6,6 +6,7 @@
 //   * 无 Spike → 回落到 GameLobbyState 保持路径可达
 
 #if UNITY_EDITOR || DEBUG
+using Cysharp.Threading.Tasks;
 using TEngine;
 
 namespace GameLogic
@@ -24,18 +25,53 @@ namespace GameLogic
                 return;
             }
 
-            // story-001c (2026-05-09): listener-path driver 自闭环（ADR-009 §Decision line 386 spec align）
-            //   顺序关键：先 RunRequested() 让 spike GameObject AddComponent 触发 spike Runtime.Awake()
-            //   subscribe listeners，再 OnRequestSceneChange(1) 让 listener-path driver 同步 fire
-            //   OnSceneTransitionBegin 时 spike listeners 已 attached (S5-1b F4 800ms delay 掩盖的 race
-            //   现在通过 sync Awake subscribe 显式解决，per story-001c P1 sync-subscribe pattern)。
-            DevTest.DevBootstrap.RunRequested();
-            Log.Info("[GameFlow] [story-001c] DevBootstrap.RunRequested() 完成 → spike Awake() 已 subscribe");
+            // S5-02 (2026-05-12): main menu 模式 — 不 auto-fire OnRequestSceneChange(1)，
+            //   而是 ShowUI<MainMenuPanel> + 让 spike P1 case 通过 Button.onClick.Invoke() 模拟点击
+            //   触发完整 production main menu Button → ISceneEvent.OnRequestSceneChange(1) → SceneManager 自驱 11-step 路径。
+            // 其他历史 spike (S5-1c 等) 保留原 auto-fire 行为以兼容 sync-subscribe race precedent。
+            if (DevTest.DevBootstrap.HasSpike("S5-02"))
+            {
+                Log.Info("[GameFlow] [S5-02] 检测到 S5-02 spike — main menu Button click 模式");
 
-            GameEvent.Get<ISceneEvent>().OnRequestSceneChange(1);
-            Log.Info("[GameFlow] [story-001c] 已派发 ISceneEvent.OnRequestSceneChange(1) → production listener-path driver 自驱 11-step");
+                // 先 RunRequested() 让 spike Runtime.Awake() 同步 subscribe production listeners
+                // (per S5-1c lessons memo problem_2026-05-09_spike-sync-subscribe-race.md)
+                DevTest.DevBootstrap.RunRequested();
+                Log.Info("[GameFlow] [S5-02] DevBootstrap.RunRequested() 完成 → spike Awake() 已 subscribe");
+
+                // 异步 Show main menu panel (走 production UIWindow 路径 — vendor ShowUIAsync → OnCreate
+                // 内 Button.onClick.AddListener 挂载完成后 spike P1 case 才能 Button.onClick.Invoke())
+                ShowMainMenuPanelAsync().Forget();
+                Log.Info("[GameFlow] [S5-02] ShowMainMenuPanelAsync 已启动 (spike P1 等 panel 就绪后 Invoke Button)");
+            }
+            else
+            {
+                // story-001c (2026-05-09): listener-path driver 自闭环（ADR-009 §Decision line 386 spec align）
+                //   顺序关键：先 RunRequested() 让 spike GameObject AddComponent 触发 spike Runtime.Awake()
+                //   subscribe listeners，再 OnRequestSceneChange(1) 让 listener-path driver 同步 fire
+                //   OnSceneTransitionBegin 时 spike listeners 已 attached (S5-1b F4 800ms delay 掩盖的 race
+                //   现在通过 sync Awake subscribe 显式解决，per story-001c P1 sync-subscribe pattern)。
+                DevTest.DevBootstrap.RunRequested();
+                Log.Info("[GameFlow] [story-001c] DevBootstrap.RunRequested() 完成 → spike Awake() 已 subscribe");
+
+                GameEvent.Get<ISceneEvent>().OnRequestSceneChange(1);
+                Log.Info("[GameFlow] [story-001c] 已派发 ISceneEvent.OnRequestSceneChange(1) → production listener-path driver 自驱 11-step");
+            }
 
             Log.Info("[GameFlow] DevTestState 停留：等待 Spike 结果（手动停 PlayMode 结束）");
+        }
+
+        // S5-02 main menu panel 异步 Show — 走完整 production UIWindow 路径
+        // 不 catch 异常: panel 缺失等问题应该 fail loud 不该被 swallow
+        private static async UniTaskVoid ShowMainMenuPanelAsync()
+        {
+            if (GameModule.UI == null)
+            {
+                Log.Error("[GameFlow] [S5-02] GameModule.UI == null — TEngine UIModule 未 init？");
+                return;
+            }
+
+            var panel = await GameModule.UI.ShowUIAsyncAwait<MainMenuPanel>();
+            Log.Info($"[GameFlow] [S5-02] MainMenuPanel ShowUI 完成 instance={(panel != null ? panel.GetType().Name : "null")}");
         }
 
         protected override void OnLeave(IFsm<IFsmModule> fsm, bool isShutdown)

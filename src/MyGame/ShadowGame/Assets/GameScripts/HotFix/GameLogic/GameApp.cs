@@ -58,6 +58,11 @@ public partial class GameApp
     // S5-1b fixture ChapterDataProvider — Luban TbChapter 真接入 deferred to post-VS (user decision 2026-05-09)。
     // 签名 Func<int, ChapterData> 与未来 ConfigSystem.Tables.TbChapter.Get(id) 真接入 100% 一致；
     // migration 仅 1 lambda swap：id => ConfigSystem.Tables.TbChapter.Get(id)。
+    //
+    // S5-02 (2026-05-12 Session 27 #3 P5 修复): 加 chapter 2 = 复用 chapter 1 scene 作 MVP placeholder
+    //   ('Next Chapter' Button click → OnRequestSceneChange(2) → unload chapter 1 + reload Chapter_01_Approach scene);
+    //   Sprint 6 polish 时换真 chapter 2 art asset / 移除 chapter 2 fixture (Type-5 dp6 NEW spec drift —
+    //   story 原写 chapter 0 = main menu return 但 ISceneEvent.cs:24 仅支持 1..5)。
     private static System.Func<int, GameLogic.ChapterData> BuildFixtureChapterDataProvider() => id => id switch
     {
         1 => new GameLogic.ChapterData(
@@ -66,6 +71,15 @@ public partial class GameApp
             bgmAsset: string.Empty,                       // chapter 1 暂无 BGM；audio 系统 S5-02 接入
             emotionalWeight: 1.0f,                        // ADR-009 默认值
             overlayColor: "#3A3530"                       // art-bible.md line 53 + scene-management.md line 443
+        ),
+        // chapter 2 MVP placeholder: 复用 chapter 1 scene asset；仅为 S5-02 P5 'Next Chapter' Button click
+        // 走完整 11-step unload+reload 路径；Sprint 6 art-asset polish 时替换真 chapter 2 scene asset
+        2 => new GameLogic.ChapterData(
+            id: 2,
+            sceneId: "Chapter_01_Approach",
+            bgmAsset: string.Empty,
+            emotionalWeight: 1.0f,
+            overlayColor: "#3A3530"
         ),
         _ => null                                          // 未知 id 同 Luban TbChapter.Get fail-loud 行为
     };
@@ -86,13 +100,16 @@ public partial class GameApp
         // S5-05 已在 Sprint 5 ✅ DONE（2026-05-08 PlayMode 10/10 PASSED — Narrative Sequence Engine R3 + V2-5），不再每次启动并发跑。
         // S5-06 已在 Sprint 5 ✅ DONE（2026-05-08 PlayMode 10/10 PASSED first-run — Audio Manager Init R3 + V2-5；evidence: production/qa/playmode-audio-mix-architecture-2026-05-08.md），不再每次启动并发跑。
         // S5-1c 已在 Sprint 5 ✅ DONE（2026-05-09 PlayMode 5/5 PASSED 24/24 asserts — ADR-009 listener-path driver + F4 stub 永久移除），不再每次启动并发跑。
-        // S5-08 当前 active spike（Sprint 5 Track D — story-001 UIModule narrow scope amendment）：
-        //   验证 TEngine framework 自动 init UIModule + UIRoot scene 实例化 + GameModule.UI 静态门面 +
-        //   ShowUI / CloseUI / HideUI API 通路 + UIWindow vendor 7+2 lifecycle 顺序 + Button.onClick path。
-        //   4 R3 case M1 双层模式复用 S5-1b/1c precedent；mock panel 走 Resources.Load
-        //   (Assets/Resources/UI/S5_08_MockMinimalPanel.prefab) 不撞 YooAsset 锁。
+        // S5-08 已在 Sprint 5 ✅ DONE（2026-05-11 PlayMode 4/4 PASSED 29/29 asserts — UIModule + UIWindow vendor lifecycle + Button.onClick path），不再每次启动并发跑。
+        // S5-02 当前 active spike（Sprint 5 Track A — VS chapter 1 epic / story-002 end-to-end 5 系统串通 happy path）：
+        //   验证 chapter 1 入口 main menu Button click → SceneManager 11-step → puzzleStateMachine state transit →
+        //   NarrativeSequencePlayer.cs:133 listener auto-response OnPerfectMatch → audio ducking → unload。
+        //   5 R3 case M1 production reflection 全程复用 S5-1b/1c precedent；spike Awake() 同步 subscribe + 自管
+        //   PuzzleStateMachine / NarrativeSequencePlayer instance lifecycle (production 0-caller — Sprint 6+ 接管)。
+        //   main menu Button → Resources.Load (Assets/Resources/UI/MainMenuPanel.prefab)。
         //   仅本 spike 启用，其他全部注释（type-3 race 防御）。
-        GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S508Spike());
+        GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S502Spike());
+        // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S508Spike());
         // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S51cSpike());
         // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S51bSpike());
         // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.SP011Spike());

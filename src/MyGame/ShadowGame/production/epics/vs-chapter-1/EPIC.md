@@ -18,8 +18,8 @@
 > - **ADR-029 V2.0** (R1/R2/R3 readiness gate)
 >
 > **Engine Risk**: LOW (所有依赖 framework 已实施；本 epic 主要是 asset + integration 工作)
-> **Status**: In-Progress (Sprint 5; story-001 ✅ DONE 2026-05-09 + story-001b ✅ DONE 2026-05-09 + story-001c ✅ DONE 2026-05-09 spec ↔ impl alignment fix + story-002 Draft 2026-05-11 end-to-end happy path + story-003 Sprint 6 placeholder error/restart path)
-> **Stories**: 5 stories (S5-01 scene asset ✅ + S5-1b boot integration ✅ + S5-1c listener-path driver fix ✅ + S5-02 end-to-end happy path Draft + S5-2b error/restart placeholder Sprint 6) — *2026-05-11 architecture change: S5-02 contained in this epic dir; S5-02b error/restart path 拆出 S5-2b Sprint 6 backlog*
+> **Status**: **✅ Sprint 5 Track A 收官** (Sprint 5; story-001 ✅ DONE 2026-05-09 + story-001b ✅ DONE 2026-05-09 + story-001c ✅ DONE 2026-05-09 spec ↔ impl alignment fix + **story-002 ✅ DONE 2026-05-12** end-to-end happy path 5/5 R3 PASS / 36 asserts / total 3844ms + story-003 Sprint 6 placeholder error/restart path)
+> **Stories**: 5 stories (S5-01 scene asset ✅ + S5-1b boot integration ✅ + S5-1c listener-path driver fix ✅ + **S5-02 end-to-end happy path ✅** + S5-2b error/restart placeholder Sprint 6) — *2026-05-12: ADR-030 §VS Build commitment 第 1 项 **100% 完成 ✅**；Sprint 5 Track A 收官；Sprint 5 Must Have 全 ✅；Unlocks S5-07 internal playtest + Sprint 6 启动*
 
 ---
 
@@ -30,7 +30,7 @@
 | [story-001](story-001-scene-build.md) | Chapter 1 (靠近) Unity scene 实体构建首版 | Asset | ✅ Done 2026-05-09 | 3 |
 | [story-001b](story-001b-scenemanager-boot-integration.md) | SceneManager boot pipeline 接入 + fixture ChapterDataProvider | Logic / Integration | ✅ Done 2026-05-09 | 3 |
 | [story-001c](story-001c-adr009-listener-path-driver.md) | ADR-009 production listener-path driver 接入（移除 S5-1b F4 dev-only stub）| Logic / Integration | ✅ Done 2026-05-09 | 2 |
-| [story-002](story-002-end-to-end-flow.md) | Chapter 1 end-to-end 5 系统串通可玩（happy path）| Integration | Draft 2026-05-11 | 2 |
+| [story-002](story-002-end-to-end-flow.md) | Chapter 1 end-to-end 5 系统串通可玩（happy path）| Integration | ✅ Done 2026-05-12 | 2 |
 | story-003 (placeholder) | Chapter 1 error/restart path（unknown chapter / mid-transition cancel / asset load fail / restart-from-Error）| Integration | Sprint 6 backlog | 1 |
 
 ---
@@ -90,7 +90,7 @@ S5-02 端到端串通 5 个 P1 系统使用本 epic 提供的 scene + boot 接�
 - **story-001** (S5-01): ✅ Done 2026-05-09 — chapter scene 实体构建首版 8/8 AC PASS
 - **story-001b** (S5-1b): ✅ Done 2026-05-09 — SceneManager boot pipeline 接入 + 5/5 R3 PASS + 22/22 asserts；F4 dev-only stub temporarily in DevTestState（待 story-001c 移除）
 - **story-001c** (S5-1c): ✅ Done 2026-05-09 — ADR-009 spec ↔ impl alignment fix；SceneManager.OnRequestSceneChange 内置 DriveTransitionAsync(targetChapterId).Forget() 自闭环 listener；F4 dev-only stub in DevTestState 永久移除；ADR-009 §History 加 1 条 amendment entry；R3 PlayMode 5/5 PASS + 24/24 asserts；S5-02 启动前 cleanup 完成
-- **story-002** (S5-02): Draft 2026-05-11 — Chapter 1 end-to-end 5 系统 happy path；2 SP；hard prerequisite = S5-04 art-bible sign-off + S5-08 UIModule Setup dev-story DONE；按 Sprint 5 序列 [A] serial：S5-04 → S5-08 → S5-02 → S5-07；待 /story-readiness gate（5 大块 wiring R2 实证）通过后转 Ready
+- **story-002** (S5-02): ✅ Done 2026-05-12 — Chapter 1 end-to-end 5 系统 happy path；2 SP；R3 PlayMode 5/5 case PASS + 36/36 asserts + `all_passed=true` first-run after P5 chapter 0 spec drift fix + reflection 实测 `GameModule.Audio.MusicVolume=0.300` ducking ✅；total 3844ms ≪ 10s budget；evidence doc `production/qa/playmode-end-to-end-flow-2026-05-12.md`；Phase 3 暴露 F4 ISceneEvent chapter 0 spec drift → V3 Type-5 dp6 NEW (累计 6 unique dp 远超 promote 阈值 → Sprint 5 retro 强制 promote)；ADR-030 §VS Build commitment 第 1 项 **100% 完成 ✅**；Sprint 5 Track A 收官
 - **story-003** (S5-2b placeholder): Sprint 6 backlog — Chapter 1 error/restart path（unknown chapter / mid-transition cancel / asset load fail / restart-from-Error）；1 SP；本 sprint 不写 file，仅 sprint-status.yaml entry placeholder
 
 ### 风险
