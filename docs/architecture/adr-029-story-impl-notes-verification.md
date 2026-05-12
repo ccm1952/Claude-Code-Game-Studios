@@ -219,6 +219,35 @@ notes: "... §Impl Notes drift 修订耗时: <Xmin> ..."
 
 V2.0 §V2-2 ~ §V2-7 在此基线之上加运行时层 + propagation 协议。
 
+> 🔖 **§V2-1.b R2 增量子条款 — Interface Method Set Fan-out Check (Sprint 6 S6-06 amend 2026-05-13 — Sprint 5 retro AI-3 Type-9 dp1 closure)**
+>
+> **问题模式**: V1.0 §2 R2 表述（line 134-145）"任何 story §Implementation Notes 中调用其他模块/类的方法/字段必须经 grep 验证存在" 隐含 trust story 原文 wording — 但当 story 假设某 cross-system event chain link 通过 `IXxxEvent.OnMethodA` 实现，而 vendor 实际通过同接口的 `OnMethodB` 实现时，仅 grep `OnMethodA` 0-hit 会**误判 wiring gap**，触发不必要的 deficiency flag + 多余 bridge 实施。
+>
+> **实证案例 (Sprint 5 S5-02 Session 27 #1 R2.2 误判)**:
+> - Session 27 #1 R2.2 grep `rg "AddEventListener.*OnPuzzleComplete"` → 0 hit → 判定 PuzzleStateMachine.cs:284 派发后 chain 断裂 → story-002 amend `**Required Framework Extension**` flag (建 `PuzzleCompleteToNarrativeBridge.cs`)
+> - Session 27 #2 dev-story Phase 1.5 self-check 重查 `NarrativeSequencePlayer.cs:127-135` 发现实际 4 listener: `OnRequestSequence` + `OnPerfectMatch` + `OnAbsenceAccepted` + `OnChapterComplete`; `OnPerfectMatch` listener 直 wire puzzle→narrative chain
+> - 撤回 wiring gap 误判 + story-002 R2.2 → ✅ PASS；节省 ~60 min (Phase 2 bridge 实施 ~30 min + Phase 3 P4 R3 PlayMode 双重 trigger fail 排查 ~30 min)
+>
+> **V2.0 R2 增补协议** (强制要求 over V1.0 §2 single-method grep)：对怀疑 wiring gap 的每个 cross-system event chain 链接点：
+>
+> 1. **先 read 接口文件** (`Assets/GameScripts/HotFix/GameLogic/IEvent/IXxxEvent.cs`)，list 该接口所有 method 集（e.g. `IShadowPuzzleEvent` 的 `{OnNearMatchEnter, OnNearMatchExit, OnPerfectMatch, OnAbsenceAccepted, OnPuzzleComplete}` 5 method）
+> 2. **逐 method grep listener**：`rg "AddEventListener.*OnNearMatchEnter" Assets/GameScripts/HotFix/` / `rg "AddEventListener.*OnPerfectMatch" ...` / 全接口 method 全检（**不止 story 提到的那 1 个 method**）
+> 3. **任一 method ≥1 hit listener** → wiring chain 存在（可能走不同 method 而非 story 假设的 method）→ **amend story wording 对齐实际路径** + readiness gate 不报 wiring gap
+> 4. **全接口 method 全 0-hit** → 真 wiring gap，按 V1.0 §2 deficiency-flagged 协议处理（story 显式标 `**Required Framework Extension**`）
+>
+> **Verdict 输出要求**: readiness gate 中 "wiring gap" 判定**必须明示 grep 覆盖范围** (e.g. "grep `OnMethodA` 0-hit + `OnMethodB` 0-hit + `OnMethodC` 0-hit + ... 全 X method 全 0-hit → 真 wiring gap"). 不可仅基于单 method grep 报 wiring gap.
+>
+> **适用范围**:
+> - ADR contract method-level wiring (`IXxxEvent → IYyyEvent` cross-system event chain)
+> - vendor framework lifecycle hook listener (vendor 改 method name 同时 spec 未同步时)
+> - cross-system listener / sender 角色错位 (sender vs listener 混淆)
+>
+> **检测层归属**: V2.0 §V2-1 R2 grep gate (静态 R2 阶段 — 在 R3 PlayMode probe 前必跑；与 V1.0 §2 R2 协议同层 / 同优先级)。
+>
+> **Sprint 5 retro AI-3 Type-9 dp1 closure status**: 本 §V2-1.b 子条款 ✅ **promote into V2.0 R2 协议** 2026-05-13 (Sprint 6 S6-06 amend) — Type-9 dp1 'R2 grep 完备性 meta-drift' (Session 27 #2 NEW) closure 通过 V2.0 R2 协议增补吸收 (不 promote Type-9 为独立 drift type — meta-drift 应通过 R2 协议自身加强吸收，不引入新 drift type pollution)。
+>
+> **真相源**: `.claude/memory/problem_2026-05-12_r2-grep-completeness-interface-method-set.md` (Type-9 dp1 原型 lesson memo); V3.0 §V3-1.b dp5 同源 (S5-02 OnPerfectMatch wording drift) — wording drift 与 fan-out gap 两条不同 detection layer, 通过 (V3-1.b dp5 = wording drift detection) + (V2-1.b = fan-out gap detection) 组合覆盖.
+
 ### §V2-2. Drift Types V2 — 5 大类 + Type-2 子类细化
 
 V1.0 §"Drift 类型分类" table 提及 4 大类（Type-1/2/3/4）；V2.0 formalize 为 **5 大类 + Type-2 拆 (a)/(b)/(c) 子类** 共 7 子型态：
@@ -443,7 +472,7 @@ V2.0 §V2-2 Drift Types V2 table (Type-1/2/3/4) 不变；V3.0 在末尾追加 Ty
 **修复模式**: vendor wording 是 **ground truth** (vendor 是 framework / production code 演化的 single source of truth)；ADR / spec 文档单点 amend 对齐 vendor wording (single source of truth priority per §V2-4)。Sprint 5 累计 4 dp 修复成本 ~110 min；Sprint 6 AI-2 走 systematic batch amend (ADR-011 §G + SP-002 + ADR-014 + ADR-016 + ADR-017 + ADR-028) 预期 ~3 hr 一次性 zero out 已知 spec ↔ vendor wording drift。
 
 **检测层 enforcement (Sprint 6+)**:
-- R2 grep 需先 **read 接口文件** → list method 集 → grep 每 method listener 集 → 再判 chain（per Sprint 6 retro AI-3 ADR-029 V2.0 §V2-2 R2 子条增补；同时是 Type-9 dp1 衍生防御）
+- R2 grep 需先 **read 接口文件** → list method 集 → grep 每 method listener 集 → 再判 chain（per **§V2-1.b R2 增量子条款 — Interface Method Set Fan-out Check** ✅ promote 2026-05-13 (Sprint 6 S6-06 amend)；同时是 Type-9 dp1 衍生防御 closure）
 - Sprint mid review (不等 retro) — 每个 spec ↔ vendor wording drift dp 即立项 V3 candidate 评估，避免累积成 amend 重负 (per Sprint 6 AI-8)
 - 同源 lessons memo: `.claude/memory/problem_2026-05-12_r2-grep-completeness-interface-method-set.md` (Type-9 原型 + Type-5(b) cross-link)
 
@@ -504,7 +533,7 @@ V2.0 §V2-7 #V3 升级触发条件 6 项现状映射 (Sprint 5 retro 评估)：
 |-----|----------|
 | Type-5 sub-branch (b) wording drift > 5 dp/sprint | V4 引入 automated spec ↔ vendor wording sync check (CI-level grep + diff report) |
 | Type-5 sub-branch (a) toolchain silent failure 不同 toolchain ≥2 次同源 | V4 引入 cross-toolchain ground truth verification framework (image / config / state 三类 mandatory check) |
-| Type-6 / Type-8 / Type-9 candidate 任一升 V3 official | V4 同 V3 pattern (split or unified) 引入新 Type；V3.0 promote workflow 成熟 (单 ADR amend ~30-45 min) |
+| Type-6 / Type-8 candidate 任一升 V3 official | V4 同 V3 pattern (split or unified) 引入新 Type；V3.0 promote workflow 成熟 (单 ADR amend ~30-45 min)。⚠️ **Type-9 dp1 已 closure 2026-05-13** via §V2-1.b R2 增量子条款 absorbed into V2.0 R2 协议 (Sprint 6 S6-06 amend) — Type-9 不再作为 V4 升级 trigger candidate (meta-drift 通过 R2 协议自身加强吸收) |
 | Sprint 6 retro 评估累计 V2.0 §V2-7 6 项 trigger 多于 1 项 TRIGGERED | V4 系统性整体升级 (vs V3.0 单 type promote) |
 | AI agent 在 dp ≥2 时未自主 V3 candidate 评估 | V4 引入 /retro mid-sprint trigger (Sprint mid review 不等 retro) — per Sprint 6 AI-8 |
 
@@ -717,4 +746,5 @@ ADR-029 R1/R2/R3 grep gate 形式化只能 cover **Type-1**（"API 不存在/签
 - **2026-04-30 dusk (continued #2)**: S3-03 PlayMode 首跑 5/6 PASS — P1 / P2 ADV / P3 / P4 / P6 ADV 全 PASS（v3 fix `_currentLoadedChapterId` + `BeginTransitionAsync` 11 步骨架 + 2 sender 派发顺序全部按预期）；但 **P5 FAIL** — `lastError: "P5 double-remove threw: Delete handle failed, not exist"`。**Root cause**：patch v2 AC-9 假设 TEngine `GameEvent.RemoveEventListener` 是 idempotent，实测 TEngine 抛 Exception。归 **Type-2 cross-method protocol drift 子类 (c) — Framework behavior assumption drift**：API 存在 ✅、单 method 行为契约假设错误 ❌；grep 0 hit 不可发现，仅 R3 PlayMode probe 可暴露；**第 5 数据点**。patch v3 修订（~12 min）：(1) S303 spike 拆 P5 → P5a (self-removal) + P5b (NullOutGuardPattern w/ TestSceneScopedFixture)；(2) story-005 AC-9 reformulate；(3) Engine Notes 加 framework knowledge fact；(4) Control Manifest 加 Required null-out + null-check guard / Forbidden raw double-remove；(5) production code 不变（drift 仅影响 spike 形态 + AC 措辞）。**ADR-029 V2 候选 #7 触发**：R3 PlayMode probe 必须明确包括 framework boundary behavior 测试（listener-not-exists / null-state / over-limit / cancellation 等异常路径），不只是业务 cross-method state 协议；**预测 ROI**：下游 ADR-027 listener pattern stories 在 dev-story 阶段提前发现 framework 行为契约假设，避免 R3 后再修订（节省 ~10-15 min/story）。
 - **2026-04-30 dusk (continued #1)**: S3-03 / story-005-scene-events readiness check (post-S3-02 done) — R2 STOP 抓 8 处 drift（6 Type-4 propagation 滞后 + 2 Type-1 fantasy(fade infra) + 测试路径 pivot）；patch v2 修订估约 ~15 min（**第 4 数据点**）；vs S3-02 Phase 1.5 慢 ~2x，root cause = S3-01 D5 propagation 实战首测 scope 仅含 12 active sprint files (S3-04/-01/-02/...)，未覆盖 ready backlog story-005；**触发 ADR-029 V2 候选 #6** — `propagation scope` rule：必须覆盖所有 `Status: Ready` 及以上的 stories（active sprint + ready backlog），D-level 决策落地后立即扫修订；本 story patch v2 同步引入 **IFadeOverlay placeholder + NoOpFadeOverlay 默认 impl + RegisterFadeOverlay setter** （选 [b] decision），保持 BeginTransitionAsync 11 步骨架完整 + 不引入 future fade story 反向依赖。
 - **2026-04-30 dusk**: S3-02 PlayMode runtime 首跑暴露 **Type-2 cross-method protocol drift**（第 3 数据点）— R1 ✅ R2 ✅ Phase 1.5 全过、grep §1 0-hit / §2 4 项 ≥1-hit、static 实施完整，但 PlayMode S302 spike 6/6 cases FAIL：root cause = `LoadChapterSceneAsync` 仅 set `_currentChapterSceneName`，`_currentChapterId` 仅由 `OnRequestSceneChange` set；`UnloadCurrentChapterAsync` 用前者守卫但前者在 spike 直调路径永 = NoChapterId → silent return；scene 永不被卸；listener 永不 fire；同时暴露生产 driver 路径 sender 派错 chapter id 的 bug。v3 修复（SceneManager.cs）：引入 `_currentLoadedChapterId` 配对字段（与 sceneName atomic 配对作为已加载身份单一事实源），LoadChapterSceneAsync 成功路径同步 set，ClearCurrentChapterSceneName 同步 reset，UnloadCurrentChapterAsync guard 与 sender 都用新字段。R3 cycle 时间 21 min（首跑 6min + 决策矩阵 4min + fix + doc 11min）。**关键 insight**：R1/R2 grep gate 永远抓不到 cross-method state lifecycle 协议不一致；ADR-029 V2 必须把 R3 PlayMode probe 列为 mandatory（非 optional）。Type-2 (cross-method) 加入 ADR-029 V2 候选 trigger condition：任何新建 SceneManager-scope public method 必须 PlayMode spike 验证后才算 readiness PASS。
+- **2026-05-13 (Sprint 6 S6-06 amend — Type-9 dp1 closure via §V2-1.b R2 增量子条款 absorbed into V2.0 R2 协议)**: §V2-1 inherit V1.0 description 下追加 §V2-1.b R2 增量子条款 "Interface Method Set Fan-out Check"（line 220-249）— S5-02 Session 27 #1 R2.2 误判 + Session 27 #2 self-check 暴露 Type-9 dp1 'R2 grep 完备性 meta-drift' 通过 V2.0 R2 协议增补吸收 closure；§V3-1.b dp5 cross-link 标 "wording drift detection (V3-1.b) + fan-out gap detection (V2-1.b) 组合覆盖"；§V3-5 V4 升级触发条件 row 6 amend "Type-9 dp1 已 closure 2026-05-13 不再 V4 trigger candidate"。**S6-06 投入** ~25 min (Type-9 lesson memo 重读 + V2.0 R2 协议 fit-in 位置评估 + §V2-1.b 子条款 drafting + cross-link update + History entry)；**V2.0 → V2.x 增量影响**: V2.0 R2 协议 backward-compatible (不破 V1.0 §2 single-method grep)；增量是 strict superset（fan-out check 仅对 "怀疑 wiring gap 的 chain 链接点" 触发，daily simple API grep 仍走 V1.0 §2）；downstream stories 引用 ADR-029 不需变更。Sprint 5 retro AI-3 ✅ closure;V3.0 watch list Type-9 dp1 PROMOTED → CLOSED via V2.0 R2 协议 (✅ 在 V3.0 watch list 中移到 closure-history bucket)。Status: Accepted V3.0 (V2.0 R2 协议增补 sub-versioning V2.0.1)。
 - **2026-05-12 evening (V3.0 promote — Sprint 5 Type-5 candidate 6 unique dp 强制 promote 阈值首次达成)**: 升级 ADR-029 V2.0 → V3.0 (backward-compatible minor major revision per Sprint 5 retro AI-1 [A] split 决策)。新增 §Decision V3.0 5 sections：(§V3-1) Drift Type-5 'Spec/Tooling ↔ Reality Drift' Official Promotion — split 三分支 (a) toolchain silent failure (dp1 S5-01 unity-mcp v9.6.x 2026-05-09) / (b) spec ↔ vendor wording drift (dp2 S5-08 #4 ShowUI + dp3 S5-08 #5 UILayer + dp4 S5-02 #1 IShadowMatch interface 归属 + dp5 S5-02 #2 OnPerfectMatch wording) / (c) spec ↔ vendor API range drift (dp6 S5-02 #3 ISceneEvent chapter 0 spec drift)；(§V3-2) Type-5 检测层总览 (a)(b)(c) 三分支独立 detection layer；(§V3-3) Type-5 修复模式总览；(§V3-4) V3 trigger conditions 6 项 status mapping — only #2 'New drift type' ✅ TRIGGERED → V3.0 promote；其他 5 项未触发 continue monitor；(§V3-5) V4 升级触发条件 5 项 (留 Sprint 6+)。**V3.0 起草投入** ~40 min (结构 5 min + V3-1 三分支 detail 25 min + V3-2/3/4/5 10 min；与 V2.0 起草预测 V3 ~15 min 偏离 +25 min 因 split 三分支细化 outweigh structure pre-formed 收益 — Sprint 6 后续 V4 升级如选 unified 增量可降至 ~15 min)。**V2.0 → V3.0 升级影响**：downstream stories 引用 ADR-029 不需变更（仍引 ADR-029，自动获得 V3.0）；Sprint 6 AI-2 ADR-011 §G + SP-002 + ADR-014 + ADR-016 + ADR-017 + ADR-028 systematic wording amend 是 V3.0 §V3-1.b 修复模式的实战 propagation（per single source of truth priority §V2-4）；Sprint 6 AI-3 ADR-029 V2.0 §V2-2 R2 grep 完备性子条增补 是 V3.0 §V3-1.b/.c enforcement layer 的精化。Status: Accepted V3.0 (2026-05-12 evening)。sprint-status.yaml Type-5 trigger 同步升级 TRIGGERED → PROMOTED stable V3.0 (本 commit 一并 sync)。
