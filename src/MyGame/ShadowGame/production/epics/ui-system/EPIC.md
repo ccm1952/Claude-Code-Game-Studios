@@ -79,7 +79,7 @@ This epic is complete when:
 | ui-system-006 | MainMenu UIWindow Polish — 4 Button Group + Vendor 7+2 Lifecycle + Fade-In + BGM Hook *(2026-05-13 evening Sprint 6 S6-07 V3.0.1 vendor reality compliant rewrite + 2026-05-14 morning Phase 2.0 R2 deficiency closure)* | UI / Integration | TR-ui-005 ✅ + TR-ui-016 ✅ partial (fade-in 60fps；BGM 完整 playback 留 ui-system-006b Sprint 7+) | **Phase 2 ready (Sprint 6 S6-07)** |
 | ui-system-006b | MainMenu BGM Asset + Luban Entry *(衍生自 S6-07 Phase 2.0 R2.8 [D] mixed strategy closure 2026-05-14 morning — epic 边界 cleanup)* | Audio Asset / Integration | TR-ui-005 partial (BGM 完整 audio 体验补齐) | Backlog (Sprint 7+ Production polish phase) |
 | ui-system-007 | SettingsPanel Window (Volume, Sensitivity, Language) | UI | TR-ui-005, TR-ui-003 | Ready |
-| ui-system-008 | UIWindow Layer/Order Management (Normal, Popup, Overlay) | Logic | TR-ui-002, TR-ui-003, TR-ui-008 | Ready |
+| ui-system-008 | UIWindow Layer/Order Management — Popup Queue Verify + Auto InputBlocker Sender-Side (Top/Tips Layer) *(2026-05-13 Sprint 6 S6-08 V3.0.1 vendor reality compliant rewrite + sender-only narrow scope [A] — listener-side 留 Sprint 7+ ADR-010 InputManager epic)* | Logic / Integration | TR-ui-002 ✅ + TR-ui-003 partial (sender-side fire only；listener-side wiring Sprint 7+ ADR-010) + TR-ui-008 ✅ verify-only (vendor popup queue 已 production) | **Phase 1 ready (Sprint 6 S6-08)** |
 | ui-system-009 | Safe Area Fitting for Notch/Rounded Corner Devices | Integration | TR-ui-007 | Ready |
 | ui-system-010 | UI Text Localization via ILocalizationModule (SP-009) | Integration | TR-ui-021 | Ready (依赖 001-007) |
 
@@ -116,6 +116,22 @@ Run `/dev-story ui-system-001` to begin implementation. Recommended order: 001 �
 
 **ui-system-006b Sprint 7+ backlog 衍生**: 跨 epic boundary deficiency 留 follow-on placeholder 模式实战 (epic 边界 cleanup governance precedent — 而非污染当前 sprint scope；详 ui-system-006b story file)。
 
-**S6-08 ui-system-008 popup/inputblocker robust** (Sprint 6 Must Have 2 SP) 仍 backlog — depends on S6-07 ✅ done (Sprint 6 Track C 序列：S6-07 → S6-08)。
+**S6-08 ui-system-008 popup/inputblocker robust 实施进展** (Sprint 6 Session 30):
+
+- **2026-05-13 morning (Session 30)**: ui-system-008 Sprint 0 placeholder 5 wording drift (ShowWindow/CloseWindow API 不存在；UILayer Background/HUD/Popup/Overlay/System → vendor 实际 Bottom/UI/Top/Tips/System；PauseMenuPanel/ChapterTransitionPanel/HUDPanel/SettingsPanel 假设面板未实施；IInputService.GetBlockerStack 不存在 API；FIFO popup queue → 实际 priority DESC + enqueueOrder ASC tiebreak) → 完整 rewrite per V3.0.1 vendor reality compliant + S6-08 sender-only narrow scope [A]。
+- Phase 0 R2 vendor reality verify — 7 finding 实证：(1) UIModule.PopupQueue.cs popup queue 已 production (priority DESC + enqueueOrder ASC tiebreak) (2) UIModule.OnSortWindowDepth same-layer sorting 已 production (`depth = layer * LAYER_DEEP(2000) + N * WINDOW_DEEP(100)`) (3) InputBlocker.cs stack semantic 已 production + 9 unit test (4) `Singleton<InputBlocker>` / `class InputManager` 0-production — listener-side 留 Sprint 7+ ADR-010 (5) UIModule.ShowUI/CloseUI/HideUI 全 0-call IInputBlockerEvent (真 deficiency = Auto InputBlocker sender-side 未实施) (6) WindowAttribute UILayer enum 4 ctor 已 verify per S5-08 + UIWindow.WindowLayer 是 `int` (7) S5-05 NarrativeSequencePlayer 已 IInputBlockerEvent sender precedent (NarrativeSequencePlayer.cs:312/323)。
+- Narrow scope [A] sender-only 决策 (~2 SP)：UIModule.ShowUIImp/CloseUI/HideUI 内对 Top(2)/Tips(3) layer panel 自动 fire `GameEvent.Get<IInputBlockerEvent>().OnPushBlocker/OnPopBlocker(token = type.FullName)`；listener-side InputBlocker singleton refactor + IInputBlockerEvent listener wiring + InputManager class 创建 + S5-05 NarrativeSequencePlayer fire-and-forget closure 留 Sprint 7+ ADR-010 InputManager epic 一并实施 (epic boundary cleanup 模式复 S6-07 R2.8 [D] mixed strategy precedent)；R3 走 spike subscribe IInputBlockerEvent assert event count + token format pattern (S5-05 P3 listener spy precedent)。
+- Phase 1 story-008-ui-layer-strategy.md 完整 rewrite — 10 AC (sender Top/Tips fire + UI/Bottom/System contrast no-fire + popup queue priority + sorting + InputBlocker stack semantic verify-only + R3 30+ asserts) + 5 R3 PlayMode probe case + 9 R2 表 (R2.1~R2.6 ✅ FULLY；R2.7 ⚠️ DEFERRED Sprint 7+ ADR-010 epic boundary；R2.8 + R2.9 ⚠️ TBD Phase 2) + V3.0.1 Watch List Hooks (Type-9 dp1 closure 应用 R2.6 + Type-5 dp7 NEW reinforce mock fixture protected override + Type-5 dp6 不触发 + Type-8 dp1 可能触发 R3 P3 留观察 + **NEW dp8 candidate** DevTestState `[main-menu]` mode 复用 阈值阶进 V3.1 trigger 候选)。Phase 1 R1+R2+R3 readiness gate verdict ✅ **DEFICIENCY-FLAGGED PASS** ready for Phase 2 transition。
+
+**ui-system-008 narrow scope [A] descope 残留 mapping** (S5-08 → S6-08 closure trail):
+
+| S5-08 descope 残留 item | vendor reality | S6-08 closure |
+|---|---|---|
+| Popup Queue / Auto-Dequeue | ✅ vendor 已 production (priority DESC + ASC tiebreak — 不 FIFO) | ❌ 不补 production code (R3 P3 verify only) |
+| **Auto InputBlocker (Popup/Overlay 自动 push)** | ❌ NOT implemented (UIModule 全 0-call IInputBlockerEvent) | ✅ **核心 work — sender-side UIModule fire** |
+| Overlay limit (Tips 层 panel 数限制) | ⚠️ vendor 无 panel 数限制 | ❌ 不引入新限制 |
+| 双 InputBlocker 叠加 (multi token stack) | ✅ InputBlocker.PopBlocker LastIndexOf 安全弹 | ❌ 不补 production code (R3 P3 verify) |
+| 同层多 panel sorting | ✅ vendor OnSortWindowDepth 已 production | ❌ 不补 production code (R3 P4 verify) |
+| **IInputBlockerEvent listener wiring** | ❌ NOT wired (0 production listener) | ⚠️ DEFERRED Sprint 7+ ADR-010 InputManager epic |
 
 ---
