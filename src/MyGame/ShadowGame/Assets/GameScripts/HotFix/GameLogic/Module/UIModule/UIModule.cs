@@ -304,6 +304,8 @@ namespace GameLogic
                 window = CreateInstance(type);
                 Push(window); //首次压入
                 window.InternalLoad(window.AssetName, OnWindowPrepare, isAsync, userDatas).Forget();
+                // S6-08 [A] sender-only narrow scope: 首次 show 时对 Top/Tips layer 自动 fire OnPushBlocker
+                TryFireInputBlockerPush(window);
             }
         }
         
@@ -317,6 +319,8 @@ namespace GameLogic
                 window = CreateInstance<T>();
                 Push(window); //首次压入
                 window.InternalLoad(window.AssetName, OnWindowPrepare, isAsync, userDatas).Forget();
+                // S6-08 [A] sender-only narrow scope: 首次 show 时对 Top/Tips layer 自动 fire OnPushBlocker
+                TryFireInputBlockerPush(window);
             }
         }
 
@@ -329,7 +333,11 @@ namespace GameLogic
                 Pop(window); //弹出窗口
                 Push(window); //重新压入
                 window.TryInvoke(OnWindowPrepare, userDatas);
-                
+
+                // S6-08 [A] sender-only narrow scope: re-show 时对 Top/Tips layer 自动 fire OnPushBlocker
+                // (同 type 二次 ShowUI 触发 PushBlocker 二次；duplicate token 由 InputBlocker.PopBlocker LastIndexOf 安全弹回)
+                TryFireInputBlockerPush(window);
+
                 return true;
             }
             return false;
@@ -349,6 +357,8 @@ namespace GameLogic
                 window = CreateInstance<T>();
                 Push(window); //首次压入
                 window.InternalLoad(window.AssetName, OnWindowPrepare, isAsync, userDatas).Forget();
+                // S6-08 [A] sender-only narrow scope: ShowUIAwait 首次 show 时对 Top/Tips layer 自动 fire OnPushBlocker
+                TryFireInputBlockerPush(window);
                 float time = 0f;
                 while (!window.IsLoadDone)
                 {
@@ -379,6 +389,10 @@ namespace GameLogic
             if (window == null)
                 return;
 
+            // S6-08 [A] sender-only narrow scope: close 时对 Top/Tips layer 自动 fire OnPopBlocker
+            // (放在 InternalDestroy 之前 — window state 完全 valid，WindowLayer / GetType().FullName 可靠)
+            TryFireInputBlockerPop(window);
+
             window.InternalDestroy();
             Pop(window);
             OnSortWindowDepth(window.WindowLayer);
@@ -402,9 +416,16 @@ namespace GameLogic
 
             if (window.HideTimeToClose <= 0)
             {
+                // 短路 CloseUI 路径 — 由 CloseUI 内 TryFireInputBlockerPop 自然 fire，本处不另外 fire 避免双 fire
                 CloseUI(type);
                 return;
             }
+
+            // S6-08 [A] sender-only narrow scope: 真 hide 路径（HideTimeToClose > 0 delayed close）
+            // 对 Top/Tips layer 自动 fire OnPopBlocker — hide 即解锁 input；token 在 hide 时 pop。
+            // fromHideUI:true 标记进 _inputBlockerPoppedByHide set，后续 timer 到期 CloseUI 路径命中
+            // set 时跳过 fire 避免双 fire；re-show（TryGetWindow Pop+Push）路径会 remove set 重新激活。
+            TryFireInputBlockerPop(window, fromHideUI: true);
 
             window.CancelHideToCloseTimer();
             window.Visible = false;

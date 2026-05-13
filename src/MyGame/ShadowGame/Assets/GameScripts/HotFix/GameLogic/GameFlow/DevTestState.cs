@@ -31,7 +31,7 @@ namespace GameLogic
             // 关键：若 DevTestState 在此 pre-dispatch OnRequestSceneChange(1)，spike 启动时 chapter 1 已加载 →
             //   Button click 二次派 (chapter1→chapter1 noop) 致 spike NewGameClickDispatch case FAIL (P4 transition delta=0)。
             // 其他历史 spike (story-001c, S5-1c 等) 保留原 auto-fire 行为以兼容 sync-subscribe race precedent。
-            if (DevTest.DevBootstrap.HasSpike("S5-02") || DevTest.DevBootstrap.HasSpike("S6-07"))
+            if (DevTest.DevBootstrap.HasSpike("S5-02") || DevTest.DevBootstrap.HasSpike("S6-07") || DevTest.DevBootstrap.HasSpike("S6-08"))
             {
                 Log.Info("[GameFlow] [main-menu] 检测到 main menu spike (S5-02 / S6-07) — Button click 模式");
 

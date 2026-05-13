@@ -9,8 +9,10 @@
 > **Complexity Points**: 2
 > **GDD Requirement**: TR-ui-002 (5 UI layer levels) + TR-ui-003 (Popup/Overlay auto InputBlocker) + TR-ui-008 (Popup queue 1 visible)
 > **ADR References**: ADR-011 V3.0.1 (UIWindow Management) + ADR-027 §4 (GameEvent Interface Protocol — IInputBlockerEvent contract source) + ADR-029 V3.0.1 (R2 deficiency-flagged PASS path) + ADR-029 V2.0 §V2-1.b (Interface Method Set Fan-out Check) + SP-002 (UIWindow Lifecycle visibility modifier) + ADR-010 (InputAbstraction listener-side ⚠️ deferred Sprint 7+)
-> **Status**: Phase 0 ✅ + Phase 1 ✅ Ready for Phase 2 production code (R2 DEFICIENCY-FLAGGED PASS — R2.1~R2.6 ✅；R2.7 ⚠️ DEFERRED Sprint 7+ ADR-010 epic boundary 明示；R2.8 + R2.9 ⚠️ TBD Phase 2 实施时 verify)
+> **Status**: ✅ **Done** (Phase 0 ✅ + Phase 1 ✅ + Phase 2 ✅ + Phase 3 ✅ + Phase 4 ✅ + Phase 5 ✅ — 5/5 R3 case PASS / 35/35 asserts / `all_passed=true` Push=8 Pop=8 对称 / 0 unexpected error / V3.0.1 dp9 NEW popup queue spec wording drift closure)
 > **Created**: 2026-05-13 morning (Sprint 6 Session 30 — rewrite from Sprint 0 placeholder per V3.0.1 vendor reality compliant + S6-08 sender-only narrow scope [A] decision)
+> **Updated**: 2026-05-13 afternoon (Sprint 6 Session 30 Phase 2+3+4+5 — production code + R3 PlayMode 5/5 PASS + V3.0.1 dp9 NEW popup queue spec wording drift closure + Phase 4 evidence doc + Phase 5 closure)
+> **Completed**: 2026-05-13 afternoon (Session 30)
 > **Depends on**: S5-08 ✅ (UIModule narrow scope) + S5-05 ✅ (NarrativeSequencePlayer + IInputBlockerEvent contract + sender precedent) + S6-05 ✅ (ADR-011 §G systematic wording amend) + S6-06 ✅ (ADR-029 V2.0 §V2-1.b R2 增量子条款) + S6-07 ✅ (DevTestState `[main-menu]` mode 复用 precedent + V3.0.1 dp7 NEW protected override + R2 deficiency-flagged PASS path 实战首次完整跑通)
 
 ---
@@ -274,7 +276,7 @@ Phase 1 完成内容 (Session 30 morning 2026-05-13)：
 
 ✅ R2 deficiency flag **R2.7 DEFERRED + R2.8 + R2.9 TBD** 等 Phase 2 实施时 verify — per ADR-029 V2.0 §V2-1 R2 DEFICIENCY-FLAGGED PASS path (类似 S6-07 R2.6 + R2.8 ⚠️ TBD 路径) ✅ READY for Phase 2 transition。
 
-**Status**: Phase 0 R2 verify ✅ DONE + Phase 1 readiness gate ✅ READY → ready for Phase 2 production code 实施。
+**Status**: ✅ **DONE** (Phase 0 ✅ + Phase 1 ✅ + Phase 2 ✅ + Phase 3 ✅ + Phase 4 ✅ + Phase 5 ✅ — 2026-05-13 afternoon Session 30)。Phase 2 production code 6 file (UIModule.InputBlocker.cs NEW + UIModule.cs amend + 7 Mock UIWindow + Editor + 7 prefab + S6-08 spike + GameApp + DevTestState wire)；Phase 3 R3 PlayMode 5/5 case PASS / 35/35 asserts / `all_passed=true` 第 2 跑 after V3.0.1 dp9 NEW spec wording amend / Push=8 Pop=8 对称 / 0 unexpected error；Phase 4 evidence doc `production/qa/playmode-popup-auto-blocker-2026-05-13.md` 8 sections；Phase 5 closure (本 story Status + sprint-status.yaml + active.md + commit pending)。
 
 ---
 
@@ -314,6 +316,33 @@ Phase 1 完成内容 (Session 30 morning 2026-05-13)：
 ---
 
 ## History
+
+- **2026-05-13 afternoon (Sprint 6 Session 30 Phase 2 + Phase 3 + Phase 4 + Phase 5 closure)** — ✅ **DONE**:
+  - **Phase 2 production code 实施**:
+    - `Assets/GameScripts/HotFix/GameLogic/Module/UIModule/UIModule.InputBlocker.cs` **NEW** ~85 行 — partial class `TryFireInputBlockerPush/Pop(UIWindow, fromHideUI=false)` helper + `_inputBlockerPoppedByHide` HashSet state tracking (防 HideUI delayed close → timer → CloseUI 双 fire) + `ShouldFireInputBlocker(UIWindow)` static layer filter (`layer == (int)UILayer.Top || layer == (int)UILayer.Tips`)
+    - `Assets/GameScripts/HotFix/GameLogic/Module/UIModule/UIModule.cs` ~+20 行 minor amend — 6 hook entry insert: `ShowUIImp(Type)` / `ShowUIImp<T>` / `ShowUIAwaitImp<T>` 3 first-show 各 Push 后 fire push + `TryGetWindow` re-show 路径 (Pop+Push 后) fire push + `CloseUI(Type)` `InternalDestroy()` 之前 fire pop + `HideUI(Type)` 真 hide 路径 (HideTimeToClose > 0) `Visible=false` 之前 fire pop fromHideUI:true
+    - `Assets/GameScripts/HotFix/GameLogic/DevTest/Spikes/S6_08_MockPanels.cs` **NEW** ~160 行 — 7 mock UIWindow class (MockTopPanel + MockTopPanel2 [Top=2] + MockTipsPanelA/B/C [Tips=3] + MockBottomPanel [Bottom=0] + MockSystemPanel [System=4]) 各 [Window] attribute + 静态 LastInstance tracking
+    - `Assets/Editor/DevTest/S6_08_MockPanelsGenerator.cs` **NEW** ~120 行 — Editor MenuItem `Tools/S6-08/Generate Mock Panel Prefabs (All)` 7 prefab batch generate (Canvas + GraphicRaycaster + Image 程序化 layout，无 Button child 因 spike 直接调 CloseUI<T>())
+    - 7 `Assets/Resources/UI/Mock*.prefab` **NEW** (Tools/S6-08/Generate batch — MockTopPanel + MockTopPanel2 + MockTipsPanelA/B/C + MockBottomPanel + MockSystemPanel)
+    - `Assets/GameScripts/HotFix/GameLogic/DevTest/Spikes/S6-08_PopupAutoBlocker.cs` **NEW** ~680 行 — 1 spike + 2 inner class (S608Spike/S608Runtime/S608Tester) + 5 R3 case (P1 TopLayerSenderVerify + P2 UIBottomSystemNoFire + P3 TipsPopupQueueChain + P4 SortingDepthVerify + P5 PauseResumeClearQueue) + JSON evidence dump `~/Library/Application Support/DefaultCompany/Unity/S6-08_Result.json` + Phase 3 dp9 NEW closure amend (P3 enqueue 顺序对齐 + P3/P5 头/尾 ClearAndClosePopupQueue cleanup)
+    - `Assets/GameScripts/HotFix/GameLogic/GameApp.cs` minor amend — RegisterDevSpikes S607Spike → S608Spike 切换 + S6-07 done note added
+    - `Assets/GameScripts/HotFix/GameLogic/GameFlow/DevTestState.cs` minor amend — `HasSpike("S5-02") || HasSpike("S6-07")` → `... || HasSpike("S6-08")` (V3.0.1 dp8 candidate +1 = 3，距 V3.1 trigger 阈值 4 还差 1)
+  - **Phase 3 R3 PlayMode 实测**:
+    - 第 1 跑 (16:10) — P1 ✅ + P2 ✅ + P3 ❌ + P4 ❌ + P5 ❌ → 暴露 **V3.0.1 dp9 NEW popup queue spec wording drift**：Phase 1 spec wording "priority DESC + enqueueOrder ASC tiebreak 决定 show order" 与 vendor 实际行为不符 — vendor `EnqueuePopup` 内 `if (_currentPopupType == null && !_isPopupQueuePaused) TryShowNextPopup()` → **first enqueue (cur=null 时) 立即 show**，priority 只影响**后续 queue insertion order**；P3 cleanup 残留污染 P4/P5 (cur=MockTipsPanelB 未真 close 因 CloseUI<B> no-op B 不在 stack)
+    - Phase 3 spike amend (V3.0.1 dp9 NEW closure) — P3 enqueue 顺序与 priority DESC 顺序对齐 (A=30, B=20, C=10) 使 enqueue 顺 == show 顺 + P3/P5 头尾 `ClearAndClosePopupQueue()` cleanup 保证 state 隔离
+    - 第 2 跑 (16:14) — **5/5 case PASS + 35/35 asserts + `all_passed=true` + Push=8 Pop=8 对称 + 0 unexpected error + Total elapsed 1038ms < 5s perf budget**
+  - **Phase 4 Evidence doc 写入**:
+    - `production/qa/playmode-popup-auto-blocker-2026-05-13.md` **NEW** ~430 行 — 8 section evidence doc (§0 概要 + §1 R3 5 case detail + §2 R2 8/8 closure + §3 AC 10/10 verify + §4 V3.0.1 dp9 NEW closure + dp8 candidate +1 + dp7 NEW 复用 + dp1 absorbed + NEW dp10 candidate (partial class scoped scope 模式) + §5 Sprint 6 Track C insight + §6 Files changed + §7 References + §8 Verdict)
+  - **Phase 5 Closure** (本 entry):
+    - Status: Phase 0+1 readiness-gate-done → **✅ Done** (Phase 2+3+4+5 全 closure)
+    - sprint-status.yaml S6-08 status: phase-1-readiness-gate-done → done + completion details
+    - session-state/active.md Phase + Next milestone update (Sprint 6 Track C: S6-07 ✅ + S6-08 ✅ + S6-04 🔜)
+    - V3.0.1 dp9 NEW popup queue spec wording drift closure entry — ADR-029 V3.x watch list candidate 沉淀
+  - **R3 Push tokens (8)**: P1 Top (1) + P3 TipsA + TipsB + TipsC (3) + P4 Top + Top2 + TipsA (3) + P5 TipsA (1) = 8 total
+  - **R3 Pop tokens (8)**: P1 Top + P3 TipsA + TipsB + TipsC + P4 TipsA + Top2 + Top + P5 TipsA = 8 total (push-pop 对称 实证 sender 链路 well-formed)
+  - **V3.0.1 dp9 NEW closure governance insight** — Phase 1 readiness gate R2 verify 阶段未完整模拟 vendor `EnqueuePopup` 内 trigger pattern；Phase 3 第 1 跑 R3 fail 暴露；Phase 3 spec amend + spike rewrite 走 V2.0 §V2-1.b 第二轮 verify 路径 closure；ADR-029 V3.x watch list candidate (popup queue spec wording 系列 — 未来 ADR 写 popup queue 行为需细化 "first enqueue immediate show vs priority sort distinction"；vendor `EnqueuePopup` 内 `if (_currentPopupType == null && !_isPopupQueuePaused) TryShowNextPopup()` 是核心 trigger pattern)
+  - **NEW dp10 candidate** (UIModule partial class scoped scope 模式) — `UIModule.InputBlocker.cs` 与 `UIModule.PopupQueue.cs` 同模式；V3.1 trigger 阈值 partial class file count >= 5 时评估
+  - **Phase 2/3/4/5 投入** ~3-4 hr (Phase 2 UIModule + 7 mock + Generator + 7 prefab + spike ~1.5-2 hr + Phase 3 第 1 跑 + dp9 NEW closure amend + 第 2 跑 ~30-45 min + Phase 4 evidence doc ~30-40 min + Phase 5 closure ~15-20 min)
 
 - **2026-05-13 morning (Sprint 6 Session 30 Phase 0 R2 verify + Phase 1 readiness gate)**:
   - Phase 0 R2 vendor reality verify — 7 finding 实证：(1) UIModule.PopupQueue.cs popup queue 已 production (priority DESC + enqueueOrder ASC tiebreak — 不 simple FIFO) (2) UIModule.OnSortWindowDepth same-layer sorting 已 production (`depth = layer * LAYER_DEEP + N * WINDOW_DEEP`) (3) InputBlocker.cs stack semantic 已 production + 9 unit test (4) `Singleton<InputBlocker>` / `class InputManager` 0-production (Sprint 7+ ADR-010 epic) (5) UIModule.ShowUI/CloseUI/HideUI 全 0-call IInputBlockerEvent (真 deficiency = Auto InputBlocker sender-side 未实施) (6) WindowAttribute UILayer enum 4 ctor 已 R2 verify per S5-08 + UIWindow.WindowLayer 是 `int` 不是 UILayer enum (7) S5-05 NarrativeSequencePlayer 已 IInputBlockerEvent sender precedent (line 312/323)

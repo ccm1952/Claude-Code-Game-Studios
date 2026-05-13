@@ -104,17 +104,24 @@ public partial class GameApp
         // S5-02 已在 Sprint 5 ✅ DONE（2026-05-12 Session 27 #3 第 2 跑 PlayMode 5/5 PASSED — chapter 1 end-to-end 5 systems integration happy path；evidence: production/qa/playmode-end-to-end-flow-2026-05-12.md），不再每次启动并发跑。
         //   注意：S5-02 spike P5 case (NextChapterButtonSwitchToChapter2) 在 Sprint 6 S6-07 dev-story Phase 2 [A] decision delete (chapter switch verify scope shrink → Sprint 7+ ChapterStateManager + ChapterSelect epic single spike)；
         //   S5-02 spike 现 4 case (P1-P4 chapter 1 happy path) — 历史 Sprint 5 5 case PASS 不丢。
-        // S6-07 当前 active spike（Sprint 6 Track C — ui-system epic / story-006 main menu UIWindow polish）：
-        //   验证 4 button group polish (NewGame / Continue placeholder / Settings placeholder / Quit) +
-        //   vendor 7+2 lifecycle protected override (V3.0.1 dp7 NEW reinforce — 防 spec wording drift 未来再引入
-        //   `public override` 不被发现) + fade-in 0.3s DOTween OutQuad + BGM hook AudioManager.Instance.PlayMusic
-        //   ("main_menu_bgm", 1.0f) Log sniffer fail-safe verify (Phase 2.0 R2.8 [D] closure — 真 BGM playback 留
-        //   Sprint 7+ ui-system-006b backlog) + NewGameButton onClick → ISceneEvent.OnRequestSceneChange(1) dispatch +
-        //   QuitButton onClick reflection delegate cache field validation (不真 Invoke 避 Editor PlayMode 停杀 spike)。
-        //   5 R3 case M1 production reflection (run order P1→P2→P3→P5→P4 destructive ordering)。
-        //   main menu prefab → Resources.Load (Assets/Resources/UI/MainMenuPanel.prefab — Tools/S6-07/Generate 重生成 4 button + CanvasGroup root)。
+        // S6-07 已在 Sprint 6 ✅ DONE（2026-05-13 PlayMode 5/5 PASSED 27/27 asserts first-attempt-after-DevTestState-fix —
+        //   main menu UIWindow polish 4 button group + vendor 7+2 lifecycle protected override + fade-in + BGM hook
+        //   fail-safe；evidence: production/qa/playmode-main-menu-polish-2026-05-13.md），不再每次启动并发跑。
+        // S6-08 当前 active spike（Sprint 6 Track C — ui-system epic / story-008 popup queue + auto inputblocker
+        //   sender-side narrow scope [A]）：
+        //   验证 UIModule.ShowUIImp/CloseUI/HideUI 对 Top(2)/Tips(3) layer panel 自动 fire
+        //   IInputBlockerEvent.OnPushBlocker/OnPopBlocker (token = type.FullName) + UI(1)/Bottom(0)/System(4) layer
+        //   不 fire contrast + vendor popup queue (priority DESC + enqueueOrder ASC tiebreak) + vendor 同层 / 跨层
+        //   sorting (LAYER_DEEP=2000 + WINDOW_DEEP=100) + pause/resume/clear queue API。
+        //   5 R3 case (P1 Top sender + P2 UI/Bottom/System no-fire + P3 popup queue priority + auto-dequeue chain +
+        //   P4 sorting + P5 pause/resume/clear)；listener spy 模式 (S5-05 P3 precedent — GameEvent.AddEventListener
+        //   IInputBlockerEvent_Event.OnPushBlocker)；reflection 拿 _currentPopupType + UIWindow.Depth。
+        //   listener-side InputBlocker singleton + InputManager class wiring 留 Sprint 7+ ADR-010 InputManager epic。
+        //   7 mock UIWindow prefab → Resources.Load (Assets/Resources/UI/Mock*.prefab — Tools/S6-08/Generate 重生成)。
+        //   复用 S5_08_MockMinimalPanel UI(1) layer fixture (P2 case)；6 个新建 Top×2 + Tips×3 + Bottom + System 各 prefab。
         //   仅本 spike 启用，其他全部注释（type-3 race 防御）。
-        GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S607Spike());
+        GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S608Spike());
+        // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S607Spike());
         // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S502Spike());
         // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S508Spike());
         // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S51cSpike());
