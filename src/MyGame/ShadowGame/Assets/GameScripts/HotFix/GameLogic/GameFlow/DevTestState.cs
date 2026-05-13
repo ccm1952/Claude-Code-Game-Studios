@@ -25,15 +25,19 @@ namespace GameLogic
                 return;
             }
 
-            // S5-02 (2026-05-12) / S6-07 (2026-05-13): main menu 模式 — 不 auto-fire OnRequestSceneChange(1)，
-            //   而是 ShowUI<MainMenuPanel> + 让 spike P1/P4 case 通过 Button.onClick.Invoke() 模拟点击
-            //   触发完整 production main menu Button → ISceneEvent.OnRequestSceneChange(1) → SceneManager 自驱 11-step 路径。
+            // S5-02 (2026-05-12) / S6-07 (2026-05-13) / S6-08 / S6-04: main menu 模式 — 不 auto-fire OnRequestSceneChange(1)，
+            //   spike 自驱 (S5-02/S6-07 ShowUI<MainMenuPanel> + Button.onClick.Invoke()；S6-08 直接 ShowUI mock panel；
+            //   S6-04 spike Start() 自 fire OnRequestSceneChange(1) baseline + 5 R3 error/restart path case)。
             // 关键：若 DevTestState 在此 pre-dispatch OnRequestSceneChange(1)，spike 启动时 chapter 1 已加载 →
-            //   Button click 二次派 (chapter1→chapter1 noop) 致 spike NewGameClickDispatch case FAIL (P4 transition delta=0)。
+            //   Button click 二次派 (chapter1→chapter1 noop) 致 spike NewGameClickDispatch case FAIL (P4 transition delta=0)；
+            //   且 S6-04 P2/P5 newest-wins pending 测试依赖 spike 完全控制 chapter 切换时机。
             // 其他历史 spike (story-001c, S5-1c 等) 保留原 auto-fire 行为以兼容 sync-subscribe race precedent。
-            if (DevTest.DevBootstrap.HasSpike("S5-02") || DevTest.DevBootstrap.HasSpike("S6-07") || DevTest.DevBootstrap.HasSpike("S6-08"))
+            // V3.0.1 dp8 candidate: [main-menu] mode HasSpike list 已增至 4 个 spike (S5-02/S6-07/S6-08/S6-04)，
+            //   触发"main-menu mode 是否独立提取 ADR" 评估阈值；详 story-003-error-restart-path.md §V3.0.1 Watch List Hooks。
+            if (DevTest.DevBootstrap.HasSpike("S5-02") || DevTest.DevBootstrap.HasSpike("S6-07") ||
+                DevTest.DevBootstrap.HasSpike("S6-08") || DevTest.DevBootstrap.HasSpike("S6-04"))
             {
-                Log.Info("[GameFlow] [main-menu] 检测到 main menu spike (S5-02 / S6-07) — Button click 模式");
+                Log.Info("[GameFlow] [main-menu] 检测到 main menu spike (S5-02/S6-07/S6-08/S6-04) — Button click 模式或 spike 自驱");
 
                 // 先 RunRequested() 让 spike Runtime.Awake() 同步 subscribe production listeners
                 // (per S5-1c lessons memo problem_2026-05-09_spike-sync-subscribe-race.md)

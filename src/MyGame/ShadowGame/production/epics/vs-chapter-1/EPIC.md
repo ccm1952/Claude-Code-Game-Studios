@@ -18,8 +18,8 @@
 > - **ADR-029 V2.0** (R1/R2/R3 readiness gate)
 >
 > **Engine Risk**: LOW (所有依赖 framework 已实施；本 epic 主要是 asset + integration 工作)
-> **Status**: **✅ Sprint 5 Track A 收官** (Sprint 5; story-001 ✅ DONE 2026-05-09 + story-001b ✅ DONE 2026-05-09 + story-001c ✅ DONE 2026-05-09 spec ↔ impl alignment fix + **story-002 ✅ DONE 2026-05-12** end-to-end happy path 5/5 R3 PASS / 36 asserts / total 3844ms + story-003 Sprint 6 placeholder error/restart path)
-> **Stories**: 5 stories (S5-01 scene asset ✅ + S5-1b boot integration ✅ + S5-1c listener-path driver fix ✅ + **S5-02 end-to-end happy path ✅** + S5-2b error/restart placeholder Sprint 6) — *2026-05-12: ADR-030 §VS Build commitment 第 1 项 **100% 完成 ✅**；Sprint 5 Track A 收官；Sprint 5 Must Have 全 ✅；Unlocks S5-07 internal playtest + Sprint 6 启动*
+> **Status**: **✅ Sprint 5 Track A 收官 + Sprint 6 Track C S6-04 ✅ 100% 收官** (Sprint 5+6; story-001 ✅ + story-001b ✅ + story-001c ✅ + **story-002 ✅** end-to-end happy path 5/5 R3 PASS + **story-003 ✅ 2026-05-13** error/restart path narrow scope [A] 0 production code change 5/5 R3 PASS / 37 asserts / total 1867ms)
+> **Stories**: 5 stories (S5-01 scene asset ✅ + S5-1b boot integration ✅ + S5-1c listener-path driver fix ✅ + **S5-02 end-to-end happy path ✅** + **S6-04 error/restart path ✅**) — *2026-05-13: ADR-030 §VS Build commitment 第 1 项 chapter 1 robustness 补全 closure；VS Chapter 1 epic 100% 完成 ✅；≥3 playtest sessions prerequisite ready*
 
 ---
 
@@ -31,7 +31,7 @@
 | [story-001b](story-001b-scenemanager-boot-integration.md) | SceneManager boot pipeline 接入 + fixture ChapterDataProvider | Logic / Integration | ✅ Done 2026-05-09 | 3 |
 | [story-001c](story-001c-adr009-listener-path-driver.md) | ADR-009 production listener-path driver 接入（移除 S5-1b F4 dev-only stub）| Logic / Integration | ✅ Done 2026-05-09 | 2 |
 | [story-002](story-002-end-to-end-flow.md) | Chapter 1 end-to-end 5 系统串通可玩（happy path）| Integration | ✅ Done 2026-05-12 | 2 |
-| [story-003](story-003-error-restart-path.md) | Chapter 1 error/restart path（unknown chapter TryResolveOrFail / newest-wins pending / asset load fail retry exhaust / RecoverToIdle restart）*(2026-05-13 Sprint 6 S6-04 V3.0.1 vendor reality compliant rewrite + narrow scope [A] 0 production code change — spike only — wording drift amend: mid-transition cancel → newest-wins pending; repeated rapid debounce → newest-wins overwrite)* | Integration | **Phase 1 ready (Sprint 6 S6-04)** | 1 |
+| [story-003](story-003-error-restart-path.md) | Chapter 1 error/restart path（unknown chapter TryResolveOrFail / newest-wins pending / asset load fail retry exhaust / RecoverToIdle restart）*(2026-05-13 Sprint 6 S6-04 V3.0.1 vendor reality compliant rewrite + narrow scope [A] 0 production code change — spike only — wording drift amend: mid-transition cancel → newest-wins pending; repeated rapid debounce → newest-wins overwrite)* | Integration | ✅ Done 2026-05-13 | 1 |
 
 ---
 
@@ -91,7 +91,7 @@ S5-02 端到端串通 5 个 P1 系统使用本 epic 提供的 scene + boot 接�
 - **story-001b** (S5-1b): ✅ Done 2026-05-09 — SceneManager boot pipeline 接入 + 5/5 R3 PASS + 22/22 asserts；F4 dev-only stub temporarily in DevTestState（待 story-001c 移除）
 - **story-001c** (S5-1c): ✅ Done 2026-05-09 — ADR-009 spec ↔ impl alignment fix；SceneManager.OnRequestSceneChange 内置 DriveTransitionAsync(targetChapterId).Forget() 自闭环 listener；F4 dev-only stub in DevTestState 永久移除；ADR-009 §History 加 1 条 amendment entry；R3 PlayMode 5/5 PASS + 24/24 asserts；S5-02 启动前 cleanup 完成
 - **story-002** (S5-02): ✅ Done 2026-05-12 — Chapter 1 end-to-end 5 系统 happy path；2 SP；R3 PlayMode 5/5 case PASS + 36/36 asserts + `all_passed=true` first-run after P5 chapter 0 spec drift fix + reflection 实测 `GameModule.Audio.MusicVolume=0.300` ducking ✅；total 3844ms ≪ 10s budget；evidence doc `production/qa/playmode-end-to-end-flow-2026-05-12.md`；Phase 3 暴露 F4 ISceneEvent chapter 0 spec drift → V3 Type-5 dp6 NEW (累计 6 unique dp 远超 promote 阈值 → Sprint 5 retro 强制 promote)；ADR-030 §VS Build commitment 第 1 项 **100% 完成 ✅**；Sprint 5 Track A 收官
-- **story-003** (S6-04): Sprint 6 Track C 最后 1 story — Chapter 1 error/restart path（unknown chapter TryResolveOrFail / newest-wins pending / asset load fail retry exhaust / RecoverToIdle restart）；1 SP；2026-05-13 afternoon Session 30 Phase 0+1 ✅ DONE + Phase 2~5 实施待 (0 production code change — spike + Editor only)；narrow scope [A] satisfaction (S5-2b placeholder 描述 2 处 wording drift 通过本 story rewrite 修正：mid-transition cancel → newest-wins pending；repeated rapid debounce → newest-wins overwrite)
+- **story-003** (S6-04): ✅ Done 2026-05-13 evening — Chapter 1 error/restart path narrow scope [A] 0 production code change spike-only；1 SP；Phase 0+1+2+3+4+5 一气呵成；5/5 R3 PASS + 37/37 asserts + `all_passed=true` + `unexpected_error_count=0` + total 1867ms < 8s budget；evidence `production/qa/playmode-error-restart-path-2026-05-13.md`；S5-2b placeholder 2 处 wording drift 通过本 story rewrite 修正 (V3.0.1 NEW dp11 candidate sprint backlog placeholder wording drift closure)；V3.0.1 dp8 candidate 阈值 4 触达 (DevTestState [main-menu] mode count = 4)；NEW dp12 candidate isolated local SceneManager + global GameEvent collateral 首次实战暴露 + closure (P3 第 1 跑 production sm collateral Error → P4/P5 FAIL → Phase 3 spike amend RunP3Async(productionSm) 加 collateral RecoverToIdle cleanup → 第 2 跑 5/5 PASS)；ADR-030 §VS Build commit 第 1 项 chapter 1 robustness 补全 closure；VS Chapter 1 epic 100% 完成 ✅
 
 ### 风险
 
