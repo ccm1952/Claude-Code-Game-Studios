@@ -3,13 +3,14 @@
 //   per story-002-end-to-end-flow.md (Session 27 #2 amend; R2 verdict ✅ PASS)。
 //
 // 关联文档:
-//   * production/epics/vs-chapter-1/story-002-end-to-end-flow.md  (10 AC + 5 R3 case)
+//   * production/epics/vs-chapter-1/story-002-end-to-end-flow.md  (10 AC + R3 case)
 //
-// R3 5 PlayMode case (M1 production reflection 全程 per S5-1c precedent):
+// R3 4 PlayMode case (M1 production reflection 全程 per S5-1c precedent；Sprint 5 原 5 case PASS Sprint 6 S6-07 [A] decision delete P5):
 //   P1 MainMenuButtonBootChapter1     — DevTestState 已 ShowUI<MainMenuPanel>；spike await ShowUI 拿同
-//                                       instance；Button.onClick.Invoke() 触发 OnRequestSceneChange(1) →
-//                                       SceneManager 11-step 自驱；验 5 lifecycle event 收到 + state=Idle
-//                                       + CurrentLoadedChapterId==1
+//                                       instance；Button.onClick.Invoke() (NewGameButton — Sprint 6 S6-07 [A]
+//                                       4 button group rename from StartChapter1Button) 触发
+//                                       OnRequestSceneChange(1) → SceneManager 11-step 自驱；验 5 lifecycle
+//                                       event 收到 + state=Idle + CurrentLoadedChapterId==1
 //   P2 ObjectInteractionToShadowMatch — spike fire mock IShadowMatchEvent.OnMatchScoreUpdated(1, 0.5f)
 //                                       (per F2 R2.3 simplified path — 不走 InteractableObject FSM；
 //                                       Object_01_CoffeeMug 缺 component 留 Sprint 6) → PuzzleStateMachine
@@ -21,13 +22,10 @@
 //                                       响应 P3 派发的 OnPerfectMatch → StartSequence (chapter 1
 //                                       MemoryReplay seq id=100) → 验 OnSequenceStart + OnDuckingRequest
 //                                       (0.3, 0.3) + GameModule.Audio.MusicVolume ≈ 0.3 + OnSequenceComplete
-//   P5 NextChapterButtonSwitchToChapter2 — spike await ShowUI 拿 MainMenuPanel.NextChapterButton →
-//                                       Button.onClick.Invoke() 触发 OnRequestSceneChange(2) →
-//                                       SceneManager unload chapter 1 + reload chapter 2 (= chapter 1 scene
-//                                       MVP placeholder per GameApp.BuildFixtureChapterDataProvider) →
-//                                       验 OnSceneUnloadBegin(1) + OnSceneTransitionEnd(2) + state=Idle +
-//                                       CurrentLoadedChapterId==2
-//   (Session 27 #3 P5 修复: chapter 0 spec drift → 改 chapter 2 真 transition path; V3 Type-5 dp6 NEW)
+//
+// (Sprint 5 原 P5 NextChapterButtonSwitchToChapter2 case PASS Session 27 #3 — Sprint 6 S6-07 main menu polish
+//  [A] 4 button group decision delete P5 from this spike: chapter 1 → chapter 2 switch verify scope shrink
+//  Sprint 7+ ChapterStateManager + ChapterSelect epic single spike)
 //
 // 设计约束:
 //   * Spike 模式：1 file + 3 inner class (S502Spike : IDevSpike + S502Runtime : MonoBehaviour + S502Tester 纯逻辑)
@@ -151,8 +149,6 @@ namespace GameLogic.DevTest.Spikes
             DrawRow(x + 20, lineY, w - 40, "P3 PuzzleStateTransitionToComplete (OnMatchScoreUpdated(1, 0.95) → OnPerfectMatch + OnPuzzleComplete)", _tester.P3Passed, labelStyle);
             lineY += lineH;
             DrawRow(x + 20, lineY, w - 40, "P4 NarrativeSequenceWithAudioDuck (NarrativeSequencePlayer.cs:133 listener → ducking → MusicVolume≈0.3)", _tester.P4Passed, labelStyle);
-            lineY += lineH;
-            DrawRow(x + 20, lineY, w - 40, "P5 NextChapterButtonSwitchToChapter2 (Button.onClick.Invoke → chapter 1→2 switch → state=Idle)", _tester.P5Passed, labelStyle);
             lineY += lineH + 10;
 
             var footerStyle = new GUIStyle(GUI.skin.label) { fontSize = 13, fontStyle = FontStyle.Italic };
@@ -187,11 +183,11 @@ namespace GameLogic.DevTest.Spikes
         public bool? P2Passed { get; private set; }
         public bool? P3Passed { get; private set; }
         public bool? P4Passed { get; private set; }
-        public bool? P5Passed { get; private set; }
 
+        // Sprint 6 S6-07 [A]: P5 (NextChapterButtonSwitchToChapter2) deleted — chapter switch verify scope
+        // Sprint 7+ ChapterStateManager + ChapterSelect epic single spike
         public bool AllPassed =>
-            P1Passed == true && P2Passed == true && P3Passed == true &&
-            P4Passed == true && P5Passed == true;
+            P1Passed == true && P2Passed == true && P3Passed == true && P4Passed == true;
 
         public string OverallStatus { get; private set; } = "Running";
         public long TotalElapsedMs { get; private set; }
@@ -200,14 +196,12 @@ namespace GameLogic.DevTest.Spikes
         private readonly List<string> _p2Events = new List<string>();
         private readonly List<string> _p3Events = new List<string>();
         private readonly List<string> _p4Events = new List<string>();
-        private readonly List<string> _p5Events = new List<string>();
         private readonly Dictionary<string, string> _asserts = new Dictionary<string, string>();
 
         private readonly Stopwatch _swP1 = new Stopwatch();
         private readonly Stopwatch _swP2 = new Stopwatch();
         private readonly Stopwatch _swP3 = new Stopwatch();
         private readonly Stopwatch _swP4 = new Stopwatch();
-        private readonly Stopwatch _swP5 = new Stopwatch();
         private readonly Stopwatch _swTotal = new Stopwatch();
 
         private readonly MonoBehaviour _hostBehaviour;
@@ -257,12 +251,7 @@ namespace GameLogic.DevTest.Spikes
         private Action<int, NarrativeSequenceType> _onSequenceComplete;
         private Action<float, float> _onDuckingRequest;
 
-        // ────────── P5 scene unload event listeners ──────────
-        private int _p5UnloadBeginCount;
-        private int _p5UnloadChapterId = -999;
-        private int _p5TransitionEndCount;
-        private Action<int> _p5OnUnloadBegin;
-        private Action<int> _p5OnTransitionEnd;
+        // (Sprint 6 S6-07 [A]: P5 scene unload event listeners 删除 — chapter switch verify scope shrink Sprint 7+)
 
         public S502Tester(MonoBehaviour host)
         {
@@ -343,21 +332,7 @@ namespace GameLogic.DevTest.Spikes
             GameEvent.AddEventListener<int, NarrativeSequenceType>(INarrativeEvent_Event.OnSequenceComplete, _onSequenceComplete);
             GameEvent.AddEventListener<float, float>(IAudioEvent_Event.OnDuckingRequest, _onDuckingRequest);
 
-            // P5 scene unload events
-            _p5OnUnloadBegin = id =>
-            {
-                _p5UnloadBeginCount++;
-                _p5UnloadChapterId = id;
-                _p5Events.Add($"OnSceneUnloadBegin({id})");
-            };
-            _p5OnTransitionEnd = id =>
-            {
-                _p5TransitionEndCount++;
-                _p5Events.Add($"P5_OnSceneTransitionEnd({id})");
-            };
-            GameEvent.AddEventListener<int>(ISceneEvent_Event.OnSceneUnloadBegin, _p5OnUnloadBegin);
-            // 注: OnSceneTransitionEnd 已在 P1 subscribe (_p1OnTE 计 P1 用)；P5 用独立 listener 计 P5 阶段触发
-            GameEvent.AddEventListener<int>(ISceneEvent_Event.OnSceneTransitionEnd, _p5OnTransitionEnd);
+            // (Sprint 6 S6-07 [A]: P5 scene unload event subscribe 删除 — chapter switch verify scope shrink Sprint 7+)
         }
 
         private void UnsubscribeEarlyListeners()
@@ -377,8 +352,7 @@ namespace GameLogic.DevTest.Spikes
             if (_onSequenceComplete != null) { GameEvent.RemoveEventListener<int, NarrativeSequenceType>(INarrativeEvent_Event.OnSequenceComplete, _onSequenceComplete); _onSequenceComplete = null; }
             if (_onDuckingRequest != null) { GameEvent.RemoveEventListener<float, float>(IAudioEvent_Event.OnDuckingRequest, _onDuckingRequest); _onDuckingRequest = null; }
 
-            if (_p5OnUnloadBegin != null) { GameEvent.RemoveEventListener<int>(ISceneEvent_Event.OnSceneUnloadBegin, _p5OnUnloadBegin); _p5OnUnloadBegin = null; }
-            if (_p5OnTransitionEnd != null) { GameEvent.RemoveEventListener<int>(ISceneEvent_Event.OnSceneTransitionEnd, _p5OnTransitionEnd); _p5OnTransitionEnd = null; }
+            // (Sprint 6 S6-07 [A]: P5 scene unload event teardown 删除 — chapter switch verify scope shrink Sprint 7+)
         }
 
         /// <summary>
@@ -461,7 +435,7 @@ namespace GameLogic.DevTest.Spikes
         }
 
         // ============================================================
-        // RunAllAsync — orchestrate P1..P5 in order
+        // RunAllAsync — orchestrate P1..P4 in order (Sprint 6 S6-07 [A]: P5 deleted — chapter switch verify scope shrink Sprint 7+)
         // ============================================================
 
         public async UniTask RunAllAsync()
@@ -479,9 +453,6 @@ namespace GameLogic.DevTest.Spikes
                 await UniTask.Delay(TimeSpan.FromMilliseconds(200));
 
                 await RunP4Async();
-                await UniTask.Delay(TimeSpan.FromMilliseconds(200));
-
-                await RunP5Async();
 
                 OverallStatus = AllPassed ? "All Passed" : "Some Failed";
                 Log.Info($"[S5-02] Done. AllPassed={AllPassed} Elapsed={_swTotal.ElapsedMilliseconds}ms");
@@ -521,23 +492,24 @@ namespace GameLogic.DevTest.Spikes
                 return;
             }
 
-            if (panel == null || panel.StartChapter1Button == null)
+            if (panel == null || panel.NewGameButton == null)
             {
                 _asserts["P1.MainMenuPanel_button_ref"] = panel == null
                     ? "FAIL: MainMenuPanel == null (prefab 缺失？)"
-                    : "FAIL: StartChapter1Button == null (prefab child 命名错误？)";
+                    : "FAIL: NewGameButton == null (prefab child 命名错误？— Sprint 6 S6-07 [A] rename from StartChapter1Button)";
                 _swP1.Stop();
                 P1Passed = false;
                 return;
             }
 
-            _asserts["P1.MainMenuPanel_button_ref"] = "PASS: MainMenuPanel + StartChapter1Button non-null";
+            _asserts["P1.MainMenuPanel_button_ref"] = "PASS: MainMenuPanel + NewGameButton non-null";
             _p1Events.Add($"MainMenuPanel ready frame={Time.frameCount}");
 
             // 模拟点击 — 走完整 production main menu Button → ISceneEvent.OnRequestSceneChange(1) → SceneManager 11-step 路径
             // 注: listener-path driver 同步 fire OnSceneTransitionBegin；Awake 内已 subscribe 不会 miss
-            panel.StartChapter1Button.onClick.Invoke();
-            _p1Events.Add($"StartChapter1Button.onClick.Invoke() called frame={Time.frameCount}");
+            // (Sprint 6 S6-07 [A] 4 button group rename: StartChapter1Button → NewGameButton)
+            panel.NewGameButton.onClick.Invoke();
+            _p1Events.Add($"NewGameButton.onClick.Invoke() called frame={Time.frameCount}");
 
             // 等 chapter 1 scene 11-step 完成 → state==Idle
             var prodScene = GetProductionSceneManager();
@@ -759,79 +731,9 @@ namespace GameLogic.DevTest.Spikes
                        _narrativeSequenceCompleteCount >= 1;
         }
 
-        // ============================================================
-        // P5 NextChapterButtonSwitchToChapter2 — NextChapter Button.onClick → chapter 1 → chapter 2 switch
-        // (Session 27 #3 修复: chapter 0 spec drift → 改 chapter 2 真 transition path; chapter 2 fixture
-        //  = chapter 1 scene MVP placeholder per GameApp.BuildFixtureChapterDataProvider)
-        // ============================================================
-        private async UniTask RunP5Async()
-        {
-            _swP5.Start();
-            Log.Info("[S5-02] P5 NextChapterButtonSwitchToChapter2 开始");
-
-            var prodScene = GetProductionSceneManager();
-            if (prodScene == null)
-            {
-                _asserts["P5.production_scene_manager_present"] = "FAIL";
-                _swP5.Stop();
-                P5Passed = false;
-                return;
-            }
-
-            // 拿 MainMenuPanel + NextChapterButton ref
-            MainMenuPanel panel;
-            try
-            {
-                panel = await GameModule.UI.ShowUIAsyncAwait<MainMenuPanel>();
-            }
-            catch (Exception e)
-            {
-                _asserts["P5.MainMenuPanel_show_exception"] = $"FAIL: {e.GetType().Name}: {e.Message}";
-                _swP5.Stop();
-                P5Passed = false;
-                return;
-            }
-
-            if (panel == null || panel.NextChapterButton == null)
-            {
-                _asserts["P5.NextChapterButton_ref"] = panel == null
-                    ? "FAIL: MainMenuPanel == null"
-                    : "FAIL: NextChapterButton == null";
-                _swP5.Stop();
-                P5Passed = false;
-                return;
-            }
-            _asserts["P5.NextChapterButton_ref"] = "PASS: non-null";
-
-            int baselineUnload = _p5UnloadBeginCount;
-
-            // 模拟点击 → ISceneEvent.OnRequestSceneChange(2) → SceneManager unload chapter 1 + reload chapter 2
-            panel.NextChapterButton.onClick.Invoke();
-            _p5Events.Add($"NextChapterButton.onClick.Invoke() called frame={Time.frameCount}");
-
-            // 等 chapter 2 reload 完成 (state==Idle + CurrentLoadedChapterId==2)
-            var switchOk = await WaitForChapterLoadedAsync(prodScene, targetChapterId: 2, timeoutSec: 8.0);
-
-            _swP5.Stop();
-
-            int deltaUnload = _p5UnloadBeginCount - baselineUnload;
-
-            _asserts["P5.OnSceneUnloadBegin_delta"] = deltaUnload >= 1
-                ? $"PASS: delta={deltaUnload} payload={_p5UnloadChapterId}"
-                : $"FAIL: delta={deltaUnload}";
-            _asserts["P5.OnSceneUnloadBegin_payload"] = _p5UnloadChapterId == 1
-                ? "PASS: chapter 1 unload"
-                : $"FAIL: chapterId={_p5UnloadChapterId} (期望 1)";
-
-            _asserts["P5.switchOk_timeout"] = switchOk ? "PASS: chapter 2 loaded + state==Idle within 8s" : "FAIL: timeout";
-            _asserts["P5.CurrentState"] = $"expected=Idle actual={prodScene.CurrentState}";
-            _asserts["P5.CurrentLoadedChapterIdForTest"] = $"expected=2 actual={prodScene.CurrentLoadedChapterIdForTest}";
-            _asserts["P5.duration_ms"] = $"PASS: {_swP5.ElapsedMilliseconds}ms";
-
-            P5Passed = deltaUnload >= 1 && _p5UnloadChapterId == 1 && switchOk &&
-                       prodScene.CurrentState == SceneManagerState.Idle &&
-                       prodScene.CurrentLoadedChapterIdForTest == 2;
-        }
+        // (Sprint 6 S6-07 [A]: P5 NextChapterButtonSwitchToChapter2 case 完整删除 — chapter switch verify
+        //  scope shrink Sprint 7+ ChapterStateManager + ChapterSelect epic single spike；Sprint 5 P5 PASS
+        //  历史 Session 27 #3 evidence preserved in production/qa/playmode-end-to-end-flow-2026-05-12.md §1.5)
 
         // ============================================================
         // helpers
@@ -860,17 +762,7 @@ namespace GameLogic.DevTest.Spikes
             return true;
         }
 
-        private static async UniTask<bool> WaitForChapterLoadedAsync(SceneManager scene, int targetChapterId, double timeoutSec)
-        {
-            var sw = Stopwatch.StartNew();
-            while (scene.CurrentState != SceneManagerState.Idle || scene.CurrentLoadedChapterIdForTest != targetChapterId)
-            {
-                if (sw.Elapsed.TotalSeconds > timeoutSec)
-                    return false;
-                await UniTask.Yield();
-            }
-            return true;
-        }
+        // (Sprint 6 S6-07 [A]: WaitForChapterLoadedAsync 删除 — 仅 P5 case 用，P5 deletion 同步 dead code 清理)
 
         public void WriteResultJson()
         {
@@ -885,8 +777,8 @@ namespace GameLogic.DevTest.Spikes
             AppendCase(sb, "P1", P1Passed, _p1Events, _swP1.ElapsedMilliseconds, isLast: false);
             AppendCase(sb, "P2", P2Passed, _p2Events, _swP2.ElapsedMilliseconds, isLast: false);
             AppendCase(sb, "P3", P3Passed, _p3Events, _swP3.ElapsedMilliseconds, isLast: false);
-            AppendCase(sb, "P4", P4Passed, _p4Events, _swP4.ElapsedMilliseconds, isLast: false);
-            AppendCase(sb, "P5", P5Passed, _p5Events, _swP5.ElapsedMilliseconds, isLast: true);
+            AppendCase(sb, "P4", P4Passed, _p4Events, _swP4.ElapsedMilliseconds, isLast: true);
+            // (Sprint 6 S6-07 [A]: P5 AppendCase 删除 — chapter switch verify scope shrink Sprint 7+)
             sb.Append("  ],\n");
             sb.Append("  \"asserts\": {\n");
             var keys = new List<string>(_asserts.Keys);
