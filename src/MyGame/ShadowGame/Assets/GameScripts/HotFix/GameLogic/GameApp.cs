@@ -101,14 +101,21 @@ public partial class GameApp
         // S5-06 已在 Sprint 5 ✅ DONE（2026-05-08 PlayMode 10/10 PASSED first-run — Audio Manager Init R3 + V2-5；evidence: production/qa/playmode-audio-mix-architecture-2026-05-08.md），不再每次启动并发跑。
         // S5-1c 已在 Sprint 5 ✅ DONE（2026-05-09 PlayMode 5/5 PASSED 24/24 asserts — ADR-009 listener-path driver + F4 stub 永久移除），不再每次启动并发跑。
         // S5-08 已在 Sprint 5 ✅ DONE（2026-05-11 PlayMode 4/4 PASSED 29/29 asserts — UIModule + UIWindow vendor lifecycle + Button.onClick path），不再每次启动并发跑。
-        // S5-02 当前 active spike（Sprint 5 Track A — VS chapter 1 epic / story-002 end-to-end 5 系统串通 happy path）：
-        //   验证 chapter 1 入口 main menu Button click → SceneManager 11-step → puzzleStateMachine state transit →
-        //   NarrativeSequencePlayer.cs:133 listener auto-response OnPerfectMatch → audio ducking → unload。
-        //   5 R3 case M1 production reflection 全程复用 S5-1b/1c precedent；spike Awake() 同步 subscribe + 自管
-        //   PuzzleStateMachine / NarrativeSequencePlayer instance lifecycle (production 0-caller — Sprint 6+ 接管)。
-        //   main menu Button → Resources.Load (Assets/Resources/UI/MainMenuPanel.prefab)。
+        // S5-02 已在 Sprint 5 ✅ DONE（2026-05-12 Session 27 #3 第 2 跑 PlayMode 5/5 PASSED — chapter 1 end-to-end 5 systems integration happy path；evidence: production/qa/playmode-end-to-end-flow-2026-05-12.md），不再每次启动并发跑。
+        //   注意：S5-02 spike P5 case (NextChapterButtonSwitchToChapter2) 在 Sprint 6 S6-07 dev-story Phase 2 [A] decision delete (chapter switch verify scope shrink → Sprint 7+ ChapterStateManager + ChapterSelect epic single spike)；
+        //   S5-02 spike 现 4 case (P1-P4 chapter 1 happy path) — 历史 Sprint 5 5 case PASS 不丢。
+        // S6-07 当前 active spike（Sprint 6 Track C — ui-system epic / story-006 main menu UIWindow polish）：
+        //   验证 4 button group polish (NewGame / Continue placeholder / Settings placeholder / Quit) +
+        //   vendor 7+2 lifecycle protected override (V3.0.1 dp7 NEW reinforce — 防 spec wording drift 未来再引入
+        //   `public override` 不被发现) + fade-in 0.3s DOTween OutQuad + BGM hook AudioManager.Instance.PlayMusic
+        //   ("main_menu_bgm", 1.0f) Log sniffer fail-safe verify (Phase 2.0 R2.8 [D] closure — 真 BGM playback 留
+        //   Sprint 7+ ui-system-006b backlog) + NewGameButton onClick → ISceneEvent.OnRequestSceneChange(1) dispatch +
+        //   QuitButton onClick reflection delegate cache field validation (不真 Invoke 避 Editor PlayMode 停杀 spike)。
+        //   5 R3 case M1 production reflection (run order P1→P2→P3→P5→P4 destructive ordering)。
+        //   main menu prefab → Resources.Load (Assets/Resources/UI/MainMenuPanel.prefab — Tools/S6-07/Generate 重生成 4 button + CanvasGroup root)。
         //   仅本 spike 启用，其他全部注释（type-3 race 防御）。
-        GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S502Spike());
+        GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S607Spike());
+        // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S502Spike());
         // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S508Spike());
         // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S51cSpike());
         // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S51bSpike());
