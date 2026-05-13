@@ -9,9 +9,10 @@
 > **Complexity Points**: 2
 > **GDD Requirement**: TR-ui-005 (9 UIWindows defined) + TR-ui-016 (UI animations at 60fps)
 > **ADR References**: ADR-011 V3.0.1 (UIWindow Management) + ADR-027 §4 (GameEvent Interface Protocol) + ADR-029 V3.0.1 (Story Impl Notes Verification — Phase 0 R2 verify gate) + SP-002 (UIWindow Lifecycle — visibility modifier note 2026-05-13 evening)
-> **Status**: Phase 0 R2 verify partial ✅ + Phase 1 readiness gate ✅ Ready
+> **Status**: Phase 0 ✅ + Phase 1 ✅ + Phase 2.0 R2 deficiency flag closure ✅ Ready for Phase 2 production code
 > **Created**: 2026-05-13 evening (Session 29 — rewrite from Sprint 0 placeholder per V3.0.1 vendor reality compliant + S6-07 narrow scope [A] decision)
-> **Depends on**: S5-08 ✅ (UIModule narrow scope) + S5-02 ✅ (inline 2 button base — 本 story 替换为 4 button group production polish) + S6-05 ✅ (ADR-011 §G systematic wording amend) + S6-06 ✅ (ADR-029 V2.0 §V2-1.b R2 增量子条款) + S6-07 Phase 0 hotfix ✅ (V3.0.1 dp7 NEW visibility modifier drift closure)
+> **Updated**: 2026-05-14 morning (Session 30 — Phase 2.0 R2.6 + R2.8 deficiency flag closure per [D] mixed strategy: R2.6 ✅ FULLY RESOLVED `AudioManager.Instance` Singleton path + GameApp.cs:40-55 init order ✅；R2.8 ✅ DEFICIENCY CLOSURE — main_menu_bgm clipId 不存在 + PlayMusic fail-safe Log.Warning+no-op，遵 epic 边界 Phase 2 不改 AudioConfigFromLuban 跨 Audio epic；新建 Sprint 7+ follow-on backlog `ui-system-006b: main_menu_bgm asset + Luban entry` 1 SP；R3 P3 case 走 mock spy invocation assert 不真 playback verify)
+> **Depends on**: S5-08 ✅ + S5-02 ✅ + S6-05 ✅ + S6-06 ✅ + S6-07 Phase 0 hotfix ✅
 
 ---
 
@@ -107,6 +108,7 @@ per ADR-029 V3.0.1 §V3-1.b dp7 NEW (2026-05-13 evening hotfix — S6-05 commit 
 
 - **SaveSystem 接入** (Continue button 真路径 — `ISaveService.HasValidSave()` / `DeleteSave()` 等 API 等 SaveSystem epic Sprint 7+) — 本 story Continue button 标 placeholder 灰态
 - **SettingsPanel 完整面板** (Settings button 真路径 — `GameModule.UI.ShowUI<SettingsPanel>()` 等 S5-09 backlog descope 终结后 production stage polish phase 起步) — 本 story Settings button 标 placeholder 灰态
+- **`main_menu_bgm` AudioConfig + AudioClip asset** (BGM 实际 playback — Sprint 7+ follow-on backlog story `ui-system-006b: main_menu_bgm asset + Luban entry` 1 SP；本 story BGM hook spec 完整保留 + production code 调 `AudioManager.Instance.PlayMusic("main_menu_bgm", 1.0f)` 但走 PlayMusic fail-safe Log.Warning+no-op；Sprint 7+ asset 添加后 BGM 自动响 0 code change in MainMenuPanel.cs) per Session 30 Phase 2.0 R2.8 [D] mixed strategy closure
 - **ChapterSelect** (留 Sprint 7+ chapter-state epic depends + S5-08 narrow scope decision retained)
 - **Localization** (TR-ui-021 / 本地化键替换 — Production stage P2 阶段实施 per EPIC.md §52 SP-009 finding)
 - **Android back button** (TR-ui-022 / 待 Production stage 后入)
@@ -159,15 +161,15 @@ Phase 1 完成内容 (Session 29 evening 2026-05-13)：
   - R2.3 ✅ `GameModule.UI.ShowUI<MainMenuPanel>()` (vendor API 已 S6-05 ADR-011 §G amend ✅；S5-02 DevTestState production wired ✅)
   - R2.4 ✅ `ISceneEvent.OnRequestSceneChange(int)` (S5-02 production wired + V3.0 §V3-1.c dp6 spec drift 已 closure；NewGame 派 1 chapter id valid)
   - R2.5 ✅ DOTween `CanvasGroup.DOFade(1f, 0.3f).SetEase(Ease.OutQuad)` (precedent InteractableObject.cs:336/383/475 production wired)
-  - R2.6 ⚠️ TBD `IAudioService.PlayMusic("main_menu_bgm", 1.0f)` service locator / DI 路径 (Phase 2 verify — 待 dev-story 起步时实证；可能 `GameModule.Audio.Play(AudioType.Music, ...)` direct call 也合规)
+  - R2.6 ✅ **FULLY RESOLVED** (2026-05-14 morning Session 30 Phase 2.0 verify) — `AudioManager : Singleton<AudioManager>, IAudioService` (AudioManager.cs:30) → 取 instance path = `AudioManager.Instance.PlayMusic("main_menu_bgm", 1.0f)` (per IAudioService.cs:14 注释 "API 路径同模块内 / 流程明确" 推荐)；`GameApp.cs:40 AudioManager.Instance.Initialize()` 在 `:55 StartGameLogic()` 之前调用，main menu show 时 `_isInitialized=true` 保证 (AC-3 facade activation gate 不 trigger fail-loud)；`PlayMusic` 内置 fail-safe (clipId null/empty + config not found → Log.Warning + return，不抛 exception 不影响 main menu show 路径)
   - R2.7 ✅ `Application.Quit()` (Procedure stage 多处 production wired)
-  - R2.8 ⚠️ TBD `main_menu_bgm` AudioConfig clipId 是否在 TbAudioEvent / IAudioConfigProvider 中已 defined (Phase 2 verify — S5-02 / S5-05 audio system production code 已起步但具体 main menu BGM config 待确认)
+  - R2.8 ✅ **DEFICIENCY CLOSURE per [D] mixed strategy** (2026-05-14 morning Session 30 Phase 2.0 verify) — `main_menu_bgm` clipId grep 0-hit in production code；`AudioConfigFromLuban.InitWithDefaults()` (line 154-158) 仅 1 Music entry `chapter1_ambient` (id=100)；`InitFromLuban` 是 stub TODO[S5-XX+] fallback 走 InitWithDefaults。**[D] 决策 (Phase 2.0 user)**: 遵 epic 边界 — Phase 2 production code **不改 AudioConfigFromLuban (跨 Audio epic 边界 ui-system epic 不 polluted)**；BGM hook 保留 production code OnRefresh `AudioManager.Instance.PlayMusic("main_menu_bgm", 1.0f)` 调用 (走 PlayMusic fail-safe Log.Warning+no-op — main menu show 不受影响)；新建 Sprint 7+ follow-on backlog placeholder story **`ui-system-006b: main_menu_bgm asset + Luban entry add`** 1 SP (Audio epic 范围 — Sprint 7+ Production polish phase 起步时实施 真 main_menu_bgm AudioClip asset add + AudioConfigFromLuban entry add 或 Luban TbAudio.Music 真表 schema 生成同期完成)；R3 P3 BGM hook assert 走 mock spy invocation count + clipId match verify 不真 playback (详 §R3 PlayMode Probe Cases P3 update)；governance impact: epic 边界 cleanup — UI epic 仅触 Audio facade `AudioManager.Instance.PlayMusic` API 不触 Audio config table；spec 不退 (BGM hook 完整保留)；Sprint 7+ 真 asset 添加后 BGM 自动响 (0 code change in MainMenuPanel.cs)
   - R2.9 ✅ `Application.Quit()` Editor mode handling — Procedure 多处 wired，Editor 下 Unity 自身 handle PlayMode stop；可 `#if UNITY_EDITOR` guard wrapper 待 Phase 2 评估
 - ✅ R3 readiness gate — propagate spec write into 5 PlayMode probe case (详 §R3 PlayMode Probe Cases below)
 
-⚠️ R2.6 + R2.8 ⚠️ TBD 列 deficiency flag — Phase 2 dev-story 起步时强制实证；如 IAudioService.PlayMusic path 或 main_menu_bgm config 缺失 → 加 BGM 留 Phase 2 framework extension 或 mock BGM clip placeholder。Deficiency flag 不阻 Phase 1 → Phase 2 transition (per ADR-029 V2.0 §V2-1 R2 DEFICIENCY-FLAGGED PASS 路径)。
+✅ R2.6 + R2.8 deficiency flag **CLOSURE COMPLETE** (Session 30 Phase 2.0 verify — 2026-05-14 morning) per ADR-029 V2.0 §V2-1 R2 DEFICIENCY-FLAGGED PASS path → CLOSURE。
 
-**Status**: Phase 0 R2 verify partial ✅ DONE (2026-05-13 evening Session 29) + Phase 1 readiness gate verdict **✅ READY** (R2.6 + R2.8 TBD deficiency flag — Phase 2 强制实证)。
+**Status**: Phase 0 R2 verify partial ✅ + Phase 1 readiness gate ✅ + **Phase 2.0 R2 deficiency flag CLOSURE ✅** (Session 30 2026-05-14 morning) → ready for Phase 2 production code 实施。
 
 ---
 
@@ -185,11 +187,12 @@ Phase 1 完成内容 (Session 29 evening 2026-05-13)：
 - **Action**: reflection 拿 4 button field reference (NewGameButton / ContinueButton / SettingsButton / QuitButton)
 - **Assert**: (1)~(4) 4 button reference 全 != null (transform.Find hit 全部成功) (5) ContinueButton.interactable == false (6) SettingsButton.interactable == false (placeholder 灰态)
 
-### P3 — Fade-In Animation + BGM Hook Verify (~5 asserts)
+### P3 — Fade-In Animation + BGM Hook Mock Spy Verify (~6 asserts) (Phase 2.0 R2.8 [D] closure 同步 amend)
 
-- **Setup**: P2 後 MainMenuPanel showing
-- **Action**: 等 frame=N+30 (0.5s budget — fade-in 0.3s 完整)
-- **Assert**: (1) CanvasGroup.alpha == 1.0f (fade-in 已 complete) (2) BGM has been started — capture via reflection `GameModule.Audio.MusicVolume > 0f` 或 `IAudioService.PlayMusic` mock spy 模式 (Phase 2 evaluate 具体 verify path 取决于 R2.6 verify 结果) (3) BGM clipId == "main_menu_bgm" (4) crossfade duration == 1.0f (default IAudioService.PlayMusic 第二参数) (5) 0 unexpected console error/warning
+- **Setup**: P2 後 MainMenuPanel showing；spike 起步时 inject mock `IAudioService` (sealed test class implementing IAudioService 6 methods + spy fields `LastPlayMusicClipId` + `LastPlayMusicCrossfade` + `PlayMusicInvocationCount`)；通过 `AudioManager.Instance.SetConfigProviderForTest(...)` 模式无法 mock (那是 IAudioConfigProvider 不是 IAudioService)；改 spike 起步时直接 wrap `AudioManager.Instance` 通过 reflection 替换 `_singleton` field 或走 spike scope test fixture (Phase 2 实施时具体方案 evaluate — option (i) reflection swap singleton instance / option (ii) AudioManager 加 `SetTestInstance` static helper / option (iii) spike 跳过 mock 走 `Application Support/.../S6-07_Result.json` capture `AudioManager.Instance` 调用日志 via Log capture sniffer — option (iii) 最 minimal touchpoint 推荐)
+- **Action**: 等 frame=N+30 (0.5s budget — fade-in 0.3s 完整)；reflection 拿 MainMenuPanel CanvasGroup field reference 检查 alpha；reflection 拿 mock spy fields 或 Log sniffer capture
+- **Assert**: (1) CanvasGroup.alpha == 1.0f (fade-in 已 complete via DOTween OutQuad 0.3s budget) (2) `AudioManager.Instance.PlayMusic` 已被调用过 (mock spy invocation count >= 1 或 Log sniffer capture `[AudioManager] PlayMusic: Music 'main_menu_bgm' not found in config` warning 行) (3) PlayMusic 入参 clipId == `"main_menu_bgm"` (mock spy LastPlayMusicClipId 或 Log line parse) (4) PlayMusic 入参 crossfadeDuration == 1.0f (mock spy LastPlayMusicCrossfade 或 default 隐式) (5) AudioManager `_isInitialized=true` (reflection field check — confirm AC-3 facade activation gate 不 trigger) (6) 0 unexpected console error (Log.Warning `Music 'main_menu_bgm' not found in config` per R2.8 [D] closure 是 expected fail-safe 行为，不算 unexpected — assert exclude pattern)
+- **R2.8 [D] closure governance note**: BGM 实际不响 (main_menu_bgm AudioConfig entry 缺失 — Sprint 7+ ui-system-006b backlog 解决)；R3 P3 verify dispatch 行为 + fail-safe 行为，不 verify actual playback；spec 完整 (Sprint 7+ asset 添加后 BGM 自动响 0 code change in MainMenuPanel.cs)
 
 ### P4 — NewGameButton onClick → ISceneEvent.OnRequestSceneChange(1) Dispatch Verify (~6 asserts)
 
@@ -216,12 +219,12 @@ Phase 1 完成内容 (Session 29 evening 2026-05-13)：
 | R2.3 | `GameModule.UI.ShowUI<T>()` vendor API | ✅ | UIModule.cs:250-460 vendor source 实证 (S6-05 ADR-011 §G amend) + S5-02 DevTestState production wired ✅ |
 | R2.4 | `ISceneEvent.OnRequestSceneChange(int targetChapterId)` API | ✅ | ISceneEvent.cs:24 vendor source + S5-02 production wired (V3.0 §V3-1.c dp6 spec drift closure — chapter id 1-5 valid only) |
 | R2.5 | DOTween `CanvasGroup.DOFade(1f, 0.3f).SetEase(Ease.OutQuad)` | ✅ | DG.Tweening package + InteractableObject.cs:336/383/475 production wired precedent |
-| R2.6 | `IAudioService.PlayMusic("main_menu_bgm", 1.0f)` service locator / DI 路径 | ⚠️ TBD | IAudioService.cs:39 vendor source 实证 API 签名 ✅；service locator / DI 取 instance 路径 Phase 2 verify (可能 `GameModule.Audio.Play(AudioType.Music, ...)` direct call per AudioManager.cs production 实测) |
+| R2.6 | `IAudioService.PlayMusic("main_menu_bgm", 1.0f)` service locator / DI 路径 | ✅ FULLY RESOLVED | `AudioManager : Singleton<AudioManager>, IAudioService` (AudioManager.cs:30) → `AudioManager.Instance.PlayMusic(...)` direct call；`GameApp.cs:40 AudioManager.Instance.Initialize()` 在 `:55 StartGameLogic()` 之前调用 (main menu show 时 `_isInitialized=true` AC-3 gate 不 trigger)；`PlayMusic` 自身 fail-safe (clipId null/empty + config not found → Log.Warning + return 不抛 exception) — Session 30 Phase 2.0 verify 2026-05-14 morning |
 | R2.7 | `Application.Quit()` direct call | ✅ | Procedure/ProcedureInitResources.cs:126/133/148 + 5 other Procedure file production wired multiple precedent |
-| R2.8 | `main_menu_bgm` AudioConfig clipId 在 TbAudioEvent / IAudioConfigProvider 中已 defined | ⚠️ TBD | IAudioConfigProvider exists (AudioConfigFromLuban.cs:89) — Phase 2 verify Luban TbAudioEvent 是否已 entry；如缺失则 Phase 2 framework extension 或 mock BGM clip placeholder |
+| R2.8 | `main_menu_bgm` AudioConfig clipId 在 TbAudioEvent / IAudioConfigProvider 中已 defined | ✅ DEFICIENCY CLOSURE per [D] mixed strategy | `main_menu_bgm` clipId grep **0-hit**；`AudioConfigFromLuban.InitWithDefaults()` (line 154-158) 仅 1 Music entry `chapter1_ambient` (id=100)；`InitFromLuban` TODO[S5-XX+] stub fallback 走 InitWithDefaults。**[D] decision**: Phase 2 production code 不改 AudioConfigFromLuban (epic 边界遵守 — UI epic 不 polluted Audio config table)；BGM hook 保留 OnRefresh `AudioManager.Instance.PlayMusic("main_menu_bgm", 1.0f)` 调用 走 PlayMusic fail-safe Log.Warning+no-op；新建 Sprint 7+ follow-on backlog story `ui-system-006b: main_menu_bgm asset + Luban entry` 1 SP；R3 P3 走 mock spy invocation assert (详 §R3 P3 update)；Session 30 Phase 2.0 verify 2026-05-14 morning |
 | R2.9 | `Application.Quit()` Editor mode handling | ✅ | Editor mode 下 Unity 自身 handle (Procedure 多处 production wired)；可 `#if UNITY_EDITOR` guard 加 EditorApplication.isPlaying = false 显式 wrapper Phase 2 评估 |
 
-**R2 Verdict**: DEFICIENCY-FLAGGED PASS (R2.6 + R2.8 ⚠️ TBD — Phase 2 dev-story 起步时强制实证；不阻 readiness gate)
+**R2 Verdict**: ✅ FULLY PASS (Session 30 Phase 2.0 — R2.6 + R2.8 deficiency flag CLOSURE COMPLETE per ADR-029 V2.0 §V2-1 R2 DEFICIENCY-FLAGGED PASS path → CLOSURE)
 
 ---
 
@@ -283,6 +286,14 @@ Phase 1 完成内容 (Session 29 evening 2026-05-13)：
 
 ## History
 
+- **2026-05-14 morning (Sprint 6 Session 30 Phase 2.0 R2 deficiency flag closure)**:
+  - R2.6 ✅ FULLY RESOLVED — `AudioManager : Singleton<AudioManager>, IAudioService` (AudioManager.cs:30) → `AudioManager.Instance.PlayMusic(...)` direct call path；`GameApp.cs:40 Initialize()` 在 `:55 StartGameLogic()` 之前调用 (main menu show 时 `_isInitialized=true` AC-3 gate 不 trigger)；`PlayMusic` 内置 fail-safe (clipId null/empty + config not found → Log.Warning + return)
+  - R2.8 ✅ DEFICIENCY CLOSURE per [D] mixed strategy — `main_menu_bgm` clipId 缺失但 PlayMusic fail-safe；遵 epic 边界 Phase 2 不改 AudioConfigFromLuban 跨 Audio epic；新建 Sprint 7+ follow-on backlog story `ui-system-006b: main_menu_bgm asset + Luban entry` 1 SP；R3 P3 走 mock spy invocation assert 不真 playback verify
+  - R3 P3 case amend — fade-in + BGM hook mock spy verify (~6 asserts ↑ from 5)：alpha == 1.0f + PlayMusic invocation count >= 1 + clipId == "main_menu_bgm" + crossfade == 1.0f + `_isInitialized=true` + Log.Warning `Music 'main_menu_bgm' not found` 是 expected fail-safe (assert exclude)
+  - Out of Scope: +`main_menu_bgm` AudioConfig + AudioClip asset (Sprint 7+ ui-system-006b backlog) per [D] closure
+  - Status header: Phase 0 R2 verify partial ✅ + Phase 1 readiness gate ✅ → + Phase 2.0 R2 deficiency flag CLOSURE ✅ Ready for Phase 2 production code 实施
+  - **R2 Verdict 升级**: DEFICIENCY-FLAGGED PASS → ✅ FULLY PASS per ADR-029 V2.0 §V2-1 R2 DEFICIENCY-FLAGGED PASS path → CLOSURE
+  - **Phase 2.0 投入** ~25 min (R2.6 vendor source verify 5 + R2.8 grep + decision matrix 10 + story amend + Out of Scope + History + R3 P3 + R2 表 + Status header 10)
 - **2026-05-13 evening (Sprint 6 Session 29 Phase 0 R2 verify + Phase 1 story 创建 + readiness gate)**:
   - Phase 0 R2 verify vendor source UIBase.cs:144-197 + UIWindow.cs:504/509 全 7+2 lifecycle 实证 `protected virtual`；surfaced V3.0 §V3-1.b Type-5 dp7 NEW visibility modifier drift (S6-05 commit 45ae96b ADR-011 §G Key Interfaces code block 5 处 `public override` 误用 — spec amend 自身引入)；commit 898ae7a hotfix amend (ADR-011 + SP-002 + ADR-029 V3.0 → V3.0.1 + sprint-status.yaml + active.md) 完成
   - Phase 1 story-006-main-menu.md 完整 rewrite — 从 Sprint 0 framework time placeholder (placeholder ShowWindow / OnCreate-OnRefresh 2 hook / UILayer.HUD 错误命名 / Evt_RequestSceneChange / Evt_PlayMusicRequest 等 11+ wording drift) → V3.0.1 vendor reality compliant + S6-07 narrow scope [A] 4 button group (NewGame / Continue placeholder / Settings placeholder / Quit) + vendor 7+2 lifecycle `protected override` + fade-in 0.3s + BGM hook IAudioService.PlayMusic + R3 PlayMode probe 5 case + R2 Assumptions Validated 9 items table (R2.1-R2.5 + R2.7 + R2.9 ✅；R2.6 + R2.8 ⚠️ TBD deficiency flag Phase 2 verify) + V3.0.1 Watch List Hooks Type-5 dp7 NEW + dp6 + Type-9 + Type-8 ✅

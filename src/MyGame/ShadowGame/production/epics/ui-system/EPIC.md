@@ -8,7 +8,7 @@
 > **Governing ADRs**: ADR-011 (UIWindow Management)
 > **Engine Risk**: MEDIUM
 > **Status**: Ready
-> **Stories**: 10 stories created
+> **Stories**: 11 stories created (10 original + ui-system-006b Sprint 7+ backlog placeholder 衍生自 S6-07 Phase 2.0 R2.8 [D] mixed strategy closure 2026-05-14 morning)
 
 ## Overview
 
@@ -76,7 +76,8 @@ This epic is complete when:
 | ui-system-003 | PauseMenu Window (Resume, Settings, Quit) | UI | TR-ui-005, TR-ui-009 | Ready |
 | ui-system-004 | PuzzleComplete Window (Score Display, Continue) | UI | TR-ui-005, TR-ui-010 | Ready |
 | ui-system-005 | ChapterSelect Window (Chapter List, Lock/Unlock State) | UI | TR-ui-005, TR-ui-003 | Blocked (chapter-state) |
-| ui-system-006 | MainMenu Window (New Game, Continue, Settings) | UI | TR-ui-005, TR-ui-016 | Ready |
+| ui-system-006 | MainMenu UIWindow Polish — 4 Button Group + Vendor 7+2 Lifecycle + Fade-In + BGM Hook *(2026-05-13 evening Sprint 6 S6-07 V3.0.1 vendor reality compliant rewrite + 2026-05-14 morning Phase 2.0 R2 deficiency closure)* | UI / Integration | TR-ui-005 ✅ + TR-ui-016 ✅ partial (fade-in 60fps；BGM 完整 playback 留 ui-system-006b Sprint 7+) | **Phase 2 ready (Sprint 6 S6-07)** |
+| ui-system-006b | MainMenu BGM Asset + Luban Entry *(衍生自 S6-07 Phase 2.0 R2.8 [D] mixed strategy closure 2026-05-14 morning — epic 边界 cleanup)* | Audio Asset / Integration | TR-ui-005 partial (BGM 完整 audio 体验补齐) | Backlog (Sprint 7+ Production polish phase) |
 | ui-system-007 | SettingsPanel Window (Volume, Sensitivity, Language) | UI | TR-ui-005, TR-ui-003 | Ready |
 | ui-system-008 | UIWindow Layer/Order Management (Normal, Popup, Overlay) | Logic | TR-ui-002, TR-ui-003, TR-ui-008 | Ready |
 | ui-system-009 | Safe Area Fitting for Notch/Rounded Corner Devices | Integration | TR-ui-007 | Ready |
@@ -103,5 +104,18 @@ Run `/dev-story ui-system-001` to begin implementation. Recommended order: 001 �
 **Sprint 4 carryover hard rule satisfaction (S3-08 → S4-09 → S5-08 第 2 次 carryover)**：
 - ✅ Promote: S5-08 must-have + Sprint 5 dev-story 实施
 - ✅ Descope rationale: 完整 robust UI infrastructure (Popup Queue / Auto InputBlocker 等) descope 到 story-008 Sprint 6 polish；明示 rationale
+
+---
+
+## Sprint 6 Override (2026-05-13 evening — 2026-05-14 morning)
+
+**S6-07 ui-system-006 main menu UIWindow polish 实施进展** (Sprint 6 Session 29-30):
+
+- **2026-05-13 evening (Session 29)**: ui-system-006 早期 Sprint 0 placeholder 11+ wording drift (ShowWindow / UILayer.HUD / 2 hook lifecycle / Evt_* event 等) → 完整 rewrite per V3.0.1 vendor reality compliant + S6-07 narrow scope [A] 4 button group (NewGame / Continue placeholder / Settings placeholder / Quit) + vendor 7+2 lifecycle `protected override` 强制 (per V3.0.1 dp7 NEW hotfix reinforce) + fade-in 0.3s DOTween OutQuad + BGM hook IAudioService.PlayMusic + R3 PlayMode probe 5 case + R2 Assumptions Validated 9 items；Phase 1 R1+R2+R3 readiness gate verdict ✅ READY (R2 DEFICIENCY-FLAGGED PASS R2.6+R2.8 ⚠️ TBD)。
+- **2026-05-14 morning (Session 30)**: Phase 2.0 R2 deficiency flag closure ✅ — R2.6 ✅ FULLY RESOLVED (`AudioManager : Singleton<AudioManager>, IAudioService` + `GameApp.cs:40-55` init order ✅)；R2.8 ✅ DEFICIENCY CLOSURE per **[D] mixed strategy** (epic 边界遵守 — UI epic 不 polluted Audio config table；BGM hook 完整保留 + 走 PlayMusic fail-safe Log.Warning+no-op；新建 Sprint 7+ follow-on backlog story `ui-system-006b: main_menu_bgm asset + Luban entry` 1 SP；R3 P3 走 mock spy invocation assert)。R2 Verdict 升级 DEFICIENCY-FLAGGED PASS → ✅ FULLY PASS。Phase 2 production code 实施 ready。
+
+**ui-system-006b Sprint 7+ backlog 衍生**: 跨 epic boundary deficiency 留 follow-on placeholder 模式实战 (epic 边界 cleanup governance precedent — 而非污染当前 sprint scope；详 ui-system-006b story file)。
+
+**S6-08 ui-system-008 popup/inputblocker robust** (Sprint 6 Must Have 2 SP) 仍 backlog — depends on S6-07 ✅ done (Sprint 6 Track C 序列：S6-07 → S6-08)。
 
 ---
