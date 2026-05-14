@@ -230,7 +230,18 @@ chapter 1 第 1 次 internal playtest — Sprint 5 retro AI-4 promote Must Have�
 
 > 典型: ADR-029 V3 / V3.1 trigger 信号 / framework boundary 新观察 / template gap
 
-- [ ] TBD
+- ✅ **V3.0.1 dp14 candidate NEW (2026-05-14 Session 32)** — **playtest infrastructure pattern gap** —
+  S6-01 Phase 2 起步时 surface：当前所有 DevSpike 都是 R3 PlayMode test spike（Launch() 内 AddComponent
+  MonoBehaviour 自动 RunAllAsync 跑 R3 case + assert），与 manual playtest 节奏完全不兼容（spike fire(99)
+  UnknownChapter / fire(2) chapter switch / Error state recovery 等会打断用户手动 click NewGame 进 chapter 1）。
+  S6-01 Phase 1 prep 盲点：仅想到 evidence doc 模板，没想到 spike RunAllAsync 与 manual playtest 兼容性问题。
+  - **Fix (Phase 2.0)**: 新建 `S6-01_PlaytestHoldMode.cs` (S601PlaytestSpike : IDevSpike, Launch() no-op) +
+    DevTestState `[main-menu]` mode HasSpike list +1 → 5 个 spike 远超原阈值 4 + GameApp.RegisterDevSpikes
+    切换 S604Spike → S601PlaytestSpike + dp8 candidate +1 (=5)。
+  - **Sprint 7+ 复用**: S6-02 / S6-03 / 未来 chapter 2 playtest 等所有 manual playtest session 复用此 spike pattern。
+  - **Sprint 6 retro 议题 (NEW)**: 评估 promote 为 ADR-029 V3 正式 dp + create standard PlaytestMode pattern doc
+    (与 V3.0.1 dp8 DevTestState central mode-dispatch refactor 候选 关联 — 是否合并提案)。
+- [ ] TBD（其他 playtest 中发现）
 
 ---
 
@@ -275,7 +286,10 @@ chapter 1 第 1 次 internal playtest — Sprint 5 retro AI-4 promote Must Have�
 ### §6.4 Sprint 6 retro 待加议题（如本 playtest 触发）
 
 - [ ] 累积 4 已知议题: V3.0.1 dp8 candidate / /vertical-slice vs S6-10 sequencing / dp13 candidate Director gates vs ADR-029 V3 coexistence / ≤5 hr hard rule 2 次 override 反思
-- [ ] 本 playtest 1 是否新触发议题: TBD
+- ✅ **NEW 议题 5 (2026-05-14 Session 32)**: V3.0.1 dp14 candidate NEW 'playtest infrastructure pattern gap' —
+  评估 promote ADR-029 V3 正式 dp + standard PlaytestMode pattern 文档化（Sprint 7+ 所有 playtest 复用基线）；
+  与 dp8 DevTestState central mode-dispatch refactor 关联 —— 是否合并 V3.1 trigger 提案。
+- [ ] 本 playtest 1 实际玩中其他议题: TBD（玩完后填）
 
 ---
 
@@ -346,5 +360,12 @@ chapter 1 第 1 次 internal playtest — Sprint 5 retro AI-4 promote Must Have�
 ## Status Log
 
 - **2026-05-13 evening (Session 31)** — file 创建 phase-1-prep-done（本 §0..§8 完整模板就位待 Phase 2 fill）
-- ⏳ **TBD Session 32+** — Phase 2 manual playtest ≥ 30 min + §1..§8 完整填空
-- ⏳ TBD post-Phase 2 — closure (verdict + emergent fixes + Sprint 6 后续影响决策)
+- **2026-05-14 morning (Session 32)** — **Phase 2.0 playtest infrastructure fix ✅ DONE** — 起步时 surface
+  V3.0.1 dp14 candidate NEW 'playtest infrastructure pattern gap'：所有现有 DevSpike 是 R3 PlayMode test spike
+  (RunAllAsync 自动跑 case + assert) 与 manual playtest 节奏不兼容；新建 S6-01_PlaytestHoldMode.cs
+  (S601PlaytestSpike : IDevSpike, Launch() no-op) + DevTestState [main-menu] mode HasSpike list +1
+  (S5-02/S6-07/S6-08/S6-04/S6-01-playtest = 5 远超原阈值 4) + GameApp.RegisterDevSpikes 切换
+  S604Spike → S601PlaytestSpike + dp8 candidate +1=5 + dp14 候选 NEW + Sprint 6 retro 议题 +1=5。
+  Phase 2.0 投入 ~15-20 min；Sprint 7+ 所有 playtest session 复用此 spike pattern。
+- ⏳ **NEXT (Session 32 接续)** — Phase 2.1 manual playtest ≥ 30 min + §1..§8 完整填空
+- ⏳ TBD post-Phase 2.1 — closure (verdict + emergent fixes + Sprint 6 后续影响决策)

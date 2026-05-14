@@ -110,21 +110,20 @@ public partial class GameApp
         // S6-08 已在 Sprint 6 ✅ DONE（2026-05-13 Session 28 PlayMode 5/5 PASSED 36/36 asserts —
         //   UIModule auto inputblocker sender-side Top/Tips + popup queue + sorting + pause/resume/clear；
         //   evidence: production/qa/playmode-popup-auto-blocker-2026-05-13.md），不再每次启动并发跑。
-        // S6-04 当前 active spike（Sprint 6 Track C — vs-chapter-1 epic / story-003 error/restart path narrow
-        //   scope [A] 0 production code change + spike only）：
-        //   验证 SceneManager AC-1/-2/-9/-10 error-path 行为 — TryResolveOrFail(99) → OnSceneLoadFailed +
-        //   state=Error；transition 中 newest-wins pending (AC-9 _pendingTargetChapterId)；isolated local
-        //   SceneManager + bad sceneId fixture chapter 99 → 2 retry exhaust → OnSceneLoadFailed；
-        //   Error 状态下 fire(1) → AC-10 silent drop (Log.Warning + no state change)；RecoverToIdle() →
-        //   Idle；re-fire(1) same currentChapterId → AC-8 silent OnSceneReady (no transition)。
-        //   5 R3 case (P1 TryResolveOrFail + P2 NewestWinsPendingDuringTransition + P3 RetryExhaust isolated
-        //   local + P4 ErrorRecovery + RestartSameTarget + P5 RapidNewestWinsOverwrite)；
-        //   listener spy 5 ISceneEvent (LoadFailed + LoadComplete + TransitionBegin + TransitionEnd +
-        //   SceneReady)；reflection 拿 GameApp._sceneManager (S5-1b precedent)；ChapterDataProvider
-        //   fixture chapter 99 → "NotExistScene_Chapter99" trigger asset load exception。
-        //   Expected vendor warning/error allowlist 过滤 UnexpectedErrorCount (TryResolveOrFail Warning +
-        //   Load attempt failed Warning + all attempts exhausted Error + AC-10 silent drop Warning)。
-        GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S604Spike());
+        // S6-04 已在 Sprint 6 ✅ DONE（2026-05-13 Session 30 PlayMode 5/5 PASSED 37/37 asserts —
+        //   chapter 1 error/restart path R3：TryResolveOrFail / newest-wins pending / asset load fail retry exhaust /
+        //   Error→RecoverToIdle / RapidNewestWinsOverwrite；evidence: production/qa/playmode-error-restart-path-2026-05-13.md），
+        //   不再每次启动并发跑。如需复跑 R3，临时注释 S601PlaytestSpike + 取消 S604Spike 注释行。
+        //
+        // S6-01 Phase 2.0 (2026-05-14 Session 32) 当前 active spike — playtest hold mode 占位 spike
+        //   (per S6-01 Phase 2 起步 emergent discovery: R3 spike RunAllAsync 与 manual playtest 不兼容 —
+        //   V3.0.1 dp14 candidate NEW 'playtest infrastructure pattern gap')。Launch() no-op，仅触发 DevTestState
+        //   [main-menu] mode HasSpike("S6-01-playtest") → ShowMainMenuPanelAsync 显示 MainMenuPanel UIWindow，
+        //   之后由用户手动 click NewGame Button → ISceneEvent.OnRequestSceneChange(1) → chapter 1 load 完成
+        //   ≥30 min internal playtest session per production/playtests/playtest-vs-chapter-1-session-1-2026-05-13.md。
+        //   Sprint 6+ 所有 manual playtest session (S6-02 / S6-03 / 未来 chapter 2 playtest) 复用此 spike。
+        GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S601PlaytestSpike());
+        // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S604Spike());
         // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S608Spike());
         // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S607Spike());
         // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S502Spike());

@@ -25,19 +25,25 @@ namespace GameLogic
                 return;
             }
 
-            // S5-02 (2026-05-12) / S6-07 (2026-05-13) / S6-08 / S6-04: main menu 模式 — 不 auto-fire OnRequestSceneChange(1)，
-            //   spike 自驱 (S5-02/S6-07 ShowUI<MainMenuPanel> + Button.onClick.Invoke()；S6-08 直接 ShowUI mock panel；
-            //   S6-04 spike Start() 自 fire OnRequestSceneChange(1) baseline + 5 R3 error/restart path case)。
+            // S5-02 (2026-05-12) / S6-07 (2026-05-13) / S6-08 / S6-04 / S6-01-playtest (2026-05-14): main menu 模式 —
+            //   不 auto-fire OnRequestSceneChange(1)，spike 自驱 (S5-02/S6-07 ShowUI<MainMenuPanel> + Button.onClick.Invoke()；
+            //   S6-08 直接 ShowUI mock panel；S6-04 spike Start() 自 fire OnRequestSceneChange(1) baseline + 5 R3
+            //   error/restart path case；S6-01-playtest no-op spike → 用户手动 click NewGame 走 chapter 1)。
             // 关键：若 DevTestState 在此 pre-dispatch OnRequestSceneChange(1)，spike 启动时 chapter 1 已加载 →
             //   Button click 二次派 (chapter1→chapter1 noop) 致 spike NewGameClickDispatch case FAIL (P4 transition delta=0)；
-            //   且 S6-04 P2/P5 newest-wins pending 测试依赖 spike 完全控制 chapter 切换时机。
+            //   且 S6-04 P2/P5 newest-wins pending 测试依赖 spike 完全控制 chapter 切换时机；S6-01-playtest 需 main menu
+            //   显示后由用户手动驱动游戏完成 ≥30 min internal playtest（详 production/playtests/playtest-vs-chapter-1-session-1-2026-05-13.md）。
             // 其他历史 spike (story-001c, S5-1c 等) 保留原 auto-fire 行为以兼容 sync-subscribe race precedent。
-            // V3.0.1 dp8 candidate: [main-menu] mode HasSpike list 已增至 4 个 spike (S5-02/S6-07/S6-08/S6-04)，
-            //   触发"main-menu mode 是否独立提取 ADR" 评估阈值；详 story-003-error-restart-path.md §V3.0.1 Watch List Hooks。
+            // V3.0.1 dp8 candidate: [main-menu] mode HasSpike list 已增至 5 个 spike (S5-02/S6-07/S6-08/S6-04/S6-01-playtest)，
+            //   远超原阈值 4 — Sprint 6 retro 强制评估 V3.1 trigger pattern (central mode-dispatch refactor 候选)；
+            //   详 story-003-error-restart-path.md §V3.0.1 Watch List Hooks。
+            // V3.0.1 dp14 candidate NEW (2026-05-14 Session 32): playtest infrastructure pattern gap — S6-01 Phase 1 prep 盲点
+            //   surface 时新加 S6-01-playtest no-op spike + DevTestState [main-menu] mode +1 项；详 S6-01_PlaytestHoldMode.cs。
             if (DevTest.DevBootstrap.HasSpike("S5-02") || DevTest.DevBootstrap.HasSpike("S6-07") ||
-                DevTest.DevBootstrap.HasSpike("S6-08") || DevTest.DevBootstrap.HasSpike("S6-04"))
+                DevTest.DevBootstrap.HasSpike("S6-08") || DevTest.DevBootstrap.HasSpike("S6-04") ||
+                DevTest.DevBootstrap.HasSpike("S6-01-playtest"))
             {
-                Log.Info("[GameFlow] [main-menu] 检测到 main menu spike (S5-02/S6-07/S6-08/S6-04) — Button click 模式或 spike 自驱");
+                Log.Info("[GameFlow] [main-menu] 检测到 main menu spike (S5-02/S6-07/S6-08/S6-04/S6-01-playtest) — Button click 模式或 spike 自驱或用户手动驱动");
 
                 // 先 RunRequested() 让 spike Runtime.Awake() 同步 subscribe production listeners
                 // (per S5-1c lessons memo problem_2026-05-09_spike-sync-subscribe-race.md)
