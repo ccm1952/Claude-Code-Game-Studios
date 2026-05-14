@@ -39,11 +39,14 @@ namespace GameLogic
             //   详 story-003-error-restart-path.md §V3.0.1 Watch List Hooks。
             // V3.0.1 dp14 candidate NEW (2026-05-14 Session 32): playtest infrastructure pattern gap — S6-01 Phase 1 prep 盲点
             //   surface 时新加 S6-01-playtest no-op spike + DevTestState [main-menu] mode +1 项；详 S6-01_PlaytestHoldMode.cs。
+            // V3.0.1 dp8 candidate (2026-05-14 Session 32 Phase 2): DevTestState [main-menu] mode HasSpike list 加 S6-13 = 6 spike，
+            //   远超原阈值 4 — Sprint 6 retro 强制评估 V3.1 trigger pattern (central mode-dispatch refactor 候选)；
+            //   详 production/epics/vs-chapter-1/story-004-input-pipeline-wiring.md §V3.0.1 Watch List Hooks Type-8 dp1。
             if (DevTest.DevBootstrap.HasSpike("S5-02") || DevTest.DevBootstrap.HasSpike("S6-07") ||
                 DevTest.DevBootstrap.HasSpike("S6-08") || DevTest.DevBootstrap.HasSpike("S6-04") ||
-                DevTest.DevBootstrap.HasSpike("S6-01-playtest"))
+                DevTest.DevBootstrap.HasSpike("S6-01-playtest") || DevTest.DevBootstrap.HasSpike("S6-13"))
             {
-                Log.Info("[GameFlow] [main-menu] 检测到 main menu spike (S5-02/S6-07/S6-08/S6-04/S6-01-playtest) — Button click 模式或 spike 自驱或用户手动驱动");
+                Log.Info("[GameFlow] [main-menu] 检测到 main menu spike (S5-02/S6-07/S6-08/S6-04/S6-01-playtest/S6-13) — Button click 模式或 spike 自驱或用户手动驱动");
 
                 // 先 RunRequested() 让 spike Runtime.Awake() 同步 subscribe production listeners
                 // (per S5-1c lessons memo problem_2026-05-09_spike-sync-subscribe-race.md)

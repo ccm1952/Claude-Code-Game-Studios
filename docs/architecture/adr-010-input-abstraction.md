@@ -12,7 +12,7 @@ Accepted (Promoted 2026-05-06 — bulk ceremony post Sprint 3 closure / ADR-029 
 
 ## Last Verified
 
-2026-04-22
+2026-05-14 (Sprint 6 emergent fix Track F vs-chapter-1-004 Phase 2 — §Implementation Guidelines Step 9 "Editor Mouse Adapter" amend；V3.0.1 dp16 candidate "ADR spec gap re Editor-only path" 实战触发 closure 第 1 项；previous 2026-04-22 Sprint 2 SP-013 readiness 阶段)
 
 ## Decision Makers
 
@@ -286,6 +286,21 @@ LightDrag 在手势识别层与 Drag 相同。上层 Object Interaction 根据�
 | `fallbackDPI` | float | 160.0 | Screen.dpi=0 时的备用值 |
 | `pcRotateSensitivity` | float | 0.005 | PC 鼠标旋转灵敏度 (rad/px) |
 | `pcScrollSensitivity` | float | 0.1 | PC 滚轮缩放灵敏度 |
+
+**9. Editor Mouse Adapter（Sprint 6 emergent fix Track F NEW pull-forward — V3.0.1 dp16 candidate 实战触发 closure）**
+
+Editor Play (development workflow only) 内必备 `MouseToTouchAdapter` (`#if UNITY_EDITOR` guard) 把 Unity legacy `Input.GetMouseButton(0)` + `Input.mousePosition` 翻译成 `TouchState` 喂给 `SingleFingerFSM`，让开发期 Mouse drag 能驱动同一条 gesture pipeline，避免 Editor playtest 与真机 Touch pipeline 行为偏离。
+
+- **Adapter 不进入 production runtime build** — 整文件 `#if UNITY_EDITOR` guard，Player Build 0 残留
+- **InputService.Tick 内 #else branch 留 Sprint 7+ Touch 真机 testing 接入入口**（当前 explicit empty branch 让 grep "InputService.Tick non-editor 0 caller" 看到 dp15 sniff sub-clause 留观察 hook）
+- **Sprint 6 narrow scope**: 仅单指 (FingerId=0) Mouse Button 0 (LMB)；Pinch/Rotate Mouse 模拟 (Editor 多指 mock) 留 Sprint 7+ ADR-010 V2 amendment epic
+- **Mouse Phase 翻译规则**: Mouse Down (frame 0) → Phase=Began；Mouse Held (frame 1..N-1) → Phase=Moved (有 delta) 或 Stationary (无 delta)；Mouse Up (frame N) → Phase=Ended (一帧 IsActive=true 让 FSM 看到 Ended 后清理)；Mouse Idle (Up 后) → Phase=Canceled, IsActive=false
+- **0 GC allocation hot path** — TouchState struct 值类型；adapter 内部仅持 `_wasDown` (bool) + `_lastPos` (Vector2) 两 field
+
+**关联实施 reference**:
+- `Assets/GameScripts/HotFix/GameLogic/Input/MouseToTouchAdapter.cs` (Sprint 6 vs-chapter-1-004 production code)
+- `Assets/GameScripts/HotFix/GameLogic/Input/InputService.cs` (Tick 内 #if UNITY_EDITOR branch 持 adapter)
+- `production/epics/vs-chapter-1/story-004-input-pipeline-wiring.md` (R3 5 case + AC-8 deficiency closure 第 1 项)
 
 ## Alternatives Considered
 

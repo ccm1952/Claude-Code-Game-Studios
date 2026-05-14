@@ -23,6 +23,11 @@ public partial class GameApp
     // S5-1b: SceneManager production instance (ADR-009 boot pipeline 接入；GameApp 拥有生命周期，Release 内 Dispose)。
     private static GameLogic.SceneManager _sceneManager;
 
+    // Sprint 6 emergent fix Track F vs-chapter-1-004: InputService production instance (ADR-010 Driver 层补齐；
+    // Sprint 2 SP-013 sprint backlog placeholder wording drift — V3.0.1 dp11 candidate；
+    // Editor Mouse → SingleFingerFSM → GestureDispatcher.Dispatch → IGestureEvent.OnTap/OnDrag fire 完整 round-trip)。
+    private static GameLogic.InputService _inputService;
+
     /// <summary>
     /// 热更域App主入口。
     /// </summary>
@@ -47,6 +52,15 @@ public partial class GameApp
         _sceneManager.RegisterChapterDataProvider(BuildFixtureChapterDataProvider());
         _sceneManager.RegisterFadeOverlay(new GameLogic.NoOpFadeOverlay());
         Log.Info("[GameApp] SceneManager production wire-up done (chapter 1 fixture provider + NoOp fade overlay)");
+
+        // Sprint 6 emergent fix Track F vs-chapter-1-004: InputService boot pipeline 接入 (ADR-010 Driver 层补齐)。
+        // Init 内 InputConfigFromLuban.InitWithDefaults() 暂用 GDD defaults (Luban TbInputConfig 留 Sprint 7+);
+        // Editor Play 走 MouseToTouchAdapter 模拟 Touch (V3.0.1 dp16 candidate "ADR spec gap re Editor-only path"
+        // 实战触发 Phase 2 closure；ADR-010 §Implementation Guidelines Step 9 amend 5-10 行 spec wording);
+        // Player Build #else branch explicit empty (Sprint 7+ Touch 真机 testing 接入入口)。
+        _inputService = new GameLogic.InputService();
+        _inputService.Init();
+        Log.Info("[GameApp] InputService production wire-up done (Sprint 2 SP-013 partial fsm-only-driver-pending closure)");
 
 #if UNITY_EDITOR || DEBUG
         RegisterDevSpikes();
@@ -115,14 +129,26 @@ public partial class GameApp
         //   Error→RecoverToIdle / RapidNewestWinsOverwrite；evidence: production/qa/playmode-error-restart-path-2026-05-13.md），
         //   不再每次启动并发跑。如需复跑 R3，临时注释 S601PlaytestSpike + 取消 S604Spike 注释行。
         //
-        // S6-01 Phase 2.0 (2026-05-14 Session 32) 当前 active spike — playtest hold mode 占位 spike
-        //   (per S6-01 Phase 2 起步 emergent discovery: R3 spike RunAllAsync 与 manual playtest 不兼容 —
-        //   V3.0.1 dp14 candidate NEW 'playtest infrastructure pattern gap')。Launch() no-op，仅触发 DevTestState
-        //   [main-menu] mode HasSpike("S6-01-playtest") → ShowMainMenuPanelAsync 显示 MainMenuPanel UIWindow，
-        //   之后由用户手动 click NewGame Button → ISceneEvent.OnRequestSceneChange(1) → chapter 1 load 完成
-        //   ≥30 min internal playtest session per production/playtests/playtest-vs-chapter-1-session-1-2026-05-13.md。
-        //   Sprint 6+ 所有 manual playtest session (S6-02 / S6-03 / 未来 chapter 2 playtest) 复用此 spike。
-        GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S601PlaytestSpike());
+        // S6-13 Input Pipeline Wiring (2026-05-14 Session 32 Phase 2) 当前 active spike — Track F vs-chapter-1-004 R3 PlayMode probe
+        //   (per story-004-input-pipeline-wiring.md R1+R2+R3 readiness gate ⚠️ DEFICIENCY-FLAGGED PASS)。
+        //   5 R3 case (P1 MouseSingleTap → P2 MouseDragThreePhase → P3 TapVsDragThresholdBoundary →
+        //   P4 SingleFingerFSMStateTransitionVerify → P5 NoMockFireBypassVerify) — V3.0.1 dp15 candidate
+        //   "EditMode green ≠ production wired" sniff sub-clause 试点 第 1 个 production caller hit > 0 修复 case；
+        //   reflection 拿 GameApp._inputService private static field + InputService.TickForTest 注入 TouchState 绕
+        //   MouseToTouchAdapter Mouse hardware 依赖；JSON evidence WriteResultJson Application.persistentDataPath/S6-13_Result.json。
+        //
+        //   V3.0.1 dp16 candidate "ADR spec gap re Editor-only path" 实战触发 (R2.5 NEW finding：ADR-010 §Decision
+        //   Layer 1 仅 cover Touch / 没 cover Editor Mouse pipeline) — Phase 2 closure ADR-010 §Implementation
+        //   Guidelines Step 9 'Editor Mouse Adapter' amend 5-10 行 spec wording 落档。
+        //
+        //   V3.0.1 dp8 candidate "DevTestState [main-menu] mode 复用阈值阶进" — 加入 S6-13 后 [main-menu] mode
+        //   HasSpike list 现 5 spike (S5-02 + S6-07 + S6-08 + S6-04 + S6-13 + S6-01-playtest)，远超原阈值 4，
+        //   Sprint 6 retro 强制评估 V3.1 trigger pattern (central mode-dispatch refactor 候选)。
+        //
+        //   manual playtest session 复跑入口（保留 S6-01-playtest spike 注释行作 manual playtest 模式切换）：
+        //   注释 S613Spike + 取消 S601PlaytestSpike 注释行即可切回 manual playtest hold mode。
+        GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S613Spike());
+        // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S601PlaytestSpike());
         // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S604Spike());
         // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S608Spike());
         // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S607Spike());
@@ -167,6 +193,15 @@ public partial class GameApp
     
     private static void Release()
     {
+        // Sprint 6 emergent fix Track F vs-chapter-1-004: InputService Dispose 必须先于 FSM Destroy
+        // (Utility.Unity.RemoveUpdateListener 需要 update driver alive；listener-path driver 反向操作)。
+        if (_inputService != null)
+        {
+            _inputService.Dispose();
+            _inputService = null;
+            Log.Info("[GameApp] InputService disposed");
+        }
+
         // S5-1b SceneManager Dispose 必须先于 FSM Destroy（FSM 销毁时 GameLogic listener bus 仍在；
         // SceneManager.Dispose 内 RemoveEventListener 需要 listener bus alive）。
         if (_sceneManager != null)
