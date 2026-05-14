@@ -5,7 +5,7 @@
 > **Story**: S6-01 (Sprint 6 Track A Must Have, 2 SP)
 > **ADR-030 §VS Build commit**: 第 1/3 次 playtest session
 > **Drafted**: 2026-05-13 (Session 31)
-> **Played**: TBD（待 Phase 2 manual playtest 实际填）
+> **Played**: 2026-05-14 morning (Session 32) — Phase 2.1 manual playtest 启动 ~5 min 后撞 chapter 1 物件 production wiring gap 主动中止
 > **Player**: chen (solo developer)
 > **Observer**: Claude Code (实时反馈记录辅助)
 
@@ -13,9 +13,11 @@
 
 ## §0 概要
 
-chapter 1 第 1 次 internal playtest — Sprint 5 retro AI-4 promote Must Have，**ADR-030 §VS Build commitment 第 1/3 次 playtest** 完成项。
+chapter 1 第 1 次 internal playtest — Sprint 5 retro AI-4 promote Must Have，**ADR-030 §VS Build commitment 第 1/3 次 playtest**。
 
-**Status flow**: backlog → phase-1-prep-done (本 file 创建) → ⏳ Phase 2 待 user fresh Unity boot → §1..§8 完整填空 → phase-2-played-done → Phase 3 emergent fixes 评估 → done。
+**Status flow**: backlog → phase-1-prep-done → phase-2-0-infra-fix-done → ⚠️ **phase-2-1-played-needs-work-emergent-fix-pending** (本次落点 2026-05-14 Session 32) → 待 emergent fix epic story-004~008 完成 → phase-2-2-replay-pending → done。
+
+**verdict**: ⚠️ **NEEDS-WORK** — fun loop 不可评估（chapter 1 物件 production wiring gap 5 处缺口阻塞 fun loop assessment）；但 governance value 巨大：surface **V3.0.1 dp15 candidate "EditMode green ≠ production wired sniff"**（详见 §4.5）+ 暴露 Sprint 2-5 五个 sprint 期间 ObjectInteraction system 整套 EditMode test pass + production 0 wiring 反模式。playtest 1 设计意图 = 揭露 Sprint 6 polish 优先级 → 设计意图达成（虽 fun loop 部分未达 ≥30 min）。
 
 **前置依赖（全 ✅ done 2026-05-13）**:
 - S5-02 ✅ Chapter 1 5 系统 happy path (5/5 R3 + 36/36 asserts)
@@ -107,13 +109,29 @@ chapter 1 第 1 次 internal playtest — Sprint 5 retro AI-4 promote Must Have�
 
 **Observation points** —— **此区是 fun loop 评估核心**:
 
-#### §2.3.1 物件探索阶段
+#### §2.3.1 物件探索阶段（target 10 min — 实际 0 min，fun loop 在此阶段撞墙）
 
-- [ ] 看到 Object_01_CoffeeMug 反应（attention / 兴趣 / 困惑）：TBD
-- [ ] 互动尝试（click / drag / approach）：TBD
-- [ ] 第一次互动 → reaction（hover highlight / click feedback / sound effect）：TBD
-- [ ] 找到 Object_02_Book 难度（视觉提示是否够 / clue 是否清晰）：TBD
-- [ ] 物件互动 affordance 是否清晰（看一眼知道 "这是个 puzzle clue"）：TBD
+- [x] 看到 Object_01_CoffeeMug 反应：visual 可见（场景 placeholder Cube primitive；S6-09 art asset 升级未做）
+- [x] 互动尝试（click / drag / approach）：⚠️ **完全无响应** — user 原话："Object_01 无法交互，点击拖拽 没响应"
+- [x] 第一次互动 → reaction：**0 反馈**（hover highlight / click feedback / sound effect 全 0）
+- [x] 找到 Object_02_Book 难度：N/A（未到此阶段，fun loop 在 Object_01 互动失败时已主动中止）
+- [x] 物件互动 affordance 是否清晰：N/A — 无任何交互链路存在 → fun loop 完全 broken
+
+**Player notes**（user 原话 + observer 复盘）:
+- "Object_01 无法交互，点击拖拽 没响应" — Phase 2.1 启动后 ~5 min 撞墙；尝试 mouse click + drag + 多次重试均 0 反馈。
+- Observer root cause（grep + Session 27 #2 R2.3 + unity-mcp 实测交叉验证）: chapter 1 物件 production wiring **5 处缺口同时存在**（详见 §4.1 S0 issues 列表）。
+
+**Observer 复盘 — root cause 5 项 production wiring gap**:
+
+| # | Wiring 位 | 现状 | 检测命令 / 来源 |
+|---|-----------|------|----------|
+| 1 | Touch/Mouse → GestureRecognizer FSM → `GestureDispatcher.Dispatch(GestureData)` | ❌ **0 production caller**（仅 EditMode test fixture 1 处调用） | `rg 'GestureDispatcher\.Dispatch' --type cs` |
+| 2 | `Chapter_01_Approach.unity` 挂 `InteractionCoordinator` GameObject + Inspector 拖入 _objects + Camera + Layer | ❌ | Session 27 #2 unity-mcp `manage_scene get_hierarchy parent=Interactables` 实测 |
+| 3 | `Object_01_CoffeeMug` / `Object_02_Book` 挂 `InteractableObject` MonoBehaviour + `_puzzleId` + Interactable layer | ❌ componentTypes `[Transform, MeshFilter, BoxCollider, MeshRenderer]` 缺 InteractableObject | Session 27 #2 unity-mcp 实测 |
+| 4 | `GameApp.Entrance` 调 `InteractableObject.RegisterPuzzleConfigProvider(...)` + `InteractionCoordinator.RegisterInputConfigProvider(...)` | ❌ GameApp.cs 0 hit | `rg 'RegisterPuzzleConfigProvider\|RegisterInputConfigProvider' GameApp.cs` |
+| 5 | ADR-012 `ShadowMatchCalculator` listener 物件 transform → 阴影匹配 → `IPuzzleEvent.OnMatchScoreUpdated` fire | ❌（S5-02 spike P2 fire mock OnMatchScoreUpdated(1, 0.95) 简化路径绕过） | Session 27 #2 R2.3 RESOLVED 当时决策推迟到 Sprint 6 polish |
+
+**关键 governance 发现**: Sprint 2 ObjectInteraction system 代码齐全（5 production class + EditMode test 全 pass），但 chapter 1 production wiring 整套 0 落地；S5-02 spike fire mock 简化路径让 R3 5/5 PASS 掩盖 wiring gap，**直到 S6-01 manual playtest 第一次穿透 production 层**才 surface。详见 §4.5 dp15 candidate。
 
 #### §2.3.2 shadow match mechanic
 
@@ -182,19 +200,20 @@ chapter 1 第 1 次 internal playtest — Sprint 5 retro AI-4 promote Must Have�
 
 ## §3 Fun Loop Assessment（per Sprint 5 retro AI-4 promote criteria）
 
-> 全程 ≥30 min 后填，1-5 评分 + notes。
+> 实际 playtest 时长 ~5 min（撞 chapter 1 物件 production wiring gap 主动中止）；fun loop 部分整体不可评估。
 
 | 维度 | 评分 1-5 | Notes / 触发场景 |
 |---|---|---|
-| **Fun moment 出现频次** | TBD | TBD（≥3 次 = 4 分 / ≥5 次 = 5 分） |
-| **Pacing 流畅度**（慢 1 / 卡 2 / 平 3 / 流畅 4 / 紧凑 5） | TBD | TBD |
-| **Clarity**（无需 dev 协助独立完成度；卡死 1 / 提示后继续 2 / 自摸索 3 / 顺畅 4 / 一气呵成 5） | TBD | TBD |
-| **Frustration points**（卡住 / 不解 / 重复尝试次数；多 1 / 中 3 / 无 5）| TBD | TBD |
-| **"想再玩一遍" 意愿**（关键 indicator）| TBD | TBD |
-| **整体 fun loop 健康度**（≥ 3.5 平均 = PASS playtest 1，可进 playtest 2；< 3.5 = NEEDS-WORK emergent fixes 先做） | TBD avg | TBD |
+| **Fun moment 出现频次** | **不可评估** | 物件 0 交互 → 0 fun moment 触发；不属"分数低"，是"评估前提缺失" |
+| **Pacing 流畅度** | **不可评估** | splash → main menu → chapter 1 进入流程 OK（~30 sec），但进 chapter 1 后 0 互动 → pacing 链路断 |
+| **Clarity** | **不可评估** | 玩家不知"做什么"是因为**根本没法做任何事**（不是 clarity gap，是 mechanics 0 wired）|
+| **Frustration points** | 1（max frustration） | "Object_01 无法交互，点击拖拽 没响应"反复尝试失败 → frustration 满值；但**不属于 game design 失误**，属 production wiring gap |
+| **"想再玩一遍" 意愿** | **不可评估** | 没有"玩"过完整 fun loop，无意愿可评 |
+| **整体 fun loop 健康度** | **不可评估 → NEEDS-WORK** | < 3.5 触发条件；emergent fix epic story-004~008 完成后必须 replay 重测 |
 
-**Verdict** (待 §3 评分填后判定):
-- ⏳ TBD — 评 PASS / NEEDS-WORK / FAIL
+**Verdict**: ⚠️ **NEEDS-WORK** — fun loop 不可评估（不是评估出来 fail，是评估前提（chapter 1 物件可交互）不存在）。
+
+**注释**：playtest 1 真正的 governance value 不在 §3 fun loop 评分，而在 §4.1 S0 + §4.5 dp15 candidate —— 5 min 内穿透 production 层、surface ObjectInteraction system 跨 5 sprint EditMode-green-but-not-wired 反模式。这种发现远比 fun loop 微调有价值。
 
 ---
 
@@ -204,9 +223,15 @@ chapter 1 第 1 次 internal playtest — Sprint 5 retro AI-4 promote Must Have�
 
 ### §4.1 S0 Critical（block playtest 2 进行）
 
-> Expected: 0（S5-02 + S6-04 5/5 R3 已 verify mechanical robustness）
+> Expected: 0（S5-02 + S6-04 5/5 R3 已 verify mechanical robustness）—— **实际触发 5 项 production wiring gap**（同一 root cause，分 5 个 emergent fix story 修复，对应 vs-chapter-1 epic story-004~008）
 
-- [ ] TBD（如有，必 Sprint 6 mid 立 emergent fix story）
+- [x] **S0-1: Touch/Mouse → GestureDispatcher.Dispatch production caller 0 hit** — `IGestureEvent.OnTap` 在 production 0 sender；EditMode `GestureDispatchTests.cs` 1 处调用 → 整条 input → gesture → event 链 production 0 落地；Sprint 7+ ADR-010 InputManager epic 部分 scope **必须 pull-forward 到 Sprint 6** 作为 emergent fix 前提。**Sprint 安排**: Sprint 6 emergent fix track F **story-004 input-pipeline-wiring** (~2-3 hr)。**关联 dp candidate**: dp15 NEW（详 §4.5）。
+- [x] **S0-2: Chapter_01_Approach.unity 未挂 InteractionCoordinator GameObject** — 无 InteractionCoordinator MonoBehaviour 节点；Sprint 5 S5-01 scene build 时 wiring gap，S5-02 spike fire mock OnMatchScoreUpdated 简化路径绕过，未触发此 gap surface。**Sprint 安排**: emergent fix track F **story-005 chapter-1-scene-wiring** (~1-1.5 hr) 含 Object MonoBehaviour 挂载（S0-3）。
+- [x] **S0-3: Object_01_CoffeeMug / Object_02_Book 缺 InteractableObject MonoBehaviour** — Session 27 #2 unity-mcp 实测 componentTypes `[Transform, MeshFilter, BoxCollider, MeshRenderer]` (Object_01) / `[Transform, MeshFilter, CapsuleCollider, MeshRenderer]` (Object_02)；当时决策推迟到 Sprint 6 polish，但 Sprint 6 stories 未排此项。**Sprint 安排**: 与 S0-2 合并到 emergent fix track F **story-005**。
+- [x] **S0-4: GameApp.Entrance 未调 RegisterPuzzleConfigProvider + RegisterInputConfigProvider** — `InteractableObject.RegisterPuzzleConfigProvider(Func<int, PuzzleConfig>)` + `InteractionCoordinator.RegisterInputConfigProvider(Func<IInputConfig>)` 静态注入入口 GameApp.cs 0 调用；即使 InteractableObject MonoBehaviour 挂载完成也会因 provider null 立即 fail-loud Log.Error 退化 fallback。**Sprint 安排**: emergent fix track F **story-006 gameapp-provider-injection** (~0.5 hr)。
+- [x] **S0-5: ShadowMatchCalculator (ADR-012) listener 物件 transform → 阴影匹配 → OnMatchScoreUpdated production 0 wire** — S5-02 spike P2 直接 fire mock `OnMatchScoreUpdated(1, 0.95)` 绕过 ObjectInteraction → ShadowMatch 整条链路；fun loop replay 必须依赖此 wire 完整。**Sprint 安排**: emergent fix track F **story-007 shadowmatch-production-wire** (~2-3 hr)。
+
+**S0 Total scope**: ~7-9 hr（story-004 ~ -007）+ **story-008 end-to-end-smoke-replay** (~1 hr) S5-02 spike 重写不依赖 mock fire；总 ~7-9 hr Sprint 6 本周 split 2-3 daily session 嵌入。详见 §6.2。
 
 ### §4.2 S1 High（影响 fun loop, 必须 Sprint 6 内 fix）
 
@@ -241,7 +266,30 @@ chapter 1 第 1 次 internal playtest — Sprint 5 retro AI-4 promote Must Have�
   - **Sprint 7+ 复用**: S6-02 / S6-03 / 未来 chapter 2 playtest 等所有 manual playtest session 复用此 spike pattern。
   - **Sprint 6 retro 议题 (NEW)**: 评估 promote 为 ADR-029 V3 正式 dp + create standard PlaytestMode pattern doc
     (与 V3.0.1 dp8 DevTestState central mode-dispatch refactor 候选 关联 — 是否合并提案)。
-- [ ] TBD（其他 playtest 中发现）
+
+- ⭐ **V3.0.1 dp15 candidate NEW (2026-05-14 Session 32 — promote 优先级 高于 dp14)** —
+  **"EditMode green ≠ production wired sniff"** —
+  S6-01 Phase 2.1 manual playtest ~5 min 内穿透 production 层 surface：
+  Sprint 2 ObjectInteraction system 代码齐全（5 production class — InteractableObject + InteractableObjectFsm +
+  InteractableObjectFeedback + InteractionCoordinator + InteractionLockManager + EditMode test 全 pass），
+  但 chapter 1 production wiring **整套 0 落地**（5 处缺口同时存在 — 详见 §4.1 S0-1~S0-5）；
+  S5-02 spike fire mock `OnMatchScoreUpdated(1, 0.95)` 简化路径让 R3 5/5 PASS 掩盖整套 wiring gap。
+  - **governance 重量**: 这是 ADR-029 V3 R3 standard "PlayMode probe spike" 验证可信度边界 ——
+    spike PASS ≠ "system production wired" ≠ "chapter scene 内可玩"；EditMode test pass 同样不代表 production caller hit > 0。
+  - **跨 sprint drift**: Sprint 2 → Sprint 3 → Sprint 4 → Sprint 5 → Sprint 6 五个 sprint 期间，
+    ObjectInteraction system 一直处于 *EditMode test green + production 0 wiring* 状态，未被任何 R2 / R3 / smoke check 揭穿，
+    直到 S6-01 manual playtest 第一次穿透。
+  - **proposed ADR-029 V3 R3 amend "production caller hit > 0 sniff" sub-clause** —
+    R3 PlayMode spike 设计前 + Phase 1 readiness gate 必加 R2 grep verify：
+    `rg 'XxxDispatcher\.Yyy' --type cs` 或 `class XxxManager.*MonoBehaviour` production caller > 0 = sniff PASS；
+    = 0（仅 EditMode test fixture 调）→ 黄牌警告 spike 路径可能 mock 绕过 wiring gap，强制评估补 R3 production wiring sniff case。
+  - **Sprint 7+ 影响**: 适用于全部跨 sender → listener 链路系统（`ShadowMatchCalculator`, `NarrativeSequencePlayer`,
+    `ChapterStateManager`, `InputManager` 未来 epic, etc.）—— sniff sub-clause 防止下一个 system 重蹈覆辙。
+  - **Sprint 6 retro 议题 (NEW 议题 6)**: 评估 promote V3.x sub-version + R3 standard amend
+    "production caller hit > 0 sniff sub-clause" + 与 dp14 'playtest infrastructure pattern gap' 关联评估
+    （dp14 是 manual playtest 工具链 gap，dp15 是 EditMode-vs-production 验证可信度 gap，governance 层级不同但同根 — 都是
+    "spike/test PASS 不等于 production 可玩"反模式）。
+- [ ] TBD（其他 playtest replay after emergent fix 中发现）
 
 ---
 
@@ -251,7 +299,7 @@ chapter 1 第 1 次 internal playtest — Sprint 5 retro AI-4 promote Must Have�
 |---|---|---|---|
 | 1 | chapter 1 build complete | ✅ | S5-01 + S5-1b + S5-1c + S5-02 (5 systems happy path) |
 | 2 | Track A production code (5 systems) | ✅ | S5-02 5/5 R3 + 36/36 asserts (2026-05-12) |
-| 3 | **≥3 internal playtest sessions** | ⏳ **1/3 done after 本 session 完成** | 本 file (S6-01) / S6-02 / S6-03 |
+| 3 | **≥3 internal playtest sessions** | ⏳ **1/3 partial done after 本 session — fun loop 不达 ≥30 min 但 governance value 满足**（surface dp15 candidate + 5 处 wiring gap → emergent fix epic 触发）；replay after story-004~008 done 后再判定是否需重计 1/3 | 本 file (S6-01 partial) / S6-02 (after emergent fix) / S6-03 |
 | 4 | playtest report 综合 | ⏳ Sprint 6 末 | S6-03 末完成 |
 | 5 | `/gate-check pre-production` 重跑 | ⏳ Sprint 6 末 | S6-10 |
 | 6 | `production/stage.txt` advance Pre-Production → Production | ⏳ Sprint 6 末 post-S6-10 PASS | S6-10 |
@@ -270,12 +318,20 @@ chapter 1 第 1 次 internal playtest — Sprint 5 retro AI-4 promote Must Have�
 
 **Decision**: TBD（依 §3 + §4 反馈 + art-director 排期评估）
 
-### §6.2 Emergent fixes 分配（Sprint 6 内 vs Sprint 7）
+### §6.2 Emergent fixes 分配（Sprint 6 内 vs Sprint 7）— **Track F NEW (chapter 1 production wiring emergent fix)**
 
-- §4.1 S0 → 必 Sprint 6 mid 加 emergent fix story
-- §4.2 S1 → Sprint 6 内 fits（playtest 1 ↔ playtest 2 之间）
-- §4.3 S2 → Sprint 6 末 fits 或 Sprint 7
-- §4.4 S3 → Sprint 7+ polish phase backlog
+> 沿用 `production/epics/vs-chapter-1/` epic 加 story-004~008（不另起 epic；governance log 入 active.md Session 32 + sprint-status.yaml updated row + Sprint 6 retro 议题 +2）。
+
+| Story | 内容 | 估时 | GDD/ADR 锚 | 关键 AC |
+|-------|------|------|-----------|---------|
+| **story-004 input-pipeline-wiring** | Touch/Mouse → GestureRecognizer FSM → `GestureDispatcher.Dispatch(GestureData)` production wire | 2-3 hr | ADR-010 Input Abstraction（Sprint 7+ epic 部分 scope pull-forward；governance justification = block S6-02 playtest 2） | Editor Play 时 Mouse click 能 fire `IGestureEvent.OnTap`；PlayMode probe 1 case 验 Mouse Tap → event round-trip |
+| **story-005 chapter-1-scene-wiring** | Chapter_01_Approach.unity 加 InteractionCoordinator GameObject + Inspector 拖入 _objects + Camera + Layer + Object_01/02 加 InteractableObject MonoBehaviour + 配 _puzzleId + Interactable layer | 1-1.5 hr | ADR-013 Object Interaction FSM + ADR-027 GameEvent | unity-mcp `manage_scene get_hierarchy` 验组件齐全；Object layer = Interactable |
+| **story-006 gameapp-provider-injection** | GameApp.Entrance 调 `InteractableObject.RegisterPuzzleConfigProvider(...)` + `InteractionCoordinator.RegisterInputConfigProvider(...)` | 0.5 hr | ADR-013 §Architecture + Sprint 2 SP-013 注入约定 | GameApp.cs 见 2 处 Register；PlayMode probe 启动后 `InteractableObject._puzzleConfig != null` |
+| **story-007 shadowmatch-production-wire** | ADR-012 ShadowMatchCalculator listener 物件 transform → 阴影匹配 → `IPuzzleEvent.OnMatchScoreUpdated` fire（production，不再 spike fire mock） | 2-3 hr | ADR-012 Shadow Match Calculation | 拖动 Object_01 接近正确位置 → score 变化；score=0.95 fire `OnPerfectMatch` → narrative trigger（manual playtest replay 验） |
+| **story-008 end-to-end-smoke-replay** | S5-02 spike 重写：去除 mock fire OnMatchScoreUpdated，改用 production wiring simulate Tap+drag → match → score → narrative 完整 round-trip | 1 hr | ADR-029 V3 R3 standard + V3.0.1 dp15 candidate "production caller hit > 0 sniff" 试点 | R3 1 case 验 production wiring 不依赖 mock 也能 happy path 走通 |
+| **总计** | | **~7-9 hr** | | Sprint 6 本周 split 2-3 daily session 嵌入 |
+
+**S1/S2/S3 安排**（不适用 — 本次 playtest 未到能 surface S1/S2/S3 的 fun loop 阶段；replay after emergent fix 时再启 §4.2/§4.3/§4.4 评估）。
 
 ### §6.3 Playtest 2 起手前置（per S6-02 entry）
 
@@ -286,10 +342,17 @@ chapter 1 第 1 次 internal playtest — Sprint 5 retro AI-4 promote Must Have�
 ### §6.4 Sprint 6 retro 待加议题（如本 playtest 触发）
 
 - [ ] 累积 4 已知议题: V3.0.1 dp8 candidate / /vertical-slice vs S6-10 sequencing / dp13 candidate Director gates vs ADR-029 V3 coexistence / ≤5 hr hard rule 2 次 override 反思
-- ✅ **NEW 议题 5 (2026-05-14 Session 32)**: V3.0.1 dp14 candidate NEW 'playtest infrastructure pattern gap' —
+- ✅ **NEW 议题 5 (2026-05-14 Session 32 morning)**: V3.0.1 dp14 candidate NEW 'playtest infrastructure pattern gap' —
   评估 promote ADR-029 V3 正式 dp + standard PlaytestMode pattern 文档化（Sprint 7+ 所有 playtest 复用基线）；
   与 dp8 DevTestState central mode-dispatch refactor 关联 —— 是否合并 V3.1 trigger 提案。
-- [ ] 本 playtest 1 实际玩中其他议题: TBD（玩完后填）
+- ⭐ **NEW 议题 6 (2026-05-14 Session 32 morning — promote 优先级 高于议题 5)**:
+  **V3.0.1 dp15 candidate NEW 'EditMode green ≠ production wired sniff'** —
+  评估 promote V3.x sub-version + ADR-029 V3 R3 standard amend "production caller hit > 0 sniff sub-clause"
+  （rg `XxxDispatcher\.Yyy` / `class XxxManager` production caller > 0 = sniff PASS；= 0 仅 EditMode test fixture 调
+  → 黄牌警告 spike 路径可能 mock 绕过 wiring gap）；评估与 dp14 关联（同根 "spike/test PASS 不等于 production 可玩"反模式
+  但层级不同 — dp14 manual playtest 工具链 gap，dp15 EditMode-vs-production 验证可信度 gap）；
+  评估应用范围（ShadowMatchCalculator / NarrativeSequencePlayer / ChapterStateManager / 未来 InputManager epic 等）。
+- [ ] 本 playtest 1 实际玩中其他议题: TBD（emergent fix done 后 replay 时填）
 
 ---
 
@@ -322,13 +385,13 @@ chapter 1 第 1 次 internal playtest — Sprint 5 retro AI-4 promote Must Have�
 
 | 项 | 决定 |
 |---|---|
-| **Playtest verdict** | TBD（待 Phase 2 manual playtest + §3 + §4 填后判定）|
+| **Playtest verdict** | ⚠️ **NEEDS-WORK** — fun loop 不可评估（5 处 production wiring gap 阻塞）；governance value 满足（dp15 candidate NEW + 揭露 5 sprint EditMode-green-but-not-wired 反模式） |
 | **PASS criteria** | §3 Fun Loop Assessment 整体均分 ≥ 3.5 + §4.1 S0 = 0 + §4.2 S1 ≤ 3 项 |
-| **NEEDS-WORK criteria** | §3 均分 < 3.5 OR §4.1 S0 ≥ 1 OR §4.2 S1 ≥ 4 项 |
-| **FAIL criteria** | §4.1 S0 阻塞 fun loop OR Sprint 6 capacity 不够 fix |
-| **Next action** | TBD — emergent fixes prioritize + S6-02 起手时机 + S6-09 决策 |
-| **Player sign-off** | chen TBD |
-| **Observer sign-off** | Claude Code TBD |
+| **NEEDS-WORK criteria** | §3 均分 < 3.5 OR §4.1 S0 ≥ 1 OR §4.2 S1 ≥ 4 项 → **§4.1 S0 = 5 项 触发 NEEDS-WORK** |
+| **FAIL criteria** | §4.1 S0 阻塞 fun loop OR Sprint 6 capacity 不够 fix → 不触发 FAIL（Sprint 6 capacity ~7-9 hr emergent fix 可吸收，本周 split 2-3 daily session） |
+| **Next action** | (1) 立 emergent fix epic vs-chapter-1 story-004~008（Track F NEW，~7-9 hr，Sprint 6 本周）；(2) story-004~008 done 后启 Phase 2.2 replay manual playtest（reuse session 语义重测）；(3) replay PASS 后才进 S6-02；(4) S6-09 art asset 升级时机不变（playtest 1 反馈不足以判定 art 是否 fun loop 阻碍 → 推 [A2] 路径直到 replay session）；(5) Sprint 6 retro 议题 +2 = 6 项（dp14 + dp15 NEW）。 |
+| **Player sign-off** | chen 2026-05-14 Session 32 (NEEDS-WORK acknowledged + emergent fix 决策 [A] 批准) |
+| **Observer sign-off** | Claude Code 2026-05-14 Session 32 (root cause analysis + 5 处 wiring gap rg 验证 + dp15 candidate proposal 落档) |
 
 ---
 
