@@ -9,7 +9,7 @@
 > **Complexity Points**: 1-1.5 (~1-1.5 hr 估时)
 > **GDD Requirement**: `design/gdd/object-interaction.md` line 86 (Chapter 1 仅 2 物件 + 1 光源 design constraint — **无对应 TR-ID** per tr-registry.yaml 实证) + `design/concept/shadow-memory.md` line 106 (Chapter 1 关系弧线 "靠近" 2 物件 design constraint)。本 story 落地 Sprint 2 SP-013 InteractableObject + InteractionCoordinator MonoBehaviour Inspector 挂载 + Sprint 5 S5-01 scene 实体 wiring。**TR-ID 引用 verify (2026-05-14 night Session 33)**: 原 story line 10 引用 `TR-objint-002` (实际 registry "Selection visual feedback EaseOutBack scale animation") + `TR-objint-003` (实际 "Fat-finger compensation") **两个 TR-ID 都不对应** chapter 1 物件挂载场景 — chapter 1 仅 2 物件 + 1 光源 是 design constraint 不是 TR-ID 范畴；amend 已修正。**dp11 第 2 实战触发额外子项 (TR-ID semantic drift)** — Sprint 6 retro 议题 6 input data point。
 > **ADR References**: **ADR-013 Object Interaction State Machine** (InteractableObject FSM + InteractionCoordinator + InteractionLockManager Sprint 2 done) + ADR-027 §3 IGestureEvent + §4 IInteractionEvent contract + ADR-029 V3.0.1 (R2 deficiency-flagged PASS path 候选；如 Object_01/02 layer 注册不齐则 deficiency-flag) + ADR-030 §VS Build commit
-> **Status**: ✅ **Phase 1 readiness gate ✅ READY** (2026-05-14 night Session 33 morning continue — Phase 0 R2 verify 7/7 + Phase 1 readiness gate R1 ✅ + R2 ✅ + R3 N/A pass + 5 gap closure amend (TR-ID semantic drift fix + unresolved 'TBD verify' wording fix + perf budget note + §Test Evidence section NEW + §ADR-029 Verification section NEW)；ADR-029 verdict ✅ PASS；ready for Phase 2 implementation)
+> **Status**: ✅ **Phase 2 scene wiring partial DONE** (2026-05-14 night Session 33 — scene + Inspector wire complete via unity-mcp batch；spike + R3 PlayMode + evidence doc + Phase 5 closure pending 下 session；Drift D [A2] sub-decision child Hitbox2D GameObject narrow scope 同存解 — Unity engine 同 GameObject 2D/3D 互斥约束 surface)
 > **Created**: 2026-05-14 morning continue (Sprint 6 Session 32 — emergent fix Track F NEW second story)
 > **Completed**: ""
 > **Depends on**: story-004 input-pipeline-wiring (本 story InteractionCoordinator OnTap listener 需 IGestureEvent.OnTap fire 才有意义) + S5-01 ✅ (Chapter_01_Approach.unity scene 实体已构建 + Object_01_CoffeeMug + Object_02_Book Hierarchy 已存在但缺 InteractableObject MonoBehaviour) + Sprint 2 SP-013 ✅ (InteractableObject + InteractableObjectFsm + InteractableObjectFeedback + InteractionCoordinator + InteractionLockManager production code done + EditMode test pass)
@@ -56,10 +56,12 @@ T2  Object_01_CoffeeMug AddComponent InteractableObject MonoBehaviour
     → Inspector _objectId: 1
     → Inspector _puzzleId: 1 (单 puzzle 配合 chapter 1)
     → Inspector _dragDepth: 10 (R2.1 实证 default 10f；可保持不改)
-    → Inspector _gameplayCamera: drag Main Camera GameObject (必填；未配 InteractableObject.Initialize 内 Log.Error fail-loud per InteractableObject.cs:154-157)
-    → AddComponent **BoxCollider2D** (Drift D fix per [A] 决策 — Sprint 2 SP-013 InteractionCoordinator.RaycastWithFatFinger 用 Physics2D.OverlapCircleAll；3D BoxCollider 保留给 ShadowMatch ADR-012 算法；2 套 collider 同存解 0 production C# change)
+    → Inspector _gameplayCamera: drag Camera/MainCamera GameObject (必填；未配 InteractableObject.Initialize 内 Log.Error fail-loud per InteractableObject.cs:154-157)
+    → 原 BoxCollider (3D) **保留** 给 ShadowMatch ADR-012 算法可能需要
+    → **add child GameObject `Hitbox2D` (layer=8 InteractableObject, localPos=(0,0,0), localScale=(1,1,1)) 持 `BoxCollider2D`** — Drift D [A2] sub-decision narrow scope 同存解 (实施时 surface Unity engine 同 GameObject 2D/3D 互斥约束 BLOCKED [A] 直接共存路径；改 child GameObject 路径 — `InteractionCoordinator.cs:307` `c.GetComponentInParent<InteractableObject>()` 验 raycast 链路完整通)
 T3  Object_02_Book AddComponent InteractableObject MonoBehaviour (重复 T2 流程, _objectId: 2, _puzzleId: 1)
-    → AddComponent **CircleCollider2D** (Drift D fix per [A] 决策；CapsuleCollider 3D 不能被 Physics2D 命中；CircleCollider2D 简化命中区；CapsuleCollider 3D 保留)
+    → 原 CapsuleCollider (3D) **保留**
+    → **add child GameObject `Hitbox2D` (layer=8 InteractableObject, localPos=(0,0,0), localScale=(1,1,1)) 持 `CircleCollider2D`** — Drift D [A2] sub-decision narrow scope 同存解
 T4  InteractionCoordinator Inspector _objects: 拖入 [Object_01_CoffeeMug, Object_02_Book] (List<InteractableObject> 顺序无关，Count=2)
 T5  Save scene → unity-mcp manage_scene save → git diff verify Chapter_01_Approach.unity 改动符合预期 + 0 production C# change（GameApp.cs / InteractionCoordinator.cs 不改）
 T6  Evidence: unity-mcp manage_scene get_hierarchy parent=root verify InteractionCoordinator GameObject 存在 + componentTypes 含 InteractionCoordinator + parent=Interactables verify Object_01/02 componentTypes 含 InteractableObject + BoxCollider2D/CircleCollider2D
@@ -125,7 +127,7 @@ T6  Evidence: unity-mcp manage_scene get_hierarchy parent=root verify Interactio
 | AC-8 | Project Settings → Tags and Layers → `InteractableObject` layer ✅ 已注册 (Layer 8 per TagManager.asset:19；本 story 不需 add；自动满足) | Project Settings inspect (R2.3 evidence) |
 | AC-9 | 0 production C# change — GameApp.cs / InteractionCoordinator.cs / InteractableObject.cs 等 0 modify (本 story 仅 scene + Inspector + 不改 Project Settings — Layer 已注册不动) | git diff --stat verify 0 *.cs modify + 0 ProjectSettings/*.asset modify |
 | AC-10 | save scene + git commit；scene 文件大小变化合理 (增加 ~4-6 KB — InteractionCoordinator GameObject + 2 InteractableObject MonoBehaviour serialize data + 2 个新加 2D collider serialize data) | git diff Chapter_01_Approach.unity verify |
-| **AC-11** | **Object_01_CoffeeMug 加 `BoxCollider2D`** + **Object_02_Book 加 `CircleCollider2D`** (Drift D fix per [A] 决策 — Sprint 2 SP-013 InteractionCoordinator.RaycastWithFatFinger 用 Physics2D.OverlapCircleAll；2D collider 让 raycast 命中；3D BoxCollider/CapsuleCollider 保留给 ShadowMatch ADR-012 算法可能需要) | unity-mcp manage_scene get_hierarchy parent=Interactables → componentTypes 含 BoxCollider2D (Object_01) + CircleCollider2D (Object_02) + 原 3D collider 保留 |
+| **AC-11** | **per [A2] sub-decision** — Object_01_CoffeeMug add child GameObject `Hitbox2D` (layer=8) 持 **`BoxCollider2D`** + Object_02_Book add child GameObject `Hitbox2D` (layer=8) 持 **`CircleCollider2D`**；child localPos=(0,0,0)/localScale=(1,1,1) 完全跟随父级；父级 3D BoxCollider/CapsuleCollider 保留给 ShadowMatch ADR-012 算法可能需要 (Drift D 实施时 surface Unity engine 同 GameObject 2D/3D 互斥约束 BLOCKED [A] 直接共存路径；改 child GameObject 路径 — InteractionCoordinator.cs:307 `c.GetComponentInParent<InteractableObject>()` 验 raycast 链路完整通；0 production C# change 维持) | unity-mcp manage_scene get_hierarchy parent=Interactables/Object_01_CoffeeMug → child Hitbox2D 含 BoxCollider2D layer=8；parent=Interactables/Object_02_Book → child Hitbox2D 含 CircleCollider2D layer=8；父级 Object_01/02 BoxCollider/CapsuleCollider 3D 仍存在 |
 
 ---
 
@@ -135,7 +137,7 @@ T6  Evidence: unity-mcp manage_scene get_hierarchy parent=root verify Interactio
 
 - **P1 SceneHierarchyHasInteractionCoordinator** — Editor PlayMode load Chapter_01_Approach.unity → expect `Object.FindObjectOfType<InteractionCoordinator>() != null` + `_objects.Count == 2` (reflection 读 private SerializeField)
 - **P2 InteractableObjectsExistAndConfigured** — expect `Object.FindObjectsOfType<InteractableObject>().Length == 2` + `_objectId ∈ {1, 2}` + `_puzzleId == 1` + `_dragDepth == 10f` + `_gameplayCamera != null` (Drift A fix 4 字段全 verify)
-- **P3 LayerFilterCorrect** — expect Object_01/02 `gameObject.layer == LayerMask.NameToLayer("InteractableObject")` (Layer 8 per R2.3) + `Coordinator._interactableLayer.value & (1 << 8) != 0` (mask 含 Layer 8) + **NEW**: Object_01 含 BoxCollider2D + Object_02 含 CircleCollider2D (Drift D AC-11 verify)
+- **P3 LayerFilterCorrect** — expect Object_01/02 `gameObject.layer == LayerMask.NameToLayer("InteractableObject")` (Layer 8 per R2.3) + `Coordinator._interactableLayer.value & (1 << 8) != 0` (mask 含 Layer 8) + **NEW per [A2]**: `obj.transform.Find("Hitbox2D")` != null (child GameObject 存在) + child Hitbox2D layer=8 + `child.GetComponent<BoxCollider2D>()` != null (Object_01) / `child.GetComponent<CircleCollider2D>()` != null (Object_02) + 父级原 3D collider 保留 verify (`obj.GetComponent<BoxCollider>()` != null for Object_01 / `obj.GetComponent<CapsuleCollider>()` != null for Object_02)
 - **P4 CameraReferenceNonNull** — expect `Coordinator._gameplayCamera != null` + camera 是 chapter 1 scene Main Camera (`gameObject.name == "MainCamera"`；不 Camera.main fallback) + 每 InteractableObject._gameplayCamera 同 verify
 - **P5 RaycastFatFingerDimensionalConsistency** — call `Coordinator.RaycastWithFatFinger(Vector2.zero)` 后 expect 0 unexpected error (verify Physics2D ↔ 2D collider 维度对齐 — Drift D 修复后 raycast 不抛异常；命中与否取决于 camera screen ↔ world 转换 + Object 实际 position，所以 P5 仅 verify 无异常 + dimensional consistency；具体 hit assert 留 story-008 final pilot)
 - **P5b (optional)** InteractionCoordinatorInitializeIdempotent — call `Initialize()` 2 次 + expect 0 unexpected error + `IsLocked == false`
@@ -164,6 +166,8 @@ T6  Evidence: unity-mcp manage_scene get_hierarchy parent=root verify Interactio
 
 **Type-? V3.0.1 dp18 candidate NEW "physics API dimensional mismatch (2D/3D collider drift)" — 第 1 个实战触发 (Phase 0 R2 verify 2026-05-14 afternoon)**：Sprint 2 SP-013 `InteractionCoordinator.RaycastWithFatFinger` 用 `Physics2D.OverlapCircleAll` (2D API)；chapter 1 scene Object_01 BoxCollider (3D) + Object_02 CapsuleCollider (3D)；**5 sprint 累积 architectural drift 未被任何 R2/R3/manual playtest 揭穿**：Sprint 2 EditMode test 用 Physics2D mock fixture 自洽；Sprint 5 S5-01 scene build 用 3D primitive；S6-13 R3 InputPipelineWiring 验 IGestureEvent.OnTap fire 但不验 collider 命中；S6-13 dp15 sniff sub-clause 验 "production caller hit > 0" 但不验 "dimensional consistency"。**dp18 与 dp15 关联**：dp15 验 wiring 存在；dp18 验 wiring 路径上各层维度一致 — 同根 architectural integrity 议题不同 sub-clause。本 story per [A] 决策 narrow scope 加 2D collider 同存解 (0 production C# change)；如 story-007 ShadowMatch wire 时再现同根 (ADR-012 算法 vs 3D collider 假设) → dp18 promote V3.x sub-version 优先级 升 + ADR-029 V3 R3 standard amend "dimensional consistency sniff sub-clause"；ADR-013 §Architecture + ADR-012 §Algorithm 评估 2D vs 3D physics 边界明示加 (V3.1 trigger 候选)。Sprint 7+ 影响：适用于全部 cross-sender→listener 链路含 physics 维度的系统。
 
+**Type-? V3.0.1 dp18 candidate NEW sub-item 2 "Unity engine cross-component 互斥约束 R2 verify 漏" — 第 2 个实战触发 (Phase 2 scene wiring 2026-05-14 night Session 33)**：Phase 0 R2 verify 阶段仅 verify 「scene collider 维度」+「Physics2D API 调用」，未 verify 「Unity engine 同 GameObject 跨 component 互斥约束」(`Cannot add 2D physics component 'BoxCollider2D' because the GameObject already has a 3D Rigidbody or Collider.`)；Phase 2 实施 [A] 直接共存路径时 surface 此 Unity engine 自身约束 → 决策路径转 [A2] sub-decision child GameObject hitbox narrow scope。**dp18 sub-item 2 与 sub-item 1 同根** architectural integrity 但不同维度 — sub-item 1 验 API 调用与场景资源 dimensional 一致；sub-item 2 验 Unity engine 自身跨 component 添加约束。建议 ADR-029 V3 R2 standard amend "同 GameObject 跨 component 互斥约束 R2 verify sub-clause" (R2 verify 不仅 grep source code API + project asset，还需 verify Unity engine cross-component compatibility — 用 Unity Editor reflection 或 documented compatibility matrix)。Sprint 6 retro 议题 8 评估 promote V3.x sub-version 优先级 综合考量 sub-item 1+2 实战频次。
+
 **Type-2 (b) V3 candidate "Asset wiring drift"** — 留观察 — 如 Sprint 5 S5-01 scene build 阶段 R2 grep verify InteractableObject MonoBehaviour 是否本应该挂（spec 隐含 contract）但 S5-01 evidence doc 未提及，dp 候选记录。
 
 ---
@@ -190,11 +194,13 @@ T6  Evidence: unity-mcp manage_scene get_hierarchy parent=root verify Interactio
 
 **0 production C# change 决策维持**：本 story 不改 Sprint 2 SP-013 / ADR-013 production code (InteractableObject.cs / InteractionCoordinator.cs)；仅 scene 改动 + spike 新建 + GameApp/DevTestState 注册切换 (5 行级 trivia amend 不算 production logic change)。
 
-**Drift D narrow scope fix 实施细节**：
-- Object_01 `BoxCollider2D` 加 — size 大小可参考 BoxCollider 3D 同 dimension (实测 Phase 2 时 ParseScale 微调)；本 story Inspector default 1×1 即可
-- Object_02 `CircleCollider2D` 加 — radius default 0.5 (CapsuleCollider 3D 的 height/2 同量级，2D 用圆简化命中区即可；Phase 2 实施时 manual tune)
-- 不改 3D collider — ShadowMatch ADR-012 算法 R2.1 verify 在 story-007 完成，到时确认 3D collider 是否真用；如不用则后续清理
-- 不动 InteractionCoordinator.cs Physics2D → 3D — 留 dp18 candidate Sprint 6 retro 决策；narrow scope 优先 unblock fun loop
+**Drift D narrow scope fix 实施细节 (per [A2] sub-decision Phase 2 surface)**：
+- **Phase 2 surface Unity engine 同 GameObject 2D/3D 互斥约束 BLOCKED [A] 直接共存路径** — Unity 拒绝同 GameObject 上挂 2D + 3D 物理 component（"Cannot add 2D physics component 'BoxCollider2D' because the GameObject ... already has a 3D Rigidbody or Collider."）
+- **[A2] child GameObject hitbox 路径 narrow scope** — Object_01_CoffeeMug add child `Hitbox2D` (layer=8 InteractableObject, localPos=(0,0,0), localScale=(1,1,1)) 持 `BoxCollider2D` (default size=1×1)；Object_02_Book add child `Hitbox2D` (同样 transform) 持 `CircleCollider2D` (default radius=0.5)
+- **raycast 链路完整通过实证** — `InteractionCoordinator.cs:298` `Physics2D.OverlapCircleAll(...,_interactableLayer)` 命中 child Hitbox2D 2D collider → `InteractionCoordinator.cs:307` `c.GetComponentInParent<InteractableObject>()` 找父级 InteractableObject component → `InteractionCoordinator.cs:309` `_objects.Contains(io)` filter pass
+- 父级 Object_01/02 3D collider (`BoxCollider`, `CapsuleCollider`) 完全保留给 ShadowMatch ADR-012 算法可能需要；story-007 ADR-012 R2.1 verify 时确认 3D collider 是否真用 — 如不用后续清理
+- 不动 InteractionCoordinator.cs Physics2D → 3D — 留 dp18 candidate Sprint 6 retro 议题 8 决策；narrow scope 优先 unblock fun loop
+- **0 production C# change 维持** — 仅 scene 改动 (child GameObject 加 + Inspector wire + layer 改) + spike 新建 + GameApp/DevTestState 注册切换 trivia amend
 
 ---
 
@@ -249,3 +255,12 @@ T6  Evidence: unity-mcp manage_scene get_hierarchy parent=root verify Interactio
   - **Gap 5**: §ADR-029 Verification section NEW —— R1 ✅ (per-event listener forbidden pattern grep audit 0 hits) + R2 ✅ (cross-component API existence 7/7 line-ref 实证 line 44-56 / 154-157 / 494-507 / 48-55 / 126-129 / 298 / 309 / TagManager.asset line 19) + R3 N/A auto-pass (本 story Asset/Integration 不构造 stub data type)；ADR-029 verdict ✅ PASS
   
   Verdict 升 `⚠️ NEEDS WORK` → `✅ READY`；Status: ✅ Phase 0 R2 verify DONE → ✅ Phase 1 readiness gate ✅ READY；next Phase 2 implementation (本 session 接 or 下 session 起始)。
+- **2026-05-14 night continue (Session 33)**: **Phase 2 scene wiring partial DONE ✅ (~30 min)** — unity-mcp batch_execute 完成 chapter 1 scene wiring + Inspector 字段全 wire：
+  - **scene 改动**: Chapter_01_Approach.unity +249 行 -5 行 (1 file)；0 production C# diff + 0 ProjectSettings diff
+  - **AC-1~AC-10 全 ✅ implemented**: InteractionCoordinator GameObject 加 root level + Inspector _objects=[Object_01, Object_02] (path-indexed `_objects.Array.data[0]` `_objects.Array.data[1]` 2 次 single set 成功 — batch set + list value 路径 mcp 未自动 resolve component reference) + _interactableLayer={"value":256} (LayerMask 用 dict 形式) + _gameplayCamera=Camera/MainCamera；Object_01/02 InteractableObject component 加 + _objectId=1/2 + _puzzleId=1 + _dragDepth=10 + _gameplayCamera=Camera/MainCamera；Object_01/02 父级 layer Default→8 InteractableObject
+  - **AC-11 revised per [A2] sub-decision implemented**: Object_01/02 各 add child `Hitbox2D` GameObject (layer=8 InteractableObject, localPos=(0,0,0), localScale=(1,1,1)) 持 BoxCollider2D/CircleCollider2D；父级 3D BoxCollider/CapsuleCollider 保留 — **Phase 2 surface Unity engine 同 GameObject 2D/3D 互斥约束 BLOCKED [A] 直接共存路径** ("Cannot add 2D physics component 'BoxCollider2D' because the GameObject already has a 3D Rigidbody or Collider.")；改 child GameObject 路径 — `InteractionCoordinator.cs:307` `c.GetComponentInParent<InteractableObject>()` 验 raycast 链路完整通过；0 production C# change 维持
+  - **V3.0.1 dp18 candidate sub-item 2 NEW 第 2 个实战触发**: "Unity engine cross-component 互斥约束 R2 verify 漏" — 与 dp18 sub-item 1 同根 architectural integrity 但不同维度；建议 ADR-029 V3 R2 standard amend "同 GameObject 跨 component 互斥约束 R2 verify sub-clause"
+  
+  amend 7 §: Status header + Goal Flow T2/T3 (child Hitbox2D 路径) + AC-11 (修订 child GameObject 路径) + R3 P3 case (child Hitbox2D existence + 父级 3D collider 保留 verify) + Implementation Notes Drift D 实施细节 (Phase 2 surface 子约束 + [A2] sub-decision 实施细节 + raycast 链路实证) + V3.0.1 Watch List Hooks dp18 sub-item 2 NEW + History entry append。
+  
+  Status: ✅ Phase 1 readiness gate ✅ READY → ✅ Phase 2 scene wiring partial DONE；NEXT spike `S6-14_ChapterSceneWiring.cs` NEW ~400-500 行 (5+1 R3 case) + GameApp/DevTestState amend + R3 PlayMode + Phase 4 evidence doc + Phase 5 closure 留下 session。本 session 总投入 ~6-6.5 hr 超 ≤5 hr hard rule 边界 (governance debt 第 5 次连续 override + dp18 sub-item 2 implementation surface Sprint 6 retro 议题 8 input data point)。
