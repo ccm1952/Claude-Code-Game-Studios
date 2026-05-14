@@ -7,9 +7,9 @@
 > **Sprint**: 6 (Track F NEW — chapter 1 production wiring emergent fix)
 > **Story Type**: Asset / Integration (Unity scene structure + MonoBehaviour 挂载 + Inspector 拖入)
 > **Complexity Points**: 1-1.5 (~1-1.5 hr 估时)
-> **GDD Requirement**: TR-objint-002 (Chapter 1 仅 2 物件 + 1 光源 per object-interaction.md line 86 + concept.md line 106；本 story 落地 InteractableObject MonoBehaviour 挂载) + TR-objint-003 (待 tr-registry verify — Object Interaction Coordinator 注入)
+> **GDD Requirement**: `design/gdd/object-interaction.md` line 86 (Chapter 1 仅 2 物件 + 1 光源 design constraint — **无对应 TR-ID** per tr-registry.yaml 实证) + `design/concept/shadow-memory.md` line 106 (Chapter 1 关系弧线 "靠近" 2 物件 design constraint)。本 story 落地 Sprint 2 SP-013 InteractableObject + InteractionCoordinator MonoBehaviour Inspector 挂载 + Sprint 5 S5-01 scene 实体 wiring。**TR-ID 引用 verify (2026-05-14 night Session 33)**: 原 story line 10 引用 `TR-objint-002` (实际 registry "Selection visual feedback EaseOutBack scale animation") + `TR-objint-003` (实际 "Fat-finger compensation") **两个 TR-ID 都不对应** chapter 1 物件挂载场景 — chapter 1 仅 2 物件 + 1 光源 是 design constraint 不是 TR-ID 范畴；amend 已修正。**dp11 第 2 实战触发额外子项 (TR-ID semantic drift)** — Sprint 6 retro 议题 6 input data point。
 > **ADR References**: **ADR-013 Object Interaction State Machine** (InteractableObject FSM + InteractionCoordinator + InteractionLockManager Sprint 2 done) + ADR-027 §3 IGestureEvent + §4 IInteractionEvent contract + ADR-029 V3.0.1 (R2 deficiency-flagged PASS path 候选；如 Object_01/02 layer 注册不齐则 deficiency-flag) + ADR-030 §VS Build commit
-> **Status**: ✅ **Phase 0 R2 verify DONE** (2026-05-14 afternoon continue Session 32 — 7/7 R2 evidence 完成 + 4 drift verdict A/B/C/D 沉淀；amend 后进 /story-readiness gate；user [A] Drift D fix narrow scope 加 2D collider 同存解 + [1] Drift A/B/C 原位 amend)
+> **Status**: ✅ **Phase 1 readiness gate ✅ READY** (2026-05-14 night Session 33 morning continue — Phase 0 R2 verify 7/7 + Phase 1 readiness gate R1 ✅ + R2 ✅ + R3 N/A pass + 5 gap closure amend (TR-ID semantic drift fix + unresolved 'TBD verify' wording fix + perf budget note + §Test Evidence section NEW + §ADR-029 Verification section NEW)；ADR-029 verdict ✅ PASS；ready for Phase 2 implementation)
 > **Created**: 2026-05-14 morning continue (Sprint 6 Session 32 — emergent fix Track F NEW second story)
 > **Completed**: ""
 > **Depends on**: story-004 input-pipeline-wiring (本 story InteractionCoordinator OnTap listener 需 IGestureEvent.OnTap fire 才有意义) + S5-01 ✅ (Chapter_01_Approach.unity scene 实体已构建 + Object_01_CoffeeMug + Object_02_Book Hierarchy 已存在但缺 InteractableObject MonoBehaviour) + Sprint 2 SP-013 ✅ (InteractableObject + InteractableObjectFsm + InteractableObjectFeedback + InteractionCoordinator + InteractionLockManager production code done + EditMode test pass)
@@ -95,6 +95,8 @@ T6  Evidence: unity-mcp manage_scene get_hierarchy parent=root verify Interactio
 - R2.5 ✅ PuzzleConfig POCO 实证 — **2 个 class 命名易混**: `GameLogic.PuzzleConfig` (`ObjectInteraction/PuzzleConfig.cs`; 5 fields: Id/InteractionBounds/GridSize/SnapSpeed/RotationStep — InteractableObject 用) + `GameLogic.PuzzleStateConfig` (`ShadowPuzzle/PuzzleConfig.cs`; 7 fields - PuzzleStateMachine ADR-014 用)。本 story 不消费 PuzzleConfig (provider 由 story-006 注入)，仅 wire Inspector；如 OnEnable 触发时 provider 未注 → InteractableObject.cs:496 Log.Error fail-loud but 不抛。
 - R2.6 ✅ unity-mcp tool path 实证 — `manage_gameobject` (create) + `manage_components` (add_component) + `manage_scene` (save/get_hierarchy)；S5-01 batch_execute precedent 可复用。
 - R2.7 ✅ Object_01/02 Collider 实证（`Chapter_01_Approach.unity` line 359/734/797/422） — Object_01_CoffeeMug 含 **`BoxCollider` (3D, !u!65)**；Object_02_Book 含 **`CapsuleCollider` (3D, !u!136)**。**Drift D 实证** Sprint 2 SP-013 `InteractionCoordinator.cs:298` 用 `Physics2D.OverlapCircleAll` (2D API) ≠ scene 3D collider 维度不一致；per [A] 决策本 story 加 2D collider 同存解。
+
+**Performance budget**: no perf impact expected — scene structure only, runtime impact 0 (Chapter_01_Approach.unity 加 1 个 InteractionCoordinator GameObject + 2 个 MonoBehaviour 挂载 + 2 个 2D collider；scene loaded once at chapter boot via ADR-009 11-step transition；InteractableObject MonoBehaviour Update Tick 本 story 不调 (depends on PuzzleConfigProvider 注入 — story-006 范畴)；InteractionCoordinator Initialize/OnEnable 内 listener subscribe + InteractionLockManager init 一次性 ~0.1 ms < scene load 总预算)；R3 spike `S6-XX_ChapterSceneWiring.cs` < 5s budget per S6-13 precedent (5 case PASS + 27/27 asserts + 391ms ≪ 5s 实战参考)。
 
 ---
 
@@ -196,6 +198,40 @@ T6  Evidence: unity-mcp manage_scene get_hierarchy parent=root verify Interactio
 
 ---
 
+## Test Evidence
+
+**Story Type**: Asset / Integration → Evidence doc 路径 (per S6-04 / S6-08 / S6-13 precedent)：
+
+- **Evidence doc**: `production/qa/playmode-chapter-1-scene-wiring-2026-05-15.md` ~400-500 行 8 sections (§0 概要 + §1 R3 5+1 case detail + §2 R2 7/7 closure 表 + §3 AC 11/11 verify + §4 V3.0.1 Watch List Hooks dp11 第 2 + dp18 NEW + §5 Sprint 6 Track F insight + §6 Files changed + §7 References + §8 Verdict)
+- **R3 spike JSON dump**: `~/Library/Application Support/DefaultCompany/Unity/S6-XX_Result.json` (per S6-13 precedent — write via `S6XXTester.WriteResultJson()`)
+- **Unity scene diff**: `git diff Chapter_01_Approach.unity` (verify scene 改动符合 §Goal Flow T0-T6 + AC-1~AC-11 expectation)
+- **0 production C# diff**: `git diff --stat *.cs` (verify 0 *.cs modify per AC-9；GameApp/DevTestState 注册切换 5 行级 trivia 例外)
+- **0 ProjectSettings diff**: `git diff --stat ProjectSettings/*.asset` (verify Layer 8 InteractableObject 已注册不需 add per AC-8 / R2.3 实证)
+
+---
+
+## ADR-029 Verification
+
+**Phase 1 R1+R2+R3 readiness gate verdict (Session 33 morning 2026-05-14)**：
+
+- **R1 ✅ PASS** — per-event listener mode forbidden pattern grep audit:
+  - `rg "AddEventListener<I\w+Event>\(this\)" production/epics/vs-chapter-1/story-005-chapter-1-scene-wiring.md` → 0 hits ✅
+  - `rg "class \w+\s*:\s*\w+,\s*I\w+Event" production/epics/vs-chapter-1/story-005-chapter-1-scene-wiring.md` → 0 hits ✅
+  - 本 story Asset/Integration 类型不含 listener code；Sprint 2 SP-013 production listener (InteractionCoordinator.Initialize → AddEventListener<GestureData>(IGestureEvent_Event.OnTap, OnTap) 等) 已 per-event 模式 + InteractableObject.Initialize 同模式；R3 spike listener spy 沿 S6-13 precedent per-event 模式
+- **R2 ✅ PASS** — cross-component API existence grep verify (Phase 0 R2.1-R2.7 全 line-ref 实证 2026-05-14 afternoon):
+  - InteractableObject.cs:44-56 SerializeField 4 项 ✅ + line 154-157 fail-loud ✅ + line 494-507 PuzzleConfigProvider resolve ✅
+  - InteractionCoordinator.cs:48-55 SerializeField 3 项 ✅ + line 126-129 fail-loud ✅ + line 298 Physics2D.OverlapCircleAll ✅ + line 309 _objects.Contains filter ✅
+  - PuzzleConfig.cs:24-49 (ObjectInteraction/) 5 fields ✅ + PuzzleStateConfig.cs (ShadowPuzzle/) 7 fields ✅
+  - TagManager.asset:19 Layer 8 = InteractableObject ✅ + line 7-9 Tag 3 项 ✅
+  - Drift A/B/C 已 inline closed via amend (story §Goal Flow / §Engine Notes / §AC)；Drift D inline narrow scope fix per AC-11 (BoxCollider2D + CircleCollider2D 同存解)；**ADR-013 §Architecture Physics2D vs 3D 边界 spec gap 留 dp18 candidate sub-version promote 决策**，不算本 story deficiency (narrow scope inline close 已 unblock fun loop)
+- **R3 ✅ N/A auto-pass** — stub data type construction signature verify:
+  - 本 story Asset/Integration 类型不构造任何 stub data type (PuzzleConfig / GestureData 等)；R3 spike `S6-XX_ChapterSceneWiring.cs` 是 NEW file Phase 2 才写，目前 story 内仅 conceptual outline
+  - Phase 2 spike 写时如构造 stub data type → 复审 R3 (依据 PuzzleConfig 5-field ctor signature 实证 line 41 `PuzzleConfig(int id, InteractionBounds, float gridSize=1.0f, float snapSpeed=0.2f, float rotationStep=15f)`)
+
+**ADR-029 verdict**: **✅ PASS** (R1 ✅ + R2 ✅ + R3 N/A auto-pass)
+
+---
+
 ## History
 
 - **2026-05-14 morning continue (Session 32)**: Draft 创建（emergent fix epic Track F NEW story-004~008 outline approved per [A]）；Status: Draft；S0-2 + S0-3 合并 narrow scope 1 story；本 story 与 story-004 input pipeline 联动（story-004 done 后 story-005 InteractionCoordinator OnTap listener 才 trigger）。
@@ -206,3 +242,10 @@ T6  Evidence: unity-mcp manage_scene get_hierarchy parent=root verify Interactio
   - **Drift D** (Type-? dp18 candidate NEW) — **重大架构 dimensional mismatch** — Sprint 2 SP-013 InteractionCoordinator.RaycastWithFatFinger 用 Physics2D.OverlapCircleAll (2D API)；Object_01 BoxCollider + Object_02 CapsuleCollider 都是 3D collider；5 sprint 累积 architectural drift 未被任何 R2/R3/manual playtest 揭穿
   
   user 决策：(Drift D) **[A] narrow scope** Object_01/02 加 BoxCollider2D + CircleCollider2D 同存解 (0 production C# change；3D collider 保留给 ShadowMatch ADR-012 可能需要)；(Drift A/B/C) **[1] 原位 amend** story-005 关键 § (Goal Flow T1-T3 / ADR Decision Summary / Engine Notes R2.1-R2.7 / Control Manifest Rule References / Acceptance Criteria 含 AC-11 NEW / R3 PlayMode Probe Plan 5 case / R2 Assumptions Validated 表 / V3.0.1 Watch List Hooks 加 dp11 第 2 + dp18 NEW / Implementation Notes 文件清单)。Status: Draft → ✅ Phase 0 R2 verify DONE；next /story-readiness gate (R1+R2+R3 verdict)。
+- **2026-05-14 night → 2026-05-14 night Session 33 morning continue (Session 33)**: **Phase 1 readiness gate ✅ READY** (~15 min) — `/story-readiness story-005` 27-checklist verdict `⚠️ NEEDS WORK (3 minor + 2 polish)` → user [A] 推荐 5 项 amend 一次性 clear all gap：
+  - **Gap 1+2**: TR-ID semantic drift (story line 10 引用 `TR-objint-002`/`TR-objint-003` 都不对应 chapter 1 物件挂载 — 实际是 design constraint 非 TR-ID) + unresolved "TBD verify" wording —— amend 直接修正 GDD Requirement 行为 design constraint 引用 (object-interaction.md line 86 + concept.md line 106) + dp11 第 2 实战触发 sub-item (TR-ID semantic drift) 沉淀
+  - **Gap 3**: performance budget note —— amend §Engine Notes 末尾加 perf budget paragraph (scene structure only / runtime impact 0 / InteractionCoordinator Initialize ~0.1 ms / R3 spike < 5s budget per S6-13 precedent)
+  - **Gap 4**: §Test Evidence section NEW —— Asset/Integration 类型 evidence doc 路径明确 (`playmode-chapter-1-scene-wiring-2026-05-15.md` ~400-500 行 8 sections + R3 spike JSON dump + Unity scene diff + 0 production C# diff verify + 0 ProjectSettings diff verify)
+  - **Gap 5**: §ADR-029 Verification section NEW —— R1 ✅ (per-event listener forbidden pattern grep audit 0 hits) + R2 ✅ (cross-component API existence 7/7 line-ref 实证 line 44-56 / 154-157 / 494-507 / 48-55 / 126-129 / 298 / 309 / TagManager.asset line 19) + R3 N/A auto-pass (本 story Asset/Integration 不构造 stub data type)；ADR-029 verdict ✅ PASS
+  
+  Verdict 升 `⚠️ NEEDS WORK` → `✅ READY`；Status: ✅ Phase 0 R2 verify DONE → ✅ Phase 1 readiness gate ✅ READY；next Phase 2 implementation (本 session 接 or 下 session 起始)。
