@@ -14,12 +14,15 @@
 > **Architecture Module**: VS Build Vertical (cross-system integration; first end-to-end playable slice)
 > **Governing ADRs**:
 > - **ADR-009** (Scene Lifecycle) — 11-step transition / Additive scene loading / 6-state SceneManager / `_chapterDataProvider` 注入 / fadeOverlay 注入
+> - **ADR-010** (Input Abstraction) — *(2026-05-14 Sprint 6 emergent fix Track F partial scope pull-forward)* GestureRecognizer FSM + IGestureEvent contract + Mouse/Touch input pipeline (chapter 1 fun loop minimal scope；Sprint 7+ ADR-010 full epic 余下 multi-touch / Pinch / Rotate / InputBlocker listener-side / 真机 testing)
+> - **ADR-012** (Shadow Match Calculation) — *(2026-05-14 Sprint 6 emergent fix Track F)* 光线 + 物件 + 投影墙面 raycast / projection / area overlap algorithm + PerfectMatch threshold ≥0.95 + IPuzzleEvent.OnMatchScoreUpdated/OnPerfectMatch sender
+> - **ADR-013** (Object Interaction State Machine) — *(2026-05-14 Sprint 6 emergent fix Track F)* InteractableObject FSM + InteractionCoordinator Inspector 注入 + InteractionLockManager + PuzzleConfigProvider 静态注入约定
 > - **ADR-030** (VS-Late Pattern) §"Sprint 5-6 VS Build Commitment" 第 1 项
-> - **ADR-029 V2.0** (R1/R2/R3 readiness gate)
+> - **ADR-029 V2.0 / V3.0.1** (R1/R2/R3 readiness gate + V3.0.1 dp15 sniff sub-clause "production caller hit > 0" 试点 pilot)
 >
-> **Engine Risk**: LOW (所有依赖 framework 已实施；本 epic 主要是 asset + integration 工作)
-> **Status**: **✅ Sprint 5 Track A 收官 + Sprint 6 Track C S6-04 ✅ 100% 收官** (Sprint 5+6; story-001 ✅ + story-001b ✅ + story-001c ✅ + **story-002 ✅** end-to-end happy path 5/5 R3 PASS + **story-003 ✅ 2026-05-13** error/restart path narrow scope [A] 0 production code change 5/5 R3 PASS / 37 asserts / total 1867ms)
-> **Stories**: 5 stories (S5-01 scene asset ✅ + S5-1b boot integration ✅ + S5-1c listener-path driver fix ✅ + **S5-02 end-to-end happy path ✅** + **S6-04 error/restart path ✅**) — *2026-05-13: ADR-030 §VS Build commitment 第 1 项 chapter 1 robustness 补全 closure；VS Chapter 1 epic 100% 完成 ✅；≥3 playtest sessions prerequisite ready*
+> **Engine Risk**: LOW (所有依赖 framework 已实施；本 epic 主要是 asset + integration + Sprint 6 emergent fix wiring 工作；ADR-012 ShadowMatchCalculator Sprint 4 SP-018 实施现状 R2.1 verify 关键 unknown)
+> **Status**: **⚠️ Sprint 6 emergent fix Track F NEW in_progress** (Sprint 5+6; story-001/-001b/-001c ✅ + story-002 ✅ end-to-end happy path + story-003 ✅ error/restart path + **story-004~008 📝 Draft 2026-05-14 NEW** Sprint 6 emergent fix 派生于 S6-01 Phase 2.1 manual playtest NEEDS-WORK — 揭露 5 处 chapter 1 production wiring gap + V3.0.1 dp15 candidate "EditMode green ≠ production wired sniff")
+> **Stories**: 10 stories (5 ✅ done — S5-01/-1b/-1c/S5-02/S6-04 + **5 📝 Draft Sprint 6 NEW Track F** — story-004 input-pipeline-wiring + story-005 chapter-1-scene-wiring + story-006 gameapp-provider-injection + story-007 shadowmatch-production-wire + story-008 end-to-end-smoke-replay) — *2026-05-14: VS Chapter 1 epic 修订 — Sprint 6 emergent fix Track F NEW story-004~008 ~7-9 hr Sprint 6 本周 split 2-3 daily session 嵌入；block S6-02/S6-03/S6-10 advance；replay manual playtest after Track F done 才进 S6-02*
 
 ---
 
@@ -32,17 +35,23 @@
 | [story-001c](story-001c-adr009-listener-path-driver.md) | ADR-009 production listener-path driver 接入（移除 S5-1b F4 dev-only stub）| Logic / Integration | ✅ Done 2026-05-09 | 2 |
 | [story-002](story-002-end-to-end-flow.md) | Chapter 1 end-to-end 5 系统串通可玩（happy path）| Integration | ✅ Done 2026-05-12 | 2 |
 | [story-003](story-003-error-restart-path.md) | Chapter 1 error/restart path（unknown chapter TryResolveOrFail / newest-wins pending / asset load fail retry exhaust / RecoverToIdle restart）*(2026-05-13 Sprint 6 S6-04 V3.0.1 vendor reality compliant rewrite + narrow scope [A] 0 production code change — spike only — wording drift amend: mid-transition cancel → newest-wins pending; repeated rapid debounce → newest-wins overwrite)* | Integration | ✅ Done 2026-05-13 | 1 |
+| [story-004](story-004-input-pipeline-wiring.md) | Touch/Mouse → GestureRecognizer FSM → GestureDispatcher.Dispatch production wire *(Sprint 6 emergent fix Track F NEW; ADR-010 部分 scope pull-forward)* | Logic / Integration | 📝 Draft 2026-05-14 | 2-3 |
+| [story-005](story-005-chapter-1-scene-wiring.md) | Chapter_01_Approach.unity 加 InteractionCoordinator GameObject + Object_01/02 InteractableObject MonoBehaviour 挂载 + Inspector wire *(Sprint 6 emergent fix Track F NEW; S0-2+S0-3 合并)* | Asset / Integration | 📝 Draft 2026-05-14 | 1-1.5 |
+| [story-006](story-006-gameapp-provider-injection.md) | GameApp.Init 调 InteractableObject.RegisterPuzzleConfigProvider + InteractionCoordinator.RegisterInputConfigProvider *(Sprint 6 emergent fix Track F NEW)* | Logic | 📝 Draft 2026-05-14 | 1 |
+| [story-007](story-007-shadowmatch-production-wire.md) | ADR-012 ShadowMatchCalculator listener 物件 transform → 阴影匹配 → IPuzzleEvent.OnMatchScoreUpdated/OnPerfectMatch production fire *(Sprint 6 emergent fix Track F NEW; scope 风险最高 — Sprint 4 SP-018 现状 R2.1 verify 关键 unknown)* | Logic / Integration | 📝 Draft 2026-05-14 | 2-3 |
+| [story-008](story-008-end-to-end-smoke-replay.md) | S5-02 spike 重写 — InputSimulation Mouse Tap+Drag → 自然 production wiring round-trip + V3.0.1 dp15 sniff sub-clause 试点 pilot *(Sprint 6 emergent fix Track F NEW; final pilot)* | Integration | 📝 Draft 2026-05-14 | 1 |
 
 ---
 
 ## Overview
 
-VS Chapter 1 = **ADR-030 §VS Build Commitment 第 1 项的核心交付**。本 epic 收敛 chapter 1 的两件事：
+VS Chapter 1 = **ADR-030 §VS Build Commitment 第 1 项的核心交付**。本 epic 收敛 chapter 1 的几件事：
 
-1. **scene asset 实体构建**（story-001）：在 `Assets/Scenes/Chapter_01_Approach.unity` 建好 GameObject 层级 / 灯光 / 材质 / 投影墙面 / 物件 / 光源 / narrative trigger zone stub。Asset Type，不写 production C# 代码。
-2. **SceneManager 在生产 boot pipeline 的真实接入**（story-001b）：在 `GameApp.Entrance` 内 `new SceneManager()` + `Init()` + `RegisterChapterDataProvider(fixture)` + `RegisterFadeOverlay(NoOp 兜底)` + 注册 dev menu/FSM state 触发 `LoadChapterSceneAsync(1)`。Logic / Integration Type，含 R3 PlayMode probe (framework boundary mandatory)。
-
-S5-02 端到端串通 5 个 P1 系统使用本 epic 提供的 scene + boot 接入。
+1. **scene asset 实体构建**（story-001）：在 `Assets/AssetRaw/Scenes/Chapter_01_Approach.unity` 建好 GameObject 层级 / 灯光 / 材质 / 投影墙面 / 物件 / 光源 / narrative trigger zone stub。Asset Type，不写 production C# 代码。
+2. **SceneManager 在生产 boot pipeline 的真实接入**（story-001b/c）：在 `GameApp.Entrance` 内 `new SceneManager()` + `Init()` + `RegisterChapterDataProvider(fixture)` + `RegisterFadeOverlay(NoOp 兜底)` + 注册 dev menu/FSM state 触发 `LoadChapterSceneAsync(1)`。Logic / Integration Type，含 R3 PlayMode probe (framework boundary mandatory)。
+3. **Chapter 1 end-to-end 5 系统串通 happy path**（story-002）：5 个 P1 系统使用本 epic 提供的 scene + boot 接入。
+4. **Chapter 1 error/restart path 补全**（story-003 / S6-04）：unknown chapter / newest-wins pending / asset load fail retry exhaust / RecoverToIdle restart。
+5. **Sprint 6 emergent fix Track F NEW** (story-004 ~ -008): chapter 1 production wiring 补全 — input pipeline (story-004) + chapter scene wiring (story-005) + GameApp provider injection (story-006) + ShadowMatch production wire (story-007) + end-to-end smoke replay (story-008 dp15 sniff sub-clause pilot)。**派生**自 S6-01 Phase 2.1 manual playtest NEEDS-WORK 揭露 5 处 chapter 1 production wiring gap (Object_01 无法交互 root cause)。Sprint 2-5 五个 sprint 期间 ObjectInteraction system EditMode-green-but-not-wired 反模式直接被 manual playtest 5 min 内穿透 → V3.0.1 dp15 candidate "EditMode green ≠ production wired sniff"。
 
 ### 不在本 epic（明示）
 
@@ -61,8 +70,11 @@ S5-02 端到端串通 5 个 P1 系统使用本 epic 提供的 scene + boot 接�
 | ADR | Decision Summary | Engine Risk |
 |-----|-----------------|-------------|
 | ADR-009: Scene Lifecycle | 11-step transition / Additive scene loading / mandatory cleanup / 6-state machine / `_chapterDataProvider` 注入 / fadeOverlay 注入 | LOW |
+| **ADR-010: Input Abstraction** *(2026-05-14 Sprint 6 partial scope pull-forward)* | GestureRecognizer FSM + IGestureEvent contract (OnTap/OnDrag/OnRotate/OnPinch/OnLightDrag) + Mouse/Touch input pipeline (chapter 1 fun loop minimal Tap+Drag scope；Sprint 7+ multi-touch / Pinch / Rotate / InputBlocker listener-side / 真机 testing) | LOW (Editor Mouse simulate scope；Sprint 7+ epic 余下 scope 风险中) |
+| **ADR-012: Shadow Match Calculation** *(2026-05-14 Sprint 6 emergent fix Track F)* | 光线 + 物件 + 投影墙面 raycast / projection / area overlap algorithm + PerfectMatch threshold ≥0.95 + IPuzzleEvent.OnMatchScoreUpdated/OnPerfectMatch sender contract | **MEDIUM** (Sprint 4 SP-018 ShadowMatchCalculator.cs 实施现状 R2.1 verify 关键 unknown — 影响 story-007 scope ~30 min vs ~4-6 hr) |
+| **ADR-013: Object Interaction State Machine** *(2026-05-14 Sprint 6 emergent fix Track F)* | InteractableObject FSM (Idle/Selected/Dragging/Locked) + InteractionCoordinator Inspector 注入 _objects/_interactableLayer/_gameplayCamera + InteractionLockManager singleton + PuzzleConfigProvider 静态注入约定 | LOW (Sprint 2 SP-013 production code done) |
 | ADR-030: VS-Late Pattern | Sprint 5-6 VS Build Commitment 第 1 项 — chapter 1 (靠近) end-to-end 实体构建；≥3 playtest sessions for fun loop validation | NONE (process) |
-| ADR-029 V2.0: Story Impl Notes Verification | R1 (skim) + R2 (gap probe) + **R3 (PlayMode framework boundary mandatory)** readiness gate；Asset type 适用 R3 N/A reasoned | NONE (process) |
+| **ADR-029 V2.0 / V3.0.1**: Story Impl Notes Verification | R1 (skim) + R2 (gap probe) + **R3 (PlayMode framework boundary mandatory)** readiness gate；Asset type 适用 R3 N/A reasoned；**V3.0.1 dp15 candidate "production caller hit > 0 sniff sub-clause" 试点 pilot in story-008** | NONE (process) |
 
 ---
 
@@ -85,13 +97,25 @@ S5-02 端到端串通 5 个 P1 系统使用本 epic 提供的 scene + boot 接�
 
 ---
 
-## Sprint 5 Schedule
+## Sprint 5+6 Schedule
 
 - **story-001** (S5-01): ✅ Done 2026-05-09 — chapter scene 实体构建首版 8/8 AC PASS
 - **story-001b** (S5-1b): ✅ Done 2026-05-09 — SceneManager boot pipeline 接入 + 5/5 R3 PASS + 22/22 asserts；F4 dev-only stub temporarily in DevTestState（待 story-001c 移除）
 - **story-001c** (S5-1c): ✅ Done 2026-05-09 — ADR-009 spec ↔ impl alignment fix；SceneManager.OnRequestSceneChange 内置 DriveTransitionAsync(targetChapterId).Forget() 自闭环 listener；F4 dev-only stub in DevTestState 永久移除；ADR-009 §History 加 1 条 amendment entry；R3 PlayMode 5/5 PASS + 24/24 asserts；S5-02 启动前 cleanup 完成
 - **story-002** (S5-02): ✅ Done 2026-05-12 — Chapter 1 end-to-end 5 系统 happy path；2 SP；R3 PlayMode 5/5 case PASS + 36/36 asserts + `all_passed=true` first-run after P5 chapter 0 spec drift fix + reflection 实测 `GameModule.Audio.MusicVolume=0.300` ducking ✅；total 3844ms ≪ 10s budget；evidence doc `production/qa/playmode-end-to-end-flow-2026-05-12.md`；Phase 3 暴露 F4 ISceneEvent chapter 0 spec drift → V3 Type-5 dp6 NEW (累计 6 unique dp 远超 promote 阈值 → Sprint 5 retro 强制 promote)；ADR-030 §VS Build commitment 第 1 项 **100% 完成 ✅**；Sprint 5 Track A 收官
-- **story-003** (S6-04): ✅ Done 2026-05-13 evening — Chapter 1 error/restart path narrow scope [A] 0 production code change spike-only；1 SP；Phase 0+1+2+3+4+5 一气呵成；5/5 R3 PASS + 37/37 asserts + `all_passed=true` + `unexpected_error_count=0` + total 1867ms < 8s budget；evidence `production/qa/playmode-error-restart-path-2026-05-13.md`；S5-2b placeholder 2 处 wording drift 通过本 story rewrite 修正 (V3.0.1 NEW dp11 candidate sprint backlog placeholder wording drift closure)；V3.0.1 dp8 candidate 阈值 4 触达 (DevTestState [main-menu] mode count = 4)；NEW dp12 candidate isolated local SceneManager + global GameEvent collateral 首次实战暴露 + closure (P3 第 1 跑 production sm collateral Error → P4/P5 FAIL → Phase 3 spike amend RunP3Async(productionSm) 加 collateral RecoverToIdle cleanup → 第 2 跑 5/5 PASS)；ADR-030 §VS Build commit 第 1 项 chapter 1 robustness 补全 closure；VS Chapter 1 epic 100% 完成 ✅
+- **story-003** (S6-04): ✅ Done 2026-05-13 evening — Chapter 1 error/restart path narrow scope [A] 0 production code change spike-only；1 SP；Phase 0+1+2+3+4+5 一气呵成；5/5 R3 PASS + 37/37 asserts + `all_passed=true` + `unexpected_error_count=0` + total 1867ms < 8s budget；evidence `production/qa/playmode-error-restart-path-2026-05-13.md`；S5-2b placeholder 2 处 wording drift 通过本 story rewrite 修正 (V3.0.1 NEW dp11 candidate sprint backlog placeholder wording drift closure)；V3.0.1 dp8 candidate 阈值 4 触达 (DevTestState [main-menu] mode count = 4)；NEW dp12 candidate isolated local SceneManager + global GameEvent collateral 首次实战暴露 + closure (P3 第 1 跑 production sm collateral Error → P4/P5 FAIL → Phase 3 spike amend RunP3Async(productionSm) 加 collateral RecoverToIdle cleanup → 第 2 跑 5/5 PASS)；ADR-030 §VS Build commit 第 1 项 chapter 1 robustness 补全 closure；VS Chapter 1 epic 4/4 100% 完成 (本时刻看 — 后 Sprint 6 emergent fix Track F NEW story-004~008 派生)
+
+### Sprint 6 Emergent Fix Track F NEW (2026-05-14 派生 — chapter 1 production wiring 5 处 gap)
+
+派生背景: S6-01 Phase 2.1 manual playtest ⚠️ NEEDS-WORK — Object_01 无法交互 root cause = chapter 1 production wiring 5 处缺口同时存在 (Sprint 2-5 五个 sprint EditMode-green-but-not-wired drift 直接被 manual playtest 5 min 内穿透)。**V3.0.1 dp15 candidate "EditMode green ≠ production wired sniff"** Sprint 6 retro 议题 6 (promote 优先级 高于议题 5 dp14)。
+
+- **story-004** input-pipeline-wiring (📝 Draft 2026-05-14): Touch/Mouse → GestureRecognizer FSM → GestureDispatcher.Dispatch production wire；ADR-010 部分 scope pull-forward；**SP 估时 2-3 (~2-3 hr)**；governance justification = block S6-02/S6-03/S6-10
+- **story-005** chapter-1-scene-wiring (📝 Draft 2026-05-14): Chapter_01_Approach.unity 加 InteractionCoordinator GameObject + Object_01/02 InteractableObject MonoBehaviour 挂载 + Inspector wire；ADR-013；**SP 估时 1-1.5 (~1-1.5 hr)**；S0-2 + S0-3 合并；0 production C# change
+- **story-006** gameapp-provider-injection (📝 Draft 2026-05-14): GameApp.Init 调 InteractableObject.RegisterPuzzleConfigProvider + InteractionCoordinator.RegisterInputConfigProvider；ADR-013 §Architecture + Sprint 2 SP-013；**SP 估时 1 (~30 min)**；与 S5-1b BuildFixtureChapterDataProvider precedent 同模式
+- **story-007** shadowmatch-production-wire (📝 Draft 2026-05-14): ADR-012 ShadowMatchCalculator listener 物件 transform → IPuzzleEvent.OnMatchScoreUpdated/OnPerfectMatch production fire；**SP 估时 2-3 (~2-3 hr — scope 风险最高，Sprint 4 SP-018 现状 R2.1 verify 关键 unknown 决定 ~30 min vs ~4-6 hr)**
+- **story-008** end-to-end-smoke-replay (📝 Draft 2026-05-14): S5-02 spike 重写 — InputSimulation Mouse Tap+Drag → 自然 production wiring round-trip + V3.0.1 dp15 sniff sub-clause **正式试点 pilot**；**SP 估时 1 (~1 hr)**；试点结果输入 Sprint 6 retro 议题 6 dp15 promote V3.x sub-version 决策
+
+**Track F 总估时**: ~7-9 hr Sprint 6 本周 split 2-3 daily session 嵌入；**block S6-02 playtest 2 + S6-03 + S6-10 gate-check pre-production stage advance**；replay manual playtest after Track F done 才进 S6-02。
 
 ### 风险
 
@@ -103,3 +127,7 @@ S5-02 端到端串通 5 个 P1 系统使用本 epic 提供的 scene + boot 接�
 | story-001c async void listener handler 异常逃逸到 Unity log | 与项目内 IInputBlockerEvent / ISettingsEvent / IAudioEvent 现有 listener 模式一致；BeginTransitionAsync 内部已 fail-loud 协议（state=Error + OnSceneLoadFailed）；story-001c DriveTransitionAsync catch 仅兜底；统一 review 留 Sprint 5/6 retro |
 | story-002 5 大块 wiring uncertainty (R2.1~R2.5) — chapter 1 listener handler 是否已挂 / prefab InteractableObject / puzzle config injection / UIModule API 路径 | /story-readiness gate 阶段强制 R2 grep 实证；任意 0-hit 走 ADR-029 V2.0 deficiency-flag PASS 路径补 production wiring；R2.5 必待 S5-08 done 才能 verify（Sprint 5 serial 序列保证）|
 | story-002 5 系统 cross-system event 顺序 drift (Type-2(c) candidate) | R3 spike P1-P5 顺序 assert + spike Tester listener event log dump；如 drift 累计为 V3 #2 Type-5 候选 dp / V3 #6 Type-6 候选 dp |
+| **story-004 ADR-010 部分 scope pull-forward 风险** (Sprint 7+ ADR-010 full epic 余下 scope 多 + chapter 1 fun loop 验证最低 Mouse-only 是否可达) | governance justification = block S6-02/S6-03/S6-10；Sprint 7+ ADR-010 full epic 余下 scope (multi-touch / Pinch / Rotate / InputBlocker listener-side / 真机 testing) 留独立 epic；如 R2.5 verify 揭露本 story narrow scope 不可达 → split 评估 + Sprint 7 buffer |
+| **story-007 ShadowMatchCalculator Sprint 4 SP-018 现状 unknown** (R2.1 verify 关键 — 决定 scope ~30 min 仅 verify vs ~4-6 hr 算法实施) | Phase 0 R2.1 优先 verify；如 scope 暴涨 ~4-6 hr → 评估 split (story-007a algorithm impl + story-007b production listener wire) → Sprint 7 buffer 触发 |
+| **story-008 dp15 sniff sub-clause 试点 pilot 失败风险** (如 InputSimulation API 时序约束太严苛 / production wiring 完整性校验失败) | 如试点 fail → 回退评估 + sniff sub-clause spec amend；Sprint 6 retro 议题 6 dp15 promote V3.x sub-version 决策 input；governance value 达成 (即使试点 fail 也 surface ADR-029 V3 R3 standard 完备性边界 — 不 promote 但 dp 候选保留至 V4 trigger 评估) |
+| **emergent fix Track F 总估时 ~7-9 hr 时间风险** (Sprint 6 截止 2026-05-27 + 余下 S6-02/-03 playtest + S6-09 art + S6-10 gate-check) | story-007 R2.1 verify 后 scope adjust；如 Track F 总投入 >> ~7-9 hr → 部分 stories 推 Sprint 7 buffer；replay manual playtest 必先 done (block S6-02)；Sprint 6 retro 评估 V3.1 trigger + S6-09 推 [A2] 路径释放 capacity |
