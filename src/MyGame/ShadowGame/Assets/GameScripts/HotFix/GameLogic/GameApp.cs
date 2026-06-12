@@ -129,25 +129,23 @@ public partial class GameApp
         //   Error→RecoverToIdle / RapidNewestWinsOverwrite；evidence: production/qa/playmode-error-restart-path-2026-05-13.md），
         //   不再每次启动并发跑。如需复跑 R3，临时注释 S601PlaytestSpike + 取消 S604Spike 注释行。
         //
-        // S6-13 Input Pipeline Wiring (2026-05-14 Session 32 Phase 2) 当前 active spike — Track F vs-chapter-1-004 R3 PlayMode probe
-        //   (per story-004-input-pipeline-wiring.md R1+R2+R3 readiness gate ⚠️ DEFICIENCY-FLAGGED PASS)。
-        //   5 R3 case (P1 MouseSingleTap → P2 MouseDragThreePhase → P3 TapVsDragThresholdBoundary →
-        //   P4 SingleFingerFSMStateTransitionVerify → P5 NoMockFireBypassVerify) — V3.0.1 dp15 candidate
-        //   "EditMode green ≠ production wired" sniff sub-clause 试点 第 1 个 production caller hit > 0 修复 case；
-        //   reflection 拿 GameApp._inputService private static field + InputService.TickForTest 注入 TouchState 绕
-        //   MouseToTouchAdapter Mouse hardware 依赖；JSON evidence WriteResultJson Application.persistentDataPath/S6-13_Result.json。
+        // S6-14 Chapter 1 Scene Wiring (2026-05-14 Session 33 Phase 2) 当前 active spike — Track F vs-chapter-1-005 R3 PlayMode probe
+        //   (per story-005-chapter-1-scene-wiring.md Phase 0 ✅ + Phase 1 ✅ + Phase 2 scene wiring partial ✅)。
+        //   5+1 R3 case (P1 SceneHierarchyHasInteractionCoordinator → P2 InteractableObjectsExistAndConfigured →
+        //   P3 LayerFilterCorrect [child Hitbox2D + 2D/3D collider 同存 Drift D [A2]] → P4 CameraReferenceNonNull →
+        //   P5 RaycastFatFingerDimensionalConsistency → P5b InitializeIdempotent) — chapter 1 baseline 加载后
+        //   scene wiring + Inspector field 注入 verify；JSON evidence WriteResultJson S6-14_Result.json。
         //
-        //   V3.0.1 dp16 candidate "ADR spec gap re Editor-only path" 实战触发 (R2.5 NEW finding：ADR-010 §Decision
-        //   Layer 1 仅 cover Touch / 没 cover Editor Mouse pipeline) — Phase 2 closure ADR-010 §Implementation
-        //   Guidelines Step 9 'Editor Mouse Adapter' amend 5-10 行 spec wording 落档。
+        //   V3.0.1 dp18 candidate sub-item 2 "Unity engine cross-component 互斥约束 R2 verify 漏" 实战触发 —
+        //   Phase 2 surface Unity 同 GameObject 2D/3D 互斥 → [A2] child Hitbox2D GameObject narrow scope 同存解。
         //
-        //   V3.0.1 dp8 candidate "DevTestState [main-menu] mode 复用阈值阶进" — 加入 S6-13 后 [main-menu] mode
-        //   HasSpike list 现 5 spike (S5-02 + S6-07 + S6-08 + S6-04 + S6-13 + S6-01-playtest)，远超原阈值 4，
-        //   Sprint 6 retro 强制评估 V3.1 trigger pattern (central mode-dispatch refactor 候选)。
+        //   V3.0.1 dp8 candidate "DevTestState [main-menu] mode 复用阈值阶进" — 加入 S6-14 后 [main-menu] mode
+        //   HasSpike list 现 7 spike，远超原阈值 4，Sprint 6 retro 强制评估 V3.1 trigger pattern。
         //
-        //   manual playtest session 复跑入口（保留 S6-01-playtest spike 注释行作 manual playtest 模式切换）：
-        //   注释 S613Spike + 取消 S601PlaytestSpike 注释行即可切回 manual playtest hold mode。
-        GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S613Spike());
+        //   manual playtest / 其他 spike 复跑入口：
+        //   注释 S614Spike + 取消 S601PlaytestSpike / S613Spike / S604Spike 等注释行即可切换。
+        GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S614Spike());
+        // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S613Spike());
         // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S601PlaytestSpike());
         // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S604Spike());
         // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S608Spike());

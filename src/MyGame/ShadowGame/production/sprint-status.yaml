@@ -1528,7 +1528,7 @@ sprint_5_stories:
     name: "Chapter 1 scene wiring — InteractionCoordinator + Object MonoBehaviour + 2D collider 同存解 (Sprint 6 emergent fix Track F NEW story-005 S0-2+S0-3 合并 + Drift D dp18 NEW narrow scope fix)"
     file: "production/epics/vs-chapter-1/story-005-chapter-1-scene-wiring.md"
     priority: must-have
-    status: phase-2-scene-wiring-partial-done-pending-spike-r3
+    status: phase-2-spike-written-pending-r3-playmode
     owner: ""
     complexity_points: 1
     type: Asset / Integration
