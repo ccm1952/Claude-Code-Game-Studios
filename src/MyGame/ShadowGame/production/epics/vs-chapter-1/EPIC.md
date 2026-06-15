@@ -21,8 +21,8 @@
 > - **ADR-029 V2.0 / V3.0.1** (R1/R2/R3 readiness gate + V3.0.1 dp15 sniff sub-clause "production caller hit > 0" 试点 pilot)
 >
 > **Engine Risk**: LOW (所有依赖 framework 已实施；本 epic 主要是 asset + integration + Sprint 6 emergent fix wiring 工作；ADR-012 ShadowMatchCalculator Sprint 4 SP-018 实施现状 R2.1 verify 关键 unknown)
-> **Status**: **⚠️ Sprint 6 emergent fix Track F NEW in_progress** (Sprint 5+6; story-001/-001b/-001c ✅ + story-002 ✅ + story-003 ✅ + **story-004 ✅ Done 2026-05-14** + **story-005 ✅ Done 2026-06-12** + **story-006 ✅ Done 2026-06-15 provider injection R3 6/6 PASS 234ms** + story-007~008 📝 Draft)
-> **Stories**: 10 stories (**8 ✅ done — S5-01/-1b/-1c/S5-02/S6-04/S6-13/S6-14/S6-15** + **2 📝 Draft Track F 余下** — story-007 shadowmatch wire + story-008 end-to-end smoke replay) — *Track F 3/5 done；NEXT story-007 ~2-3 hr；block S6-02/S6-03/S6-10 until Track F complete*
+> **Status**: **⚠️ Sprint 6 emergent fix Track F NEW in_progress** (… + **story-007 ✅ Done 2026-06-15 ShadowMatch MVP R3 6/6 PASS** + story-008 📝 Draft)
+> **Stories**: 10 stories (**9 ✅ done** + **1 📝 Draft** — story-008 end-to-end smoke replay) — *Track F 4/5 done；NEXT story-008*
 
 ---
 
@@ -38,7 +38,7 @@
 | [story-004](story-004-input-pipeline-wiring.md) | Touch/Mouse → GestureRecognizer FSM → GestureDispatcher.Dispatch production wire *(Sprint 6 emergent fix Track F NEW; ADR-010 部分 scope pull-forward; **V3.0.1 dp15 sniff sub-clause 试点 第 1 个 production caller hit > 0 修复 case PASS** ⭐)* | Logic / Integration | ✅ Done 2026-05-14 | 2-3 |
 | [story-005](story-005-chapter-1-scene-wiring.md) | Chapter_01_Approach.unity 加 InteractionCoordinator GameObject + Object_01/02 InteractableObject MonoBehaviour 挂载 + child Hitbox2D 2D collider 同存解 [A2] *(Track F S0-2+S0-3; R3 6/6 PASS 252ms)* | Asset / Integration | ✅ Done 2026-06-12 | 1-1.5 |
 | [story-006](story-006-gameapp-provider-injection.md) | GameApp.Init 调 InteractableObject.RegisterPuzzleConfigProvider + InteractionCoordinator.RegisterInputConfigProvider *(Track F S0-4; R3 6/6 PASS 234ms)* | Logic | ✅ Done 2026-06-15 | 1 |
-| [story-007](story-007-shadowmatch-production-wire.md) | ADR-012 ShadowMatchCalculator listener 物件 transform → 阴影匹配 → IPuzzleEvent.OnMatchScoreUpdated/OnPerfectMatch production fire *(Sprint 6 emergent fix Track F NEW; scope 风险最高 — Sprint 4 SP-018 现状 R2.1 verify 关键 unknown)* | Logic / Integration | 📝 Draft 2026-05-14 | 2-3 |
+| [story-007](story-007-shadowmatch-production-wire.md) | ShadowMatchCalculator listener → OnMatchScoreUpdated/OnPerfectMatch *(Track F S0-5; R3 6/6 PASS 2970ms; Scenario C MVP)* | Logic / Integration | ✅ Done 2026-06-15 | 2-3 |
 | [story-008](story-008-end-to-end-smoke-replay.md) | S5-02 spike 重写 — InputSimulation Mouse Tap+Drag → 自然 production wiring round-trip + V3.0.1 dp15 sniff sub-clause 试点 pilot *(Sprint 6 emergent fix Track F NEW; final pilot)* | Integration | 📝 Draft 2026-05-14 | 1 |
 
 ---
@@ -111,7 +111,8 @@ VS Chapter 1 = **ADR-030 §VS Build Commitment 第 1 项的核心交付**。本 
 
 - **story-004** input-pipeline-wiring (✅ **Done 2026-05-14**): Touch/Mouse → SingleFingerFSM → GestureDispatcher.Dispatch production wire；ADR-010 部分 scope pull-forward；**SP 实际 2-3 (~5-5.5 hr 含 readiness + Phase 2 + R3 fix + Phase 4 evidence + Phase 5 closure；governance debt 第 4 次连续 [A] override ≤5 hr hard rule 触发 Sprint 6 retro 议题 5 STOP THE LINE)**；R3 第 2 跑 **5/5 PASS + 27/27 asserts + 0 unexpected error + 391ms ≪ 5s budget**；**V3.0.1 dp15 sniff sub-clause 试点 第 1 个 production caller hit > 0 修复 case PASS** ⭐；V3.0.1 dp16 closure 第 1 个实战触发 (ADR-010 Step 9 NEW)；V3.0.1 dp11 closure 第 1 个实战触发 (sprint-status.yaml SP-013 amend)；V3.0.1 dp17 discussed and declined；evidence `production/qa/playmode-input-pipeline-wiring-2026-05-14.md`；NEXT story-005
 - **story-005** chapter-1-scene-wiring (✅ **Done 2026-06-12**): InteractionCoordinator + 2× InteractableObject + child Hitbox2D Drift D [A2]；R3 **6/6 PASS + 27/27 asserts + 252ms**；evidence `production/qa/playmode-chapter-1-scene-wiring-2026-05-15.md`；0 production logic C# change
-- **story-006** gameapp-provider-injection (✅ **Done 2026-06-15**): RegisterPuzzleConfigProvider + RegisterInputConfigProvider + BuildFixture helpers；R3 **6/6 PASS + 19/19 asserts + 234ms**；evidence `production/qa/playmode-gameapp-provider-injection-2026-06-12.md`；S0-4 closure；NEXT story-007
+- **story-006** gameapp-provider-injection (✅ **Done 2026-06-15**): Register providers；R3 6/6 PASS 234ms
+- **story-007** shadowmatch-production-wire (✅ **Done 2026-06-15**): ShadowMatchCalculator MVP + listener wire；R3 **6/6 PASS 2970ms**；Scenario C；NEXT story-008
 - **story-007** shadowmatch-production-wire (📝 Draft 2026-05-14): ADR-012 ShadowMatchCalculator listener 物件 transform → IPuzzleEvent.OnMatchScoreUpdated/OnPerfectMatch production fire；**SP 估时 2-3 (~2-3 hr — scope 风险最高，Sprint 4 SP-018 现状 R2.1 verify 关键 unknown 决定 ~30 min vs ~4-6 hr)**
 - **story-008** end-to-end-smoke-replay (📝 Draft 2026-05-14): S5-02 spike 重写 — InputSimulation Mouse Tap+Drag → 自然 production wiring round-trip + V3.0.1 dp15 sniff sub-clause **正式试点 pilot**；**SP 估时 1 (~1 hr)**；试点结果输入 Sprint 6 retro 议题 6 dp15 promote V3.x sub-version 决策
 

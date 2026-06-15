@@ -1556,14 +1556,14 @@ sprint_5_stories:
     name: "ShadowMatch production wire — ShadowMatchCalculator listener + OnMatchScoreUpdated/OnPerfectMatch fire (Sprint 6 emergent fix Track F NEW story-007 S0-5)"
     file: "production/epics/vs-chapter-1/story-007-shadowmatch-production-wire.md"
     priority: must-have
-    status: draft
+    status: done
     owner: ""
     complexity_points: 3
     type: Logic / Integration
-    depends_on: ["S6-13 ✅ story-004", "S6-14 ✅ story-005", "S6-15 ✅ story-006 (input → InteractableObject FSM → SnapRotation fire OnObjectTransformChanged 全 production wiring 已通)", "Sprint 4 SP-018 ShadowMatchCalculator ⚠️ R2.1 verify 关键 unknown — 现状 done/partial/0", "S5-03 ✅ PuzzleStateMachine listener OnMatchScoreUpdated 已 wire"]
+    depends_on: ["S6-13 ✅ story-004", "S6-14 ✅ story-005", "S6-15 ✅ story-006", "Sprint 4 SP-018 ⚠️ 0-production → Scenario C inline MVP", "S5-03 ✅ PuzzleStateMachine listener OnMatchScoreUpdated 已 wire"]
     blocker: ""
-    completed: ""
-    notes: "**Track F 第 4 story (~2-3 hr — scope 风险最高)** — ADR-012 ShadowMatchCalculator listener 物件 transform → 阴影匹配 → IPuzzleEvent.OnMatchScoreUpdated/OnPerfectMatch production fire。10 AC + 5 R3 PlayMode probe case。**Scope 风险 unknown — Sprint 4 SP-018 ShadowMatchCalculator.cs 实施现状 R2.1 verify 关键 (3 种场景: 场景 A done + listener wired ~30-45 min ；场景 B partial impl + listener wire 缺 ~1-2 hr；场景 C 0-production / 算法未实施 ~4-6 hr 可能 split sub-stories → Sprint 7 buffer)**。R2 verify pending (ShadowMatchCalculator.cs 现状 / listener subscribe / MonoBehaviour vs POCO / ADR-012 算法 MVP scope / SnapRotation fire timing / 投影墙面 ShadowProjectionTarget / chapter 1 fixed light config / PuzzleConfig.PerfectMatchThreshold)。**'if descoped' = 不可 descope (chapter 1 fun loop 完整 round-trip 必需)；如 R2.1 verify 揭露场景 C → 评估 split + Sprint 7 buffer**。"
+    completed: "2026-06-15"
+    notes: "**✅ DONE 2026-06-15** — R2.1 Scenario C inline MVP；R3 **6/6 PASS + 15/15 asserts + 2970ms + unexpected_error_count=0**；evidence `production/qa/playmode-shadowmatch-production-wire-2026-06-15.md`；`ShadowMatchCalculator.cs` NEW + GameApp wire + S6-16 spike；Track F 4/5 done；NEXT S6-17 story-008 end-to-end smoke replay。**ADR-012 完整算法 deferred shadow-puzzle epic** — 本 story fixture pose-distance scoring。"
 
   - id: "S6-17"
     epic: "vs-chapter-1"

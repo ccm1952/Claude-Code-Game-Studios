@@ -9,9 +9,9 @@
 > **Complexity Points**: 2-3 (~2-3 hr 估时；ADR-012 算法 MVP scope verify + production listener wire)
 > **GDD Requirement**: TR-puzzle-001 (Chapter 1 不引入光源操作 per shadow-puzzle-system.md line 42 — 本 story 是 fixed-light + 物件移动 → 阴影匹配 score)；TR-shadow-match-* (待 tr-registry verify)
 > **ADR References**: **ADR-012 Shadow Match Calculation** (光线 + 物件 + 投影墙面 raycast / projection / area overlap algorithm) + ADR-027 §4 IInteractionEvent.OnObjectTransformChanged sender + §5 IPuzzleEvent.OnMatchScoreUpdated/OnPerfectMatch sender + ADR-014 Puzzle State Machine (S5-03 done — listener PuzzleStateMachine 已订阅 OnMatchScoreUpdated)+ ADR-029 V3.0.1 (R2 deficiency-flagged PASS path 候选；如 ShadowMatchCalculator.cs Sprint 4 SP-018 现状 0-production 则 deficiency-flag) + ADR-030 §VS Build commit
-> **Status**: 📝 **Draft** (2026-05-14 Session 32 morning continue — emergent fix epic Track F NEW story-004~008 outline approved per [A]，本 story Phase 0 R2 vendor reality verify pending — **本 story scope 风险最高**：ShadowMatchCalculator Sprint 4 SP-018 实施现状不明，如 deferred 则 scope 可能 amend amend split)
+> **Status**: ✅ **Done** (2026-06-15 — Scenario C MVP impl + R3 6/6 PASS + evidence closure)
 > **Created**: 2026-05-14 morning continue (Sprint 6 Session 32 — emergent fix Track F NEW fourth story)
-> **Completed**: ""
+> **Completed**: 2026-06-15
 > **Depends on**: story-004 input-pipeline-wiring + story-005 chapter-1-scene-wiring + story-006 gameapp-provider-injection (本 story 需 input → InteractableObject FSM Drag → SnapRotation fire OnObjectTransformChanged 全 production wiring 已通) + Sprint 4 SP-018 ShadowMatchCalculator (?)，待 R2.1 verify (现状 done / partial / 0-production) + S5-03 PuzzleStateMachine ✅ (listener OnMatchScoreUpdated 已 wire)
 
 ---
@@ -190,3 +190,4 @@ T7  NarrativeSequencePlayer (S5-05 ✅ done) OnPerfectMatch listener (NarrativeS
 ## History
 
 - **2026-05-14 morning continue (Session 32)**: Draft 创建（emergent fix epic Track F NEW story-004~008 outline approved per [A]）；Status: Draft；S0-5 narrow scope；**本 story scope 风险最高**（ShadowMatchCalculator Sprint 4 SP-018 现状 unknown → R2.1 verify 后 scope 可能 amend amend split）；本 story 完成后 chapter 1 fun loop production wiring 完整 round-trip 闭环（之后 story-008 重写 S5-02 spike 不依赖 mock fire 验证 dp15 sniff sub-clause 试点）。
+- **2026-06-15**: **Phase 0 R2.1 实证 Scenario C** + `/dev-story` MVP impl + R3 closure ✅ — `ShadowMatchCalculator.cs` NEW（fixture pose-distance scoring；ADR-012 full algorithm deferred）；GameApp Init/Dispose wire；spike `S6-16_ShadowMatchProductionWire.cs`；R3 **6/6 PASS + 15/15 asserts + 2970ms + unexpected_error_count=0**；evidence `production/qa/playmode-shadowmatch-production-wire-2026-06-15.md`；Track F 4/5 done → NEXT story-008。

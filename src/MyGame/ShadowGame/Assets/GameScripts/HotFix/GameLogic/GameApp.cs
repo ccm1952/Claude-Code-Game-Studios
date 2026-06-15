@@ -28,6 +28,10 @@ public partial class GameApp
     // Editor Mouse → SingleFingerFSM → GestureDispatcher.Dispatch → IGestureEvent.OnTap/OnDrag fire 完整 round-trip)。
     private static GameLogic.InputService _inputService;
 
+    // Sprint 6 emergent fix Track F vs-chapter-1-007 (S6-16 story-007): ShadowMatchCalculator production wire (S0-5)。
+    //   OnObjectTransformChanged listener → IShadowMatchEvent.OnMatchScoreUpdated（ADR-012 MVP fixture scoring）。
+    private static GameLogic.ShadowMatchCalculator _shadowMatchCalculator;
+
     /// <summary>
     /// 热更域App主入口。
     /// </summary>
@@ -68,6 +72,13 @@ public partial class GameApp
         GameLogic.InteractableObject.RegisterPuzzleConfigProvider(BuildFixturePuzzleConfigProvider());
         GameLogic.InteractionCoordinator.RegisterInputConfigProvider(BuildFixtureInputConfigProvider());
         Log.Info("[GameApp] PuzzleConfig + InputConfig provider wire-up done (chapter 1 fixture)");
+
+        // Sprint 6 emergent fix Track F vs-chapter-1-007 (S6-16 story-007): ShadowMatchCalculator boot pipeline 接入。
+        //   须在 chapter scene InteractableObject snap 完成 fire OnObjectTransformChanged 之前订阅 listener。
+        //   ADR-012 完整 AsyncGPUReadback 算法 deferred shadow-puzzle epic；本 story MVP fixture pose-distance scoring。
+        _shadowMatchCalculator = new GameLogic.ShadowMatchCalculator();
+        _shadowMatchCalculator.Init();
+        Log.Info("[GameApp] ShadowMatchCalculator production wire-up done (chapter 1 fixture targets)");
 
 #if UNITY_EDITOR || DEBUG
         RegisterDevSpikes();
@@ -160,20 +171,20 @@ public partial class GameApp
         //   Error→RecoverToIdle / RapidNewestWinsOverwrite；evidence: production/qa/playmode-error-restart-path-2026-05-13.md），
         //   不再每次启动并发跑。如需复跑 R3，临时注释 S601PlaytestSpike + 取消 S604Spike 注释行。
         //
-        // S6-15 GameApp Provider Injection (2026-06-12 Session 34) 当前 active spike — Track F vs-chapter-1-006 R3 PlayMode probe
-        //   (per story-006-gameapp-provider-injection.md Phase 1 ✅ READY)。
-        //   5 R3 case (baseline → P1 StaticPuzzleConfigProvider → P2 StaticInputConfigProvider →
-        //   P3 InteractableObjectPuzzleConfigResolved → P4 CoordinatorInputConfigResolved →
-        //   P5 NoFailLoudProviderErrors) — chapter 1 baseline 加载后 provider resolved verify；
-        //   JSON evidence WriteResultJson S6-15_Result.json。
+        // S6-16 ShadowMatch Production Wire (2026-06-15) 当前 active spike — Track F vs-chapter-1-007 R3 PlayMode probe
+        //   (per story-007-shadowmatch-production-wire.md)。
+        //   5 R3 case (baseline → P1 ListenerSubscription → P2 NoMockFireBypass → P3 ScoreContinuousFire →
+        //   P4 PerfectMatchFireOnce → P5 NarrativeTriggerRoundTrip) — production ShadowMatchCalculator +
+        //   spike 自管 PuzzleStateMachine + NarrativeSequencePlayer round-trip；
+        //   JSON evidence WriteResultJson S6-16_Result.json。
         //
-        //   V3.0.1 dp15 sniff sub-clause 第 3 个 production wiring 修复 case — RegisterPuzzleConfigProvider
-        //   + RegisterInputConfigProvider GameApp.Entrance production caller hit > 0。
+        //   V3.0.1 dp15 sniff sub-clause 第 4 个 production wiring 修复 case — ShadowMatchCalculator
+        //   OnObjectTransformChanged listener production caller hit > 0。
         //
         //   manual playtest / 其他 spike 复跑入口：
-        //   注释 S615Spike + 取消 S614Spike / S613Spike / S601PlaytestSpike 等注释行即可切换。
-        GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S615Spike());
-        // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S614Spike());
+        //   注释 S616Spike + 取消 S615Spike / S614Spike 等注释行即可切换。
+        GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S616Spike());
+        // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S615Spike());
         // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S601PlaytestSpike());
         // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S604Spike());
         // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S608Spike());
@@ -226,6 +237,13 @@ public partial class GameApp
             _inputService.Dispose();
             _inputService = null;
             Log.Info("[GameApp] InputService disposed");
+        }
+
+        if (_shadowMatchCalculator != null)
+        {
+            _shadowMatchCalculator.Dispose();
+            _shadowMatchCalculator = null;
+            Log.Info("[GameApp] ShadowMatchCalculator disposed");
         }
 
         // S5-1b SceneManager Dispose 必须先于 FSM Destroy（FSM 销毁时 GameLogic listener bus 仍在；

@@ -47,12 +47,15 @@ namespace GameLogic
             //   详 production/epics/vs-chapter-1/story-005-chapter-1-scene-wiring.md §V3.0.1 Watch List Hooks。
             // V3.0.1 dp8 candidate (2026-06-12 Session 34): DevTestState [main-menu] mode HasSpike list 加 S6-15 = 8 spike，
             //   详 production/epics/vs-chapter-1/story-006-gameapp-provider-injection.md §V3.0.1 Watch List Hooks。
+            // V3.0.1 dp8 candidate (2026-06-15): DevTestState [main-menu] mode HasSpike list 加 S6-16 = 9 spike，
+            //   详 production/epics/vs-chapter-1/story-007-shadowmatch-production-wire.md §V3.0.1 Watch List Hooks。
             if (DevTest.DevBootstrap.HasSpike("S5-02") || DevTest.DevBootstrap.HasSpike("S6-07") ||
                 DevTest.DevBootstrap.HasSpike("S6-08") || DevTest.DevBootstrap.HasSpike("S6-04") ||
                 DevTest.DevBootstrap.HasSpike("S6-01-playtest") || DevTest.DevBootstrap.HasSpike("S6-13") ||
-                DevTest.DevBootstrap.HasSpike("S6-14") || DevTest.DevBootstrap.HasSpike("S6-15"))
+                DevTest.DevBootstrap.HasSpike("S6-14") || DevTest.DevBootstrap.HasSpike("S6-15") ||
+                DevTest.DevBootstrap.HasSpike("S6-16"))
             {
-                Log.Info("[GameFlow] [main-menu] 检测到 main menu spike (S5-02/S6-07/S6-08/S6-04/S6-01-playtest/S6-13/S6-14/S6-15) — Button click 模式或 spike 自驱或用户手动驱动");
+                Log.Info("[GameFlow] [main-menu] 检测到 main menu spike (S5-02/S6-07/S6-08/S6-04/S6-01-playtest/S6-13/S6-14/S6-15/S6-16) — Button click 模式或 spike 自驱或用户手动驱动");
 
                 // 先 RunRequested() 让 spike Runtime.Awake() 同步 subscribe production listeners
                 // (per S5-1c lessons memo problem_2026-05-09_spike-sync-subscribe-race.md)
