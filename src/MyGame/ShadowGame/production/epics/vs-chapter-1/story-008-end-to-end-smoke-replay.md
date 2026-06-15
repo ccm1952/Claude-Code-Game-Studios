@@ -9,9 +9,9 @@
 > **Complexity Points**: 1 (~1 hr 估时；spike rewrite 不改 production code)
 > **GDD Requirement**: 无 GDD TR-ID 直接锚点 — 本 story 是 governance 试点 (V3.0.1 dp15 sniff sub-clause 0 mock fire bypass 校验)
 > **ADR References**: **ADR-029 V3.0.1 R3 standard amend candidate "production caller hit > 0 sniff sub-clause"** + ADR-027 §3 IGestureEvent + §4 IInteractionEvent + §5 IPuzzleEvent + ADR-012 ShadowMatchCalculator + ADR-013 ObjectInteraction + ADR-014 PuzzleStateMachine + ADR-016 NarrativeSequence + ADR-017 AudioManager + ADR-030 §VS Build commit
-> **Status**: 📝 **Draft** (2026-05-14 Session 32 morning continue — emergent fix epic Track F NEW story-004~008 outline approved per [A]，本 story Phase 0 R2 vendor reality verify pending)
+> **Status**: ✅ **Done** (2026-06-15 R3 6/6 PASS — dp15 sniff pilot All Passed; evidence: `production/qa/playmode-end-to-end-smoke-replay-2026-06-15.md`)
 > **Created**: 2026-05-14 morning continue (Sprint 6 Session 32 — emergent fix Track F NEW fifth & final story)
-> **Completed**: ""
+> **Completed**: 2026-06-15
 > **Depends on**: story-004 ✅ (input pipeline) + story-005 ✅ (scene wiring) + story-006 ✅ (provider injection) + story-007 ✅ (ShadowMatch wire) — 本 story 是 Track F serial 最后一个，验证前 4 stories 累计 production wiring 完整性
 
 ---

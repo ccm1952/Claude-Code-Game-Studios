@@ -171,19 +171,16 @@ public partial class GameApp
         //   Error→RecoverToIdle / RapidNewestWinsOverwrite；evidence: production/qa/playmode-error-restart-path-2026-05-13.md），
         //   不再每次启动并发跑。如需复跑 R3，临时注释 S601PlaytestSpike + 取消 S604Spike 注释行。
         //
-        // S6-16 ShadowMatch Production Wire (2026-06-15) 当前 active spike — Track F vs-chapter-1-007 R3 PlayMode probe
-        //   (per story-007-shadowmatch-production-wire.md)。
-        //   5 R3 case (baseline → P1 ListenerSubscription → P2 NoMockFireBypass → P3 ScoreContinuousFire →
-        //   P4 PerfectMatchFireOnce → P5 NarrativeTriggerRoundTrip) — production ShadowMatchCalculator +
-        //   spike 自管 PuzzleStateMachine + NarrativeSequencePlayer round-trip；
-        //   JSON evidence WriteResultJson S6-16_Result.json。
-        //
-        //   V3.0.1 dp15 sniff sub-clause 第 4 个 production wiring 修复 case — ShadowMatchCalculator
-        //   OnObjectTransformChanged listener production caller hit > 0。
+        // S6-17 End-to-End Smoke Replay (2026-06-15) 当前 active spike — Track F vs-chapter-1-008 R3 PlayMode probe
+        //   (per story-008-end-to-end-smoke-replay.md — V3.0.1 dp15 sniff sub-clause 正式试点 final pilot)。
+        //   5 R3 case (P1 NewGame → P2 InputSimulation Tap+Drag → P3 OnPerfectMatch → P4 narrative duck →
+        //   P5 dp15 0 mock fire) — 完整 production round-trip，无 mock OnMatchScoreUpdated。
+        //   JSON evidence WriteResultJson S6-17_Result.json。
         //
         //   manual playtest / 其他 spike 复跑入口：
-        //   注释 S616Spike + 取消 S615Spike / S614Spike 等注释行即可切换。
-        GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S616Spike());
+        //   注释 S617Spike + 取消 S616Spike / S601PlaytestSpike 等注释行即可切换。
+        GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S617Spike());
+        // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S616Spike());
         // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S615Spike());
         // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S601PlaytestSpike());
         // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S604Spike());

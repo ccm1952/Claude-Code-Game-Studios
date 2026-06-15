@@ -429,16 +429,16 @@ namespace GameLogic.DevTest.Spikes
             var interaction = GameEvent.Get<IInteractionEvent>();
 
             // 三步递近目标位姿 — 每步更新两物件，触发 score 连续变化
-            interaction.OnObjectTransformChanged(1, new Vector3(-1.5f, 0.5f, 0f), identity);
-            interaction.OnObjectTransformChanged(2, new Vector3(1.5f, 0.5f, 0f), identity);
+            interaction.OnObjectTransformChanged(1, new Vector3(-1.5f, 0f, 0f), identity);
+            interaction.OnObjectTransformChanged(2, new Vector3(1.5f, 0f, 0f), identity);
+            await UniTask.DelayFrame(2);
+
+            interaction.OnObjectTransformChanged(1, new Vector3(-1.0f, 0f, 0f), identity);
+            interaction.OnObjectTransformChanged(2, new Vector3(1.0f, 0f, 0f), identity);
             await UniTask.DelayFrame(2);
 
             interaction.OnObjectTransformChanged(1, new Vector3(-1.0f, 0.5f, 0f), identity);
             interaction.OnObjectTransformChanged(2, new Vector3(1.0f, 0.5f, 0f), identity);
-            await UniTask.DelayFrame(2);
-
-            interaction.OnObjectTransformChanged(1, new Vector3(-0.5f, 0.5f, 0f), identity);
-            interaction.OnObjectTransformChanged(2, new Vector3(0.5f, 0.5f, 0f), identity);
             await UniTask.DelayFrame(2);
 
             bool countOk = _matchScoreUpdateCount >= 3;

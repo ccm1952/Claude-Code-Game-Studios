@@ -91,12 +91,14 @@ namespace GameLogic
             Log.Info("[ShadowMatchCalculator] Dispose 完成");
         }
 
-        /// <summary>chapter 1 puzzle 1 — Object_01/02 目标位姿 fixture（沿 S5-01 scene 默认布局 ±0.5 X 偏移）。</summary>
+        /// <summary>chapter 1 puzzle 1 — Object_01/02 目标位姿 fixture（沿 Chapter_01_Approach scene 默认 grid 对齐位姿 ±1 X）。</summary>
         private void RegisterChapter1FixtureTargets()
         {
             var identity = Quaternion.identity;
-            RegisterTarget(new ObjectMatchTarget(1, 1, new Vector3(-0.5f, 0.5f, 0f), identity));
-            RegisterTarget(new ObjectMatchTarget(2, 1, new Vector3(0.5f, 0.5f, 0f), identity));
+            // S6-17 story-008 e2e 实证：gridSize=1 snap 落点与 ±0.5 目标错位致 max score≈0.75 < perfectThreshold 0.85；
+            // 对齐 scene 默认 Object_01(-1,0.5)/Object_02(1,0.5) 使 InputSimulation drag→snap 自然链可达 OnPerfectMatch。
+            RegisterTarget(new ObjectMatchTarget(1, 1, new Vector3(-1f, 0f, 0f), identity));
+            RegisterTarget(new ObjectMatchTarget(2, 1, new Vector3(1f, 0f, 0f), identity));
         }
 
         private void RegisterTarget(ObjectMatchTarget target)
