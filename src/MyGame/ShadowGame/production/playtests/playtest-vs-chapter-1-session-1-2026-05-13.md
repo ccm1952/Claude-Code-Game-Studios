@@ -15,9 +15,23 @@
 
 chapter 1 第 1 次 internal playtest — Sprint 5 retro AI-4 promote Must Have，**ADR-030 §VS Build commitment 第 1/3 次 playtest**。
 
-**Status flow**: backlog → phase-1-prep-done → phase-2-0-infra-fix-done → ⚠️ **phase-2-1-played-needs-work-emergent-fix-pending** (本次落点 2026-05-14 Session 32) → 待 emergent fix epic story-004~008 完成 → phase-2-2-replay-pending → done。
+**Status flow**: backlog → phase-1-prep-done → phase-2-0-infra-fix-done → phase-2-1-played-needs-work-emergent-fix-pending → **phase-2-2-replay-pending** (当前落点 2026-06-15，Track F story-004~008 ✅ Done) → done。
 
-**verdict**: ⚠️ **NEEDS-WORK** — fun loop 不可评估（chapter 1 物件 production wiring gap 5 处缺口阻塞 fun loop assessment）；但 governance value 巨大：surface **V3.0.1 dp15 candidate "EditMode green ≠ production wired sniff"**（详见 §4.5）+ 暴露 Sprint 2-5 五个 sprint 期间 ObjectInteraction system 整套 EditMode test pass + production 0 wiring 反模式。playtest 1 设计意图 = 揭露 Sprint 6 polish 优先级 → 设计意图达成（虽 fun loop 部分未达 ≥30 min）。
+**Phase 2.1 verdict (历史)**: ⚠️ **NEEDS-WORK** — fun loop 不可评估（5 处 production wiring gap）；Track F 已修复，待 Phase 2.2 replay 重评。
+
+**Phase 2.2 replay 前置** (2026-06-15 已满足):
+- Track F story-004~008 ✅ Done（S6-13~S6-17 R3 全 PASS）
+- S6-17 end-to-end smoke replay R3 6/6 PASS（`production/qa/playmode-end-to-end-smoke-replay-2026-06-15.md`）
+- `GameApp` 已切换 `S601PlaytestSpike`（manual playtest 模式，无 R3 auto-run）
+
+**Phase 2.2 replay checklist**（user 执行）:
+1. [ ] Unity Editor **关掉再 fresh 重开**
+2. [ ] 确认 `GameApp.RegisterDevSpikes` 注册的是 `S601PlaytestSpike`（非 S617）
+3. [ ] Play in Editor → splash → main menu → 点 **NewGame** 进 chapter 1
+4. [ ] **≥30 min** 连续游玩：Object_01/02 Tap+Drag → shadow match → puzzle complete → narrative + audio duck
+5. [ ] 玩后填本 file §2 player notes + §3 Fun Loop 评分 + §4 emergent issues + §8 sign-off
+
+**verdict**: TBD — Phase 2.2 replay 完成后更新。
 
 **前置依赖（全 ✅ done 2026-05-13）**:
 - S5-02 ✅ Chapter 1 5 系统 happy path (5/5 R3 + 36/36 asserts)
@@ -133,6 +147,28 @@ chapter 1 第 1 次 internal playtest — Sprint 5 retro AI-4 promote Must Have�
 
 **关键 governance 发现**: Sprint 2 ObjectInteraction system 代码齐全（5 production class + EditMode test 全 pass），但 chapter 1 production wiring 整套 0 落地；S5-02 spike fire mock 简化路径让 R3 5/5 PASS 掩盖 wiring gap，**直到 S6-01 manual playtest 第一次穿透 production 层**才 surface。详见 §4.5 dp15 candidate。
 
+#### §2.3.1b Phase 2.2 replay — 物件交互（2026-06-15，Track F 修复后）
+
+- [x] Object_01/02 **可点击选中**（较 Phase 2.1 已恢复基本交互链）
+- [x] **点击偏移**：视觉上点物体中心经常选不中，需向某一方向偏移点击才能命中（user 截图红框标出视觉 vs 命中错位）
+- [x] **拖拽过敏感**：鼠标小范围移动 → 物体大范围移动；方向正确
+- [x] **竖直拖只横移（v2 回归）**：相机沿 +Z 看 XY 平面时误用水平面 Y=常数 → 屏幕上下拖几乎只改 X
+- [x] **吸附后无法再点选**：Coordinator 悬挂 `CurrentSelectedObject`（v3 已修）
+- [x] **吸附到屏幕外**：`InteractionBounds` ±10 远大于相机可见区 → snap 落点出屏
+- [ ] shadow match / narrative 完整走通：本轮聚焦交互手感，未报 blocker
+
+**Player notes**（user 原话 2026-06-15）:
+1. 「在屏幕中点击物体实际无法选中，需要经过一定屏幕偏移点击时才能选中」
+2. 「移动时鼠标移动小范围，但是物体会大范围移动，移动方向正确」
+3. （v3 复测）「初始能选中；手指上下拖物体只横向移动；松手吸附格点后无法再点击选中」
+
+**Observer root cause（代码审查）**:
+- **v1** `ScreenToWorldPoint` + 固定 depth / `_dragDepth=10` 与透视相机错位 → `GameplayScreenProjection` 平面求交（拖拽已改善）
+- **v2（2026-06-15 复测）** Tap 仍走 `Physics2D.OverlapCircleAll` + z=0 平面 XY，与屏幕上 **3D mesh + BoxCollider** 投影不一致；透视 Main Camera `(0,1,-3)` 下需偏移才能命中 2D hitbox
+- **Fix v2**: `RaycastWithFatFinger` 改为 `Physics.Raycast` / `SphereCast` 命中父级 3D `BoxCollider`（对齐 prototype `InteractionController`）；拖拽误用水平面 Y=物件高度
+- **v3（2026-06-15）** ① 竖直拖只横移：Z 平面 + grab offset。② 吸附后无法点选：Coordinator 悬挂引用。③ scene y 0.5→0。
+- **v4（2026-06-15）** 吸附到屏幕外：`InteractionBounds` fixture ±10 允许拖出相机视锥；Fix = **config bounds ∩ 相机视口在 Z=0 的可见 XY**（`GameplayScreenProjection.TryComputeVisibleBoundsOnZPlane`），chapter 1 fixture 收紧为 `(-2.5,2.5)×(0,2.5)`。
+
 #### §2.3.2 shadow match mechanic
 
 - [ ] shadow projection 投影墙面 visual 表现：TBD
@@ -237,7 +273,7 @@ chapter 1 第 1 次 internal playtest — Sprint 5 retro AI-4 promote Must Have�
 
 > 典型: fun loop 阻塞 / clarity 0 / dominant frustration point
 
-- [ ] TBD
+- [x] **S1-1: 点击/拖拽/吸附边界（Phase 2.2 replay）** — v1~v3 已述；v4 吸附出屏 = bounds ±10 vs 相机视锥。**Fix v4** 已落地。**待 user 复测**。
 
 ### §4.3 S2 Medium（影响 polish, Sprint 6 或 Sprint 7）
 
@@ -389,7 +425,7 @@ chapter 1 第 1 次 internal playtest — Sprint 5 retro AI-4 promote Must Have�
 | **PASS criteria** | §3 Fun Loop Assessment 整体均分 ≥ 3.5 + §4.1 S0 = 0 + §4.2 S1 ≤ 3 项 |
 | **NEEDS-WORK criteria** | §3 均分 < 3.5 OR §4.1 S0 ≥ 1 OR §4.2 S1 ≥ 4 项 → **§4.1 S0 = 5 项 触发 NEEDS-WORK** |
 | **FAIL criteria** | §4.1 S0 阻塞 fun loop OR Sprint 6 capacity 不够 fix → 不触发 FAIL（Sprint 6 capacity ~7-9 hr emergent fix 可吸收，本周 split 2-3 daily session） |
-| **Next action** | (1) 立 emergent fix epic vs-chapter-1 story-004~008（Track F NEW，~7-9 hr，Sprint 6 本周）；(2) story-004~008 done 后启 Phase 2.2 replay manual playtest（reuse session 语义重测）；(3) replay PASS 后才进 S6-02；(4) S6-09 art asset 升级时机不变（playtest 1 反馈不足以判定 art 是否 fun loop 阻碍 → 推 [A2] 路径直到 replay session）；(5) Sprint 6 retro 议题 +2 = 6 项（dp14 + dp15 NEW）。 |
+| **Next action** | **Phase 2.2 replay manual playtest**（Track F ✅ Done 2026-06-15）→ 填 §2–§8 replay 段 → PASS 后进 S6-02；(4) S6-09 art 升级仍推 [A2] replay 后评估；(5) Sprint 6 retro 议题 6 dp15 promote（S6-13 + S6-17 双 PASS data point）。 |
 | **Player sign-off** | chen 2026-05-14 Session 32 (NEEDS-WORK acknowledged + emergent fix 决策 [A] 批准) |
 | **Observer sign-off** | Claude Code 2026-05-14 Session 32 (root cause analysis + 5 处 wiring gap rg 验证 + dp15 candidate proposal 落档) |
 

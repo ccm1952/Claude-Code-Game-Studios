@@ -133,6 +133,8 @@ namespace GameLogic
             GameEvent.AddEventListener<GestureData>(IGestureEvent_Event.OnRotate, OnRotate);
             GameEvent.AddEventListener<bool>(
                 IInteractionEvent_Event.OnInteractionLockChanged, OnInteractionLockChanged);
+            GameEvent.AddEventListener<int, Vector3, Quaternion>(
+                IInteractionEvent_Event.OnObjectTransformChanged, OnObjectTransformChanged);
             _listenersRegistered = true;
         }
 
@@ -148,6 +150,8 @@ namespace GameLogic
                 GameEvent.RemoveEventListener<GestureData>(IGestureEvent_Event.OnRotate, OnRotate);
                 GameEvent.RemoveEventListener<bool>(
                     IInteractionEvent_Event.OnInteractionLockChanged, OnInteractionLockChanged);
+                GameEvent.RemoveEventListener<int, Vector3, Quaternion>(
+                    IInteractionEvent_Event.OnObjectTransformChanged, OnObjectTransformChanged);
                 _listenersRegistered = false;
             }
 
@@ -165,7 +169,7 @@ namespace GameLogic
         /// 单选切换决策（公开供测试 bypass raycast）。
         /// <list type="bullet">
         /// <item><c>hit == null</c>：deselect 当前；clear <see cref="CurrentSelectedObject"/></item>
-        /// <item><c>hit == CurrentSelectedObject</c>：no-op（避免重复派 OnObjectSelected）</item>
+        /// <item><c>hit == CurrentSelectedObject</c>：若 fsm 已 Idle（drag→snap 落定后）则允许再选；否则 no-op</item>
         /// <item>其他：deselect 旧（如有）；select 新；更新 _lastSelectionTime</item>
         /// </list>
         /// <para><b>200ms debounce</b>：距离上次 _lastSelectionTime &lt; <see cref="DebounceSeconds"/> → 整体忽略，返 false。</para>
@@ -192,7 +196,17 @@ namespace GameLogic
                 return true;
             }
 
-            if (hit == CurrentSelectedObject) return false;   // 命中同一对象 — no-op
+            if (hit == CurrentSelectedObject)
+            {
+                if (hit.Fsm != null && hit.Fsm.CurrentState == InteractableObjectState.Idle)
+                {
+                    hit.Fsm.OnTapHit();
+                    _lastSelectionTime = Time.unscaledTime;
+                    return true;
+                }
+
+                return false;
+            }
 
             // 切换：deselect 旧（仅当 fsm 在 Selected；Dragging 不允许 Tap 切换 — 由 fsm.OnDeselect 守卫）
             if (CurrentSelectedObject != null && CurrentSelectedObject.Fsm != null &&
@@ -269,15 +283,29 @@ namespace GameLogic
             }
         }
 
+        /// <summary>
+        /// snap / rotation 落定后 <see cref="InteractableObject"/> 派
+        /// <see cref="IInteractionEvent.OnObjectTransformChanged"/> 且 fsm 已 Idle — 释放 Coordinator 悬挂选中引用，
+        /// 避免「同物件再点」被 <c>hit == CurrentSelectedObject</c> 误判为 no-op。
+        /// </summary>
+        private void OnObjectTransformChanged(int objectId, Vector3 position, Quaternion rotation)
+        {
+            if (CurrentSelectedObject == null) return;
+            if (CurrentSelectedObject.Fsm == null || CurrentSelectedObject.Fsm.ObjectId != objectId) return;
+            if (CurrentSelectedObject.Fsm.CurrentState != InteractableObjectState.Idle) return;
+
+            CurrentSelectedObject = null;
+        }
+
         // ----------------------------------------------------------------- Raycast
 
         /// <summary>
         /// Tap raycast + fat finger compensation。返 null = 命中空白。
-        /// <para>实现：<see cref="Physics2D.OverlapCircleAll"/> 在 expandedRadius 范围内取所有 collider，
-        /// 然后取距离 worldPos 最近且其 GameObject（含父）持有 <see cref="InteractableObject"/> 组件的命中。</para>
+        /// <para>实现：<see cref="Physics.Raycast"/> / <see cref="Physics.SphereCast"/> 命中父级
+        /// <see cref="BoxCollider"/>（与 3D mesh 视觉对齐；chapter 1 透视相机场景）。
+        /// 2D <c>Hitbox2D</c> 仅作 Sprint 6 同存解遗留，Tap 不再走 Physics2D。</para>
         /// <para><b>fat finger 公式</b>：<c>radiusPx = FatFingerMarginMm * dpi / 25.4</c>；转 world：
-        /// <c>radiusWorld = radiusPx * worldUnitsPerPixel</c>，其中 worldUnitsPerPixel 由相机视口自动算
-        /// （orthographic 下 = orthographicSize * 2 / pixelHeight；perspective 下用近平面距离查询差分代替）。</para>
+        /// <c>radiusWorld = radiusPx * worldUnitsPerPixel</c>（水平面 Y≈0.5 上差分估算）。</para>
         /// <para>public 而非 private — asmdef 间 internal 不可见，沿用 InteractableObject.TickDrag 先例供测试调用。</para>
         /// </summary>
         public InteractableObject RaycastWithFatFinger(Vector2 screenPos)
@@ -285,39 +313,39 @@ namespace GameLogic
             if (_gameplayCamera == null) return null;
             if (_inputConfig == null) return null;
 
-            // ScreenToWorld in 2D plane（z = 相机到 0 平面距离；2D 项目通常 camera 在 z=-10 看向 z=0）
-            float zDepth = -_gameplayCamera.transform.position.z;
-            var worldPosA = _gameplayCamera.ScreenToWorldPoint(new Vector3(screenPos.x, screenPos.y, zDepth));
-            var worldPosB = _gameplayCamera.ScreenToWorldPoint(new Vector3(screenPos.x + 1f, screenPos.y, zDepth));
-            float worldPerPx = Mathf.Abs(worldPosB.x - worldPosA.x);
+            var ray = _gameplayCamera.ScreenPointToRay(screenPos);
+            const float maxDistance = 100f;
+            int layerMask = _interactableLayer.value;
+
+            if (Physics.Raycast(ray, out RaycastHit hit, maxDistance, layerMask))
+            {
+                var direct = ResolveInteractableFromCollider(hit.collider);
+                if (direct != null) return direct;
+            }
 
             float dpi = Screen.dpi > 0f ? Screen.dpi : _inputConfig.FallbackDpi;
             float radiusPx = _inputConfig.FatFingerMarginMm * dpi / MmPerInch;
+            const float fatFingerPlaneY = 0f;
+            float worldPerPx = GameplayScreenProjection.GetWorldUnitsPerScreenPixelOnHorizontalPlane(
+                _gameplayCamera, screenPos, fatFingerPlaneY);
             float radiusWorld = radiusPx * worldPerPx;
 
-            var hits = Physics2D.OverlapCircleAll(new Vector2(worldPosA.x, worldPosA.y), radiusWorld, _interactableLayer);
-            if (hits == null || hits.Length == 0) return null;
-
-            InteractableObject nearestIo = null;
-            float nearestDistSq = float.MaxValue;
-            for (int i = 0; i < hits.Length; i++)
+            if (radiusWorld > 0.001f
+                && Physics.SphereCast(ray, radiusWorld, out hit, maxDistance, layerMask))
             {
-                var c = hits[i];
-                if (c == null) continue;
-                var io = c.GetComponentInParent<InteractableObject>();
-                if (io == null) continue;
-                if (!_objects.Contains(io)) continue;   // 仅在 Inspector 预填列表内
-
-                float dx = c.transform.position.x - worldPosA.x;
-                float dy = c.transform.position.y - worldPosA.y;
-                float dSq = dx * dx + dy * dy;
-                if (dSq < nearestDistSq)
-                {
-                    nearestDistSq = dSq;
-                    nearestIo = io;
-                }
+                return ResolveInteractableFromCollider(hit.collider);
             }
-            return nearestIo;
+
+            return null;
+        }
+
+        private InteractableObject ResolveInteractableFromCollider(Collider collider)
+        {
+            if (collider == null) return null;
+            var io = collider.GetComponentInParent<InteractableObject>();
+            if (io == null) return null;
+            if (!_objects.Contains(io)) return null;
+            return io;
         }
 
         // ----------------------------------------------------------------- Provider resolution

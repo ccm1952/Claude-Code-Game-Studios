@@ -443,6 +443,30 @@ namespace ShadowGame.Tests.EditMode.ObjectInteraction
             _coord.Shutdown();   // 不应抛
         }
 
+        [Test]
+        public void SnapComplete_OnObjectTransformChanged_ClearsStaleSelection_AllowsReTap()
+        {
+            var a = MakeInteractableObject(1);
+            MakeCoordinator(new List<InteractableObject> { a });
+
+            _coord.TrySelectObject(a);
+            a.Fsm.OnDragBegan();
+            a.Fsm.OnDragEnded();
+            Assert.AreEqual(InteractableObjectState.Snapping, a.Fsm.CurrentState);
+            Assert.AreSame(a, _coord.CurrentSelectedObject);
+
+            a.Fsm.OnSnapCompleted();
+            GameEvent.Get<IInteractionEvent>().OnObjectTransformChanged(
+                1, a.transform.position, a.transform.rotation);
+
+            Assert.IsNull(_coord.CurrentSelectedObject, "snap 落定后应释放悬挂选中引用");
+            Assert.AreEqual(InteractableObjectState.Idle, a.Fsm.CurrentState);
+
+            _coord.ResetDebounceForTest();
+            Assert.IsTrue(_coord.TrySelectObject(a), "同物件应可再次 Tap 选中");
+            Assert.AreEqual(InteractableObjectState.Selected, a.Fsm.CurrentState);
+        }
+
         // ==================================================================
         // 协议合规：fsm.OnTapHit / OnDeselect 内部派发，Coordinator 不重复
         // ==================================================================

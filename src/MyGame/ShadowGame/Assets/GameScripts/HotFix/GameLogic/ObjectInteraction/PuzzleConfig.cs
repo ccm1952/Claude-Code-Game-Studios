@@ -76,5 +76,17 @@ namespace GameLogic
         /// <summary>把一个 2D 点 clamp 到边界内（X/Y 独立）。</summary>
         public Vector2 Clamp(Vector2 point)
             => new Vector2(Mathf.Clamp(point.x, MinX, MaxX), Mathf.Clamp(point.y, MinY, MaxY));
+
+        /// <summary>两矩形边界的交集（用于 Luban bounds ∩ 相机可见 gameplay 区域）。</summary>
+        public static InteractionBounds Intersect(InteractionBounds a, InteractionBounds b)
+        {
+            return new InteractionBounds(
+                Mathf.Max(a.MinX, b.MinX),
+                Mathf.Min(a.MaxX, b.MaxX),
+                Mathf.Max(a.MinY, b.MinY),
+                Mathf.Min(a.MaxY, b.MaxY));
+        }
+
+        public bool IsValid => MinX < MaxX && MinY < MaxY;
     }
 }

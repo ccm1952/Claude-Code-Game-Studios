@@ -124,7 +124,7 @@ public partial class GameApp
     {
         1 => new GameLogic.PuzzleConfig(
             id: 1,
-            interactionBounds: new GameLogic.InteractionBounds(-10f, 10f, -10f, 10f),
+            interactionBounds: new GameLogic.InteractionBounds(-2.5f, 2.5f, 0f, 2.5f),
             gridSize: 1f,
             snapSpeed: 0.2f,
             rotationStep: 15f),
@@ -171,18 +171,10 @@ public partial class GameApp
         //   Error→RecoverToIdle / RapidNewestWinsOverwrite；evidence: production/qa/playmode-error-restart-path-2026-05-13.md），
         //   不再每次启动并发跑。如需复跑 R3，临时注释 S601PlaytestSpike + 取消 S604Spike 注释行。
         //
-        // S6-17 End-to-End Smoke Replay (2026-06-15) 当前 active spike — Track F vs-chapter-1-008 R3 PlayMode probe
-        //   (per story-008-end-to-end-smoke-replay.md — V3.0.1 dp15 sniff sub-clause 正式试点 final pilot)。
-        //   5 R3 case (P1 NewGame → P2 InputSimulation Tap+Drag → P3 OnPerfectMatch → P4 narrative duck →
-        //   P5 dp15 0 mock fire) — 完整 production round-trip，无 mock OnMatchScoreUpdated。
-        //   JSON evidence WriteResultJson S6-17_Result.json。
-        //
-        //   manual playtest / 其他 spike 复跑入口：
-        //   注释 S617Spike + 取消 S616Spike / S601PlaytestSpike 等注释行即可切换。
-        GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S617Spike());
-        // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S616Spike());
-        // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S615Spike());
-        // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S601PlaytestSpike());
+        // S6-17 End-to-End Smoke Replay (2026-06-15) ✅ DONE — Track F vs-chapter-1-008 R3 6/6 PASS
+        //   manual playtest / 复跑 R3：注释 S617Spike，取消下方 S601PlaytestSpike 或 S616Spike 等注释行。
+        // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S617Spike());
+        GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S601PlaytestSpike());
         // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S604Spike());
         // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S608Spike());
         // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S607Spike());

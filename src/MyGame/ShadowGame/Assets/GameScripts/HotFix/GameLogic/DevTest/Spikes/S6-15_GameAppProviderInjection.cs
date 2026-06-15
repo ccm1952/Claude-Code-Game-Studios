@@ -395,13 +395,14 @@ namespace GameLogic.DevTest.Spikes
                 }
                 if (cfg.Id != 1) allIdOk = false;
                 var b = cfg.InteractionBounds;
-                bool boundsOk = Mathf.Approximately(b.MinX, -10f) && Mathf.Approximately(b.MaxX, 10f);
+                bool boundsOk = Mathf.Approximately(b.MinX, -2.5f) && Mathf.Approximately(b.MaxX, 2.5f)
+                    && Mathf.Approximately(b.MinY, 0f) && Mathf.Approximately(b.MaxY, 2.5f);
                 if (!boundsOk) allBoundsOk = false;
             }
 
             _asserts["P3.puzzle_config_resolved"] = $"{(allResolved ? "PASS" : "FAIL")}: 每实例 _puzzleConfig != null";
             _asserts["P3.puzzle_id"] = $"{(allIdOk ? "PASS" : "FAIL")}: 每实例 PuzzleConfig.Id==1";
-            _asserts["P3.interaction_bounds"] = $"{(allBoundsOk ? "PASS" : "FAIL")}: InteractionBounds MinX=-10 MaxX=10 (fixture)";
+            _asserts["P3.interaction_bounds"] = $"{(allBoundsOk ? "PASS" : "FAIL")}: InteractionBounds (-2.5,2.5)×(0,2.5) (chapter 1 fixture)";
 
             P3Passed = countOk && allResolved && allIdOk && allBoundsOk;
             Log.Info($"[S6-15][P3] {(P3Passed == true ? "✅ PASS" : "❌ FAIL")} count={all.Length}");

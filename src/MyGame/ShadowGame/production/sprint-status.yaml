@@ -1379,16 +1379,16 @@ sprint_5_stories:
   - id: "S6-01"
     epic: "vs-chapter-1"
     name: "chapter 1 第 1 次 internal playtest session (S5-07a carryover from Sprint 5)"
-    file: "production/playtests/playtest-vs-chapter-1-session-1-2026-05-13.md (Phase 1 prep ✅ + Phase 2.0 infra fix ✅ + Phase 2.1 played NEEDS-WORK ⚠️ — 5 处 production wiring S0 surface dp15 candidate NEW emergent fix epic Track F story-004~008 pending)"
+    file: "production/playtests/playtest-vs-chapter-1-session-1-2026-05-13.md (Phase 1 prep ✅ + Phase 2.0 infra fix ✅ + Phase 2.1 NEEDS-WORK ⚠️ + Phase 2.2 replay pending — Track F story-004~008 ✅ Done 2026-06-15)"
     priority: must-have
-    status: phase-2-1-played-needs-work-emergent-fix-pending
+    status: phase-2-2-replay-pending
     owner: ""
     complexity_points: 2
     type: Playtest / QA
-    depends_on: ["S5-02 ✅", "S6-04 error/restart ✅", "S6-07 ui-006 polish ✅", "S6-08 ui-008 popup robust ✅"]
-    blocker: "vs-chapter-1 epic emergent fix story-004~008 (Sprint 6 本周 split 2-3 daily session ~7-9 hr Track F NEW = S6-13~17 sprint-status.yaml ID)"
+    depends_on: ["S5-02 ✅", "S6-04 error/restart ✅", "S6-07 ui-006 polish ✅", "S6-08 ui-008 popup robust ✅", "S6-13~17 Track F emergent fix ✅"]
+    blocker: ""
     completed: ""
-    notes: "Sprint 5 retro AI-4 promote Must Have (ADR-030 §≥3 playtest sessions commit Sprint 6 final)；playtest session ≥30 min；reuse session 从 splash → main menu → chapter 1 完整走通；记录 player journey 反馈 (fun loop / pacing / clarity / frustration points)；R3 PlayMode probe N/A (manual playtest)；'if descoped' = 不可 descope (ADR-030 §VS Build commit final 项；如 Sprint 6 时间不够 → 加 Sprint 7 buffer)。**Phase 1 prep ✅ DONE 2026-05-13 evening (Session 31)** — `production/playtests/` 目录创建 + `playtest-vs-chapter-1-session-1-2026-05-13.md` 8 sections full template 落盘。**Phase 2.0 infra fix ✅ DONE 2026-05-14 morning (Session 32)** — S601PlaytestSpike NEW + DevTestState [main-menu] HasSpike(S6-01-playtest) + GameApp 切换 S604→S601 + dp14 candidate Type-10 NEW。**Phase 2.1 manual playtest ⚠️ NEEDS-WORK 2026-05-14 morning continue (Session 32)** — 启动 ~5 min 后 user 报 'Object_01 无法交互, 点击拖拽 没响应'，agent root cause analysis surface chapter 1 production wiring **5 处 S0 critical 缺口同时存在** (S0-1 GestureDispatcher.Dispatch production 0 caller / S0-2 Chapter_01_Approach.unity 未挂 InteractionCoordinator / S0-3 Object_01/02 缺 InteractableObject MonoBehaviour Session 27 #2 unity-mcp 实测 / S0-4 GameApp.Entrance 0 调 RegisterPuzzleConfigProvider + RegisterInputConfigProvider / S0-5 ShadowMatchCalculator ADR-012 listener production 0 wire S5-02 spike fire mock 绕过)。Sprint 2 → Sprint 5 五个 sprint 期间 ObjectInteraction system EditMode-green-but-not-wired 反模式直接被 manual playtest 5 min 内穿透 → **V3.0.1 dp15 candidate NEW (promote 优先级 高于 dp14) 'EditMode green ≠ production wired sniff'**。**Verdict NEEDS-WORK** (5 处 S0 触发 NEEDS-WORK criteria；fun loop 不可评估；governance value 满足 dp15 candidate + 5 wiring gap surface)。**Emergent fix epic Track F NEW vs-chapter-1 story-004~008 plan ~7-9 hr Sprint 6 本周 split 2-3 daily session 嵌入** (story-004 input-pipeline-wiring ~2-3 hr ADR-010 部分 pull-forward + story-005 chapter-1-scene-wiring ~1-1.5 hr + story-006 gameapp-provider-injection ~0.5 hr + story-007 shadowmatch-production-wire ~2-3 hr + story-008 end-to-end-smoke-replay ~1 hr dp15 sniff 试点)；replay after story-004~008 done 后启 Phase 2.2 reuse session 重测；S6-09 art asset 升级时机推 [A2] (playtest 1 反馈不足以判定 art 是否 fun loop 阻碍 → replay 后再评估)。**ADR-030 §VS Build commit 第 1/3 partial done** (fun loop ≥30 min 不达，但 governance value 巨大；replay after fix 后再判定是否需重计 1/3)。Files: evidence doc amend §0 + §2.3.1 + §3 + §4.1 + §4.5 dp15 + §5 + §6 + §6.4 retro 议题 +1 + §8 Sign-off NEEDS-WORK + sprint-status.yaml (本 entry + watch_list dp15 NEW row append) + active.md。"
+    notes: "**NEXT Phase 2.2 replay manual playtest** — Track F ✅ DONE 2026-06-15 (S6-13~S6-17 + story-008 R3 6/6 PASS + dp15 sniff pilot All Passed)。GameApp 已切 S601PlaytestSpike；fresh boot → ≥30 min fun loop 评估；填 playtest doc §2–§8。R3 预验证：`production/qa/playmode-end-to-end-smoke-replay-2026-06-15.md`。Phase 2.1 历史：NEEDS-WORK（5 处 S0 wiring gap，已由 Track F 修复）。"
 
   - id: "S6-02"
     epic: "vs-chapter-1"
@@ -1570,14 +1570,14 @@ sprint_5_stories:
     name: "End-to-end smoke replay — S5-02 spike 重写 + V3.0.1 dp15 sniff sub-clause 正式试点 pilot (Sprint 6 emergent fix Track F NEW story-008 final pilot)"
     file: "production/epics/vs-chapter-1/story-008-end-to-end-smoke-replay.md"
     priority: must-have
-    status: draft
+    status: done
     owner: ""
     complexity_points: 1
     type: Integration
-    depends_on: ["S6-13 ✅", "S6-14 ✅", "S6-15 ✅", "S6-16 ✅ (chapter 1 production wiring 完整 round-trip 闭环)"]
-    blocker: "S6-16"
-    completed: ""
-    notes: "**Track F 第 5 final story (~1 hr — V3.0.1 dp15 sniff sub-clause 正式试点 pilot)** — S5-02 spike P2 重写 (or NEW S6-XX_EndToEndSmokeReplay.cs spike) — InputSimulation Mouse Tap + Drag → 自然 production wiring round-trip → 0 mock fire bypass。10 AC + 5 R3 PlayMode probe case (P1 InputSimulation NewGame click / P2 ObjectInteraction → ShadowMatch / P3 PuzzleStateMachine → Narrative / P4 NarrativeSequenceWithAudioDuck / P5 dp15SniffSubClauseVerify origin tag listener spy)。**0 production C# change** (story-007 production code 不改；本 story 仅 spike rewrite + R3 verify)。**dp15 sniff sub-clause 试点 verdict input Sprint 6 retro 议题 6**: 如 5/5 R3 PASS + 0 mock fire bypass → dp15 promote V3.x sub-version + ADR-029 V3 R3 standard amend 沉淀；如 fail → 回退评估 + sniff sub-clause spec amend (governance value 即使 fail 也达成)。**'if descoped' = 不可 descope (Track F closure prerequisite + replay Phase 2.2 manual playtest 之前必 done)**。"
+    depends_on: ["S6-13 ✅", "S6-14 ✅", "S6-15 ✅", "S6-16 ✅"]
+    blocker: ""
+    completed: "2026-06-15"
+    notes: "**✅ DONE 2026-06-15** — R3 **6/6 PASS (P1–P5) + 24/24 asserts + all_passed=true + unexpected_error_count=0 + total_elapsed_ms=12733**；evidence `production/qa/playmode-end-to-end-smoke-replay-2026-06-15.md`；spike `S6-17_EndToEndSmokeReplay.cs` + GameApp S616→S617；**V3.0.1 dp15 sniff sub-clause 正式试点 All Passed** ⭐（Sprint 6 retro 议题 6 promote 决策依据）。ShadowMatchCalculator fixture 对齐 grid snap `(±1,0)`。Track F **5/5 收官**；NEXT S6-01 Phase 2.2 replay manual playtest。"
 
   # Should Have — Track D: Art Asset Upgrade
   - id: "S6-09"

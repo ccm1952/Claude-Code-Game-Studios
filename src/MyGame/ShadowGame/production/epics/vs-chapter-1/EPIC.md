@@ -21,8 +21,8 @@
 > - **ADR-029 V2.0 / V3.0.1** (R1/R2/R3 readiness gate + V3.0.1 dp15 sniff sub-clause "production caller hit > 0" 试点 pilot)
 >
 > **Engine Risk**: LOW (所有依赖 framework 已实施；本 epic 主要是 asset + integration + Sprint 6 emergent fix wiring 工作；ADR-012 ShadowMatchCalculator Sprint 4 SP-018 实施现状 R2.1 verify 关键 unknown)
-> **Status**: **⚠️ Sprint 6 emergent fix Track F NEW in_progress** (… + **story-007 ✅ Done 2026-06-15 ShadowMatch MVP R3 6/6 PASS** + story-008 📝 Draft)
-> **Stories**: 10 stories (**9 ✅ done** + **1 📝 Draft** — story-008 end-to-end smoke replay) — *Track F 4/5 done；NEXT story-008*
+> **Status**: **✅ Sprint 6 emergent fix Track F 收官** (story-001~008 全部 Done；**story-008 ✅ Done 2026-06-15 dp15 sniff pilot All Passed**)
+> **Stories**: 10 stories — **10/10 ✅ done**（Track F story-004~008 全部完成）
 
 ---
 
@@ -39,7 +39,7 @@
 | [story-005](story-005-chapter-1-scene-wiring.md) | Chapter_01_Approach.unity 加 InteractionCoordinator GameObject + Object_01/02 InteractableObject MonoBehaviour 挂载 + child Hitbox2D 2D collider 同存解 [A2] *(Track F S0-2+S0-3; R3 6/6 PASS 252ms)* | Asset / Integration | ✅ Done 2026-06-12 | 1-1.5 |
 | [story-006](story-006-gameapp-provider-injection.md) | GameApp.Init 调 InteractableObject.RegisterPuzzleConfigProvider + InteractionCoordinator.RegisterInputConfigProvider *(Track F S0-4; R3 6/6 PASS 234ms)* | Logic | ✅ Done 2026-06-15 | 1 |
 | [story-007](story-007-shadowmatch-production-wire.md) | ShadowMatchCalculator listener → OnMatchScoreUpdated/OnPerfectMatch *(Track F S0-5; R3 6/6 PASS 2970ms; Scenario C MVP)* | Logic / Integration | ✅ Done 2026-06-15 | 2-3 |
-| [story-008](story-008-end-to-end-smoke-replay.md) | S5-02 spike 重写 — InputSimulation Mouse Tap+Drag → 自然 production wiring round-trip + V3.0.1 dp15 sniff sub-clause 试点 pilot *(Sprint 6 emergent fix Track F NEW; final pilot)* | Integration | 📝 Draft 2026-05-14 | 1 |
+| [story-008](story-008-end-to-end-smoke-replay.md) | S5-02 spike 重写 — InputSimulation Mouse Tap+Drag → 自然 production wiring round-trip + V3.0.1 dp15 sniff sub-clause 试点 pilot *(Track F final; R3 6/6 PASS 2026-06-15)* | Integration | ✅ Done 2026-06-15 | 1 |
 
 ---
 

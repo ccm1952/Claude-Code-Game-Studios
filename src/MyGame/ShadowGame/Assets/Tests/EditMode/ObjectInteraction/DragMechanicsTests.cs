@@ -124,11 +124,11 @@ namespace ShadowGame.Tests.EditMode.ObjectInteraction
         }
 
         // ==================================================================
-        // AC-1: Drag position 1:1 跟手指（Camera.ScreenToWorldPoint 验证）
+        // AC-1: Drag position 1:1 跟手指（gameplay 平面射线求交）
         // ==================================================================
 
         [Test]
-        public void AC1_TickDrag_FollowsFinger_ViaScreenToWorldPoint()
+        public void AC1_TickDrag_FollowsFinger_ViaGameplayPlaneProjection()
         {
             EnterDragging(_io.Fsm);
 
@@ -137,11 +137,41 @@ namespace ShadowGame.Tests.EditMode.ObjectInteraction
 
             _io.TickDrag();
 
-            var expectedWorld = _camera.ScreenToWorldPoint(new Vector3(screenPos.x, screenPos.y, 10f));
+            Assert.IsTrue(
+                GameplayScreenProjection.TryScreenToWorldOnPlane(
+                    _camera, screenPos, _io.transform.position.z, out var expectedWorld),
+                "测试相机应能投影到 gameplay Z 平面。");
             Assert.AreEqual(expectedWorld.x, _io.transform.position.x, 0.01f,
-                "transform.x 必须与 Camera.ScreenToWorldPoint(screenPos.x) 在 0.01 误差内一致。");
+                "transform.x 必须与 gameplay 平面投影在 0.01 误差内一致。");
             Assert.AreEqual(expectedWorld.y, _io.transform.position.y, 0.01f,
                 "transform.y 同理。");
+        }
+
+        [Test]
+        public void TickDrag_PerspectiveCamera_ClampsToVisibleBounds_NotWideConfigEnvelope()
+        {
+            _camera.orthographic = false;
+            _camera.fieldOfView = 60f;
+            _camera.aspect = 16f / 9f;
+            _camera.pixelRect = new Rect(0f, 0f, 1920f, 1080f);
+            _cameraGo.transform.position = new Vector3(0f, 1.7f, -3f);
+
+            _stubConfig = new PuzzleConfig(
+                id: TestPuzzleId,
+                interactionBounds: new InteractionBounds(-10f, 10f, -10f, 10f),
+                gridSize: 1f,
+                snapSpeed: 0.2f);
+            InteractableObject.RegisterPuzzleConfigProvider(_ => _stubConfig);
+
+            EnterDragging(_io.Fsm);
+
+            DispatchOnDrag(new Vector2(960f, 0f), GesturePhase.Updated);
+            _io.TickDrag();
+
+            var effective = _io.GetEffectiveInteractionBoundsForTest();
+            Assert.That(_io.transform.position.y, Is.GreaterThanOrEqualTo(effective.MinY - 0.01f));
+            Assert.That(_io.transform.position.y, Is.GreaterThan(-0.25f),
+                "宽配置下仍应被相机可见范围钳住，避免吸附到屏幕外");
         }
 
         // ==================================================================

@@ -97,6 +97,9 @@ namespace GameLogic
         private PuzzleConfig _puzzleConfig;
         private Vector2 _lastDragScreenPos;
         private bool _hasFreshDrag;
+        /// <summary>拖拽起点相对指下点的世界偏移（避免 Began 帧物体跳到指心）。</summary>
+        private Vector3 _dragGrabOffset;
+        private bool _dragGrabOffsetValid;
         private bool _listenersRegistered;
 
         // ----------------------------------------------------------------- Snap state (S2-10)
@@ -132,6 +135,9 @@ namespace GameLogic
 
         /// <summary>Rebound 触发距离阈值（小于此值视为 transform 已在 clampedFingerPos 上，跳过 DOMove）。</summary>
         private const float ReboundDistanceEpsilon = 0.001f;
+
+        /// <summary>相机可见 gameplay 平面内缩（世界单位），避免物件贴屏幕边缘后 collider 仍不可点。</summary>
+        private const float VisibleBoundsInsetWorld = 0.15f;
 
         // ----------------------------------------------------------------- Lifecycle
 
@@ -243,17 +249,43 @@ namespace GameLogic
             if (_gameplayCamera == null) return;
             if (_puzzleConfig == null) return;
 
-            var worldPos = _gameplayCamera.ScreenToWorldPoint(
-                new Vector3(_lastDragScreenPos.x, _lastDragScreenPos.y, _dragDepth));
+            float planeZ = transform.position.z;
+            if (!GameplayScreenProjection.TryScreenToWorldOnPlane(
+                    _gameplayCamera, _lastDragScreenPos, planeZ, out var worldPos))
+                return;
+
+            if (!_dragGrabOffsetValid)
+            {
+                _dragGrabOffset = transform.position - worldPos;
+                _dragGrabOffsetValid = true;
+            }
+
+            worldPos += _dragGrabOffset;
             LastWorldPosUnclamped = worldPos;
 
-            var bounds = _puzzleConfig.InteractionBounds;
+            var bounds = GetEffectiveInteractionBounds();
             var pos = transform.position;
             pos.x = Mathf.Clamp(worldPos.x, bounds.MinX, bounds.MaxX);
             pos.y = Mathf.Clamp(worldPos.y, bounds.MinY, bounds.MaxY);
             transform.position = pos;
 
             _hasFreshDrag = false;
+        }
+
+        /// <summary>测试专用：读取 Luban bounds ∩ 相机可见 gameplay 区域。</summary>
+        public InteractionBounds GetEffectiveInteractionBoundsForTest() => GetEffectiveInteractionBounds();
+
+        private InteractionBounds GetEffectiveInteractionBounds()
+        {
+            var configBounds = _puzzleConfig.InteractionBounds;
+            if (_gameplayCamera == null) return configBounds;
+
+            if (!GameplayScreenProjection.TryComputeVisibleBoundsOnZPlane(
+                    _gameplayCamera, transform.position.z, VisibleBoundsInsetWorld, out var visibleBounds))
+                return configBounds;
+
+            var merged = InteractionBounds.Intersect(configBounds, visibleBounds);
+            return merged.IsValid ? merged : configBounds;
         }
 
         /// <summary>
@@ -279,6 +311,9 @@ namespace GameLogic
             if (Fsm.CurrentState != InteractableObjectState.Dragging) return;
             if (data.Phase != GesturePhase.Updated && data.Phase != GesturePhase.Began) return;
 
+            if (data.Phase == GesturePhase.Began)
+                _dragGrabOffsetValid = false;
+
             _lastDragScreenPos = data.ScreenPosition;
             _hasFreshDrag = true;
         }
@@ -294,6 +329,9 @@ namespace GameLogic
         /// </summary>
         private void OnFsmStateChanged(InteractableObjectState prev, InteractableObjectState next)
         {
+            if (prev == InteractableObjectState.Dragging)
+                _dragGrabOffsetValid = false;
+
             if (prev == InteractableObjectState.Dragging && next == InteractableObjectState.Snapping)
             {
                 TryStartRebound();
@@ -318,7 +356,7 @@ namespace GameLogic
         private void TryStartRebound()
         {
             if (_puzzleConfig == null) return;
-            var b = _puzzleConfig.InteractionBounds;
+            var b = GetEffectiveInteractionBounds();
             bool fingerOutOfBounds =
                 LastWorldPosUnclamped.x < b.MinX || LastWorldPosUnclamped.x > b.MaxX ||
                 LastWorldPosUnclamped.y < b.MinY || LastWorldPosUnclamped.y > b.MaxY;
@@ -362,7 +400,7 @@ namespace GameLogic
             _didStartSnap = true;
 
             float gs = _puzzleConfig.GridSize;
-            var b = _puzzleConfig.InteractionBounds;
+            var b = GetEffectiveInteractionBounds();
             var pos = transform.position;
             float snappedX = Mathf.Round(pos.x / gs) * gs;
             float snappedY = Mathf.Round(pos.y / gs) * gs;
