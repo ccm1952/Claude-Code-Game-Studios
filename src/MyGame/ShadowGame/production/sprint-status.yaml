@@ -1542,14 +1542,14 @@ sprint_5_stories:
     name: "GameApp provider injection — RegisterPuzzleConfigProvider + RegisterInputConfigProvider (Sprint 6 emergent fix Track F NEW story-006 S0-4)"
     file: "production/epics/vs-chapter-1/story-006-gameapp-provider-injection.md"
     priority: must-have
-    status: draft
+    status: done
     owner: ""
     complexity_points: 1
     type: Logic
     depends_on: ["S6-13 ✅ story-004 input pipeline", "S6-14 ✅ story-005 scene wiring (InteractableObject MonoBehaviour 挂载后 OnEnable 才 trigger PuzzleConfigProvider invocation)", "Sprint 2 SP-013 ✅ InteractableObject.RegisterPuzzleConfigProvider static API + S5-1b ✅ BuildFixtureChapterDataProvider precedent"]
     blocker: ""
-    completed: ""
-    notes: "**Track F 第 3 story (~30 min provider 静态注入 wiring)** — GameApp.Init() 加 2 处 Register provider call + 2 个 BuildFixtureXxxProvider helper inline (与 BuildFixtureChapterDataProvider precedent 同模式)。10 AC + 5 R3 PlayMode probe case。**~5-15 行 production code change estimate** (GameApp.cs Init + BuildFixture helper)。R2 verify pending (Register API 签名 / PuzzleConfig POCO + Default / IInputConfig + DefaultInputConfig / Luban TbPuzzle 现状 / Luban TbInput 现状 / GameApp.Init 调用顺序 / ClearProviderForTest helper)。**'if descoped' = 不可 descope**。"
+    completed: "2026-06-15"
+    notes: "**✅ DONE 2026-06-15** — R3 PlayMode **6/6 case PASS + 19/19 asserts + all_passed=true + unexpected_error_count=0 + fail_loud_provider_error_count=0 + total_elapsed_ms=234** ≪ 5s budget first-run；evidence `production/qa/playmode-gameapp-provider-injection-2026-06-12.md`；spike `S6-15_GameAppProviderInjection.cs` + GameApp 2× Register + 2× BuildFixture helper (~30 行) + S614→S615 + DevTestState HasSpike(S6-15)；Track F 3/5 done；NEXT S6-16 story-007 shadowmatch production wire。**Track F 第 3 story (~30 min provider 静态注入 wiring)** — S0-4 closure；ADR-029 R2.5/R2.6 DEFICIENCY inline closed via hardcoded fixture（S5-1b precedent）；V3.0.1 dp15 第 3 个 production wiring 修复 case。**'if descoped' = 不可 descope**。"
 
   - id: "S6-16"
     epic: "vs-chapter-1"
@@ -1561,7 +1561,7 @@ sprint_5_stories:
     complexity_points: 3
     type: Logic / Integration
     depends_on: ["S6-13 ✅ story-004", "S6-14 ✅ story-005", "S6-15 ✅ story-006 (input → InteractableObject FSM → SnapRotation fire OnObjectTransformChanged 全 production wiring 已通)", "Sprint 4 SP-018 ShadowMatchCalculator ⚠️ R2.1 verify 关键 unknown — 现状 done/partial/0", "S5-03 ✅ PuzzleStateMachine listener OnMatchScoreUpdated 已 wire"]
-    blocker: "S6-15"
+    blocker: ""
     completed: ""
     notes: "**Track F 第 4 story (~2-3 hr — scope 风险最高)** — ADR-012 ShadowMatchCalculator listener 物件 transform → 阴影匹配 → IPuzzleEvent.OnMatchScoreUpdated/OnPerfectMatch production fire。10 AC + 5 R3 PlayMode probe case。**Scope 风险 unknown — Sprint 4 SP-018 ShadowMatchCalculator.cs 实施现状 R2.1 verify 关键 (3 种场景: 场景 A done + listener wired ~30-45 min ；场景 B partial impl + listener wire 缺 ~1-2 hr；场景 C 0-production / 算法未实施 ~4-6 hr 可能 split sub-stories → Sprint 7 buffer)**。R2 verify pending (ShadowMatchCalculator.cs 现状 / listener subscribe / MonoBehaviour vs POCO / ADR-012 算法 MVP scope / SnapRotation fire timing / 投影墙面 ShadowProjectionTarget / chapter 1 fixed light config / PuzzleConfig.PerfectMatchThreshold)。**'if descoped' = 不可 descope (chapter 1 fun loop 完整 round-trip 必需)；如 R2.1 verify 揭露场景 C → 评估 split + Sprint 7 buffer**。"
 

@@ -62,6 +62,13 @@ public partial class GameApp
         _inputService.Init();
         Log.Info("[GameApp] InputService production wire-up done (Sprint 2 SP-013 partial fsm-only-driver-pending closure)");
 
+        // Sprint 6 emergent fix Track F vs-chapter-1-006 (S6-15 story-006): PuzzleConfig + InputConfig provider 静态注入。
+        //   须在 StartGameLogic() / chapter scene OnEnable 之前注册（per ADR-013 §Architecture + R2.7 实证）。
+        //   Luban TbPuzzle / TbInputConfig 0-production → BuildFixture hardcoded（S5-1b BuildFixtureChapterDataProvider 同模式）。
+        GameLogic.InteractableObject.RegisterPuzzleConfigProvider(BuildFixturePuzzleConfigProvider());
+        GameLogic.InteractionCoordinator.RegisterInputConfigProvider(BuildFixtureInputConfigProvider());
+        Log.Info("[GameApp] PuzzleConfig + InputConfig provider wire-up done (chapter 1 fixture)");
+
 #if UNITY_EDITOR || DEBUG
         RegisterDevSpikes();
 #endif
@@ -98,6 +105,30 @@ public partial class GameApp
         _ => null                                          // 未知 id 同 Luban TbChapter.Get fail-loud 行为
     };
 
+    // S6-15 story-006 fixture PuzzleConfigProvider — Luban TbPuzzle 真接入 deferred to post-VS（user decision 2026-05-09 同 chapter data）。
+    // 签名 Func<int, PuzzleConfig> 与未来 ConfigSystem.Tables.TbPuzzle.Get(id) 真接入 100% 一致；
+    // migration 仅 1 lambda swap：id => ConfigSystem.Tables.TbPuzzle.Get(id) 映射行。
+    // chapter 1 两物件均 puzzleId=1；InteractionBounds 沿 EditMode InteractionCoordinatorTests.cs:58-62 fixture。
+    private static System.Func<int, GameLogic.PuzzleConfig> BuildFixturePuzzleConfigProvider() => id => id switch
+    {
+        1 => new GameLogic.PuzzleConfig(
+            id: 1,
+            interactionBounds: new GameLogic.InteractionBounds(-10f, 10f, -10f, 10f),
+            gridSize: 1f,
+            snapSpeed: 0.2f,
+            rotationStep: 15f),
+        _ => null
+    };
+
+    // S6-15 story-006 fixture InputConfigProvider — Luban TbInputConfig 真接入 deferred to Sprint 7+ ADR-010 epic。
+    // 沿 InteractionCoordinatorTests.cs:65-70 EditMode fixture + InputService.Init 同 InitWithDefaults 路径。
+    private static System.Func<GameLogic.IInputConfig> BuildFixtureInputConfigProvider() => () =>
+    {
+        var cfg = new GameLogic.InputConfigFromLuban();
+        cfg.InitWithDefaults();
+        return cfg;
+    };
+
 #if UNITY_EDITOR || DEBUG
     // Spike / 开发测试注册入口（仅 Editor / Debug 编译）。
     // 红线：main.unity 只挂 GameEntry；所有热更域测试必须通过 DevBootstrap 注册，在 DevTestState 动态挂载。
@@ -129,23 +160,20 @@ public partial class GameApp
         //   Error→RecoverToIdle / RapidNewestWinsOverwrite；evidence: production/qa/playmode-error-restart-path-2026-05-13.md），
         //   不再每次启动并发跑。如需复跑 R3，临时注释 S601PlaytestSpike + 取消 S604Spike 注释行。
         //
-        // S6-14 Chapter 1 Scene Wiring (2026-05-14 Session 33 Phase 2) 当前 active spike — Track F vs-chapter-1-005 R3 PlayMode probe
-        //   (per story-005-chapter-1-scene-wiring.md Phase 0 ✅ + Phase 1 ✅ + Phase 2 scene wiring partial ✅)。
-        //   5+1 R3 case (P1 SceneHierarchyHasInteractionCoordinator → P2 InteractableObjectsExistAndConfigured →
-        //   P3 LayerFilterCorrect [child Hitbox2D + 2D/3D collider 同存 Drift D [A2]] → P4 CameraReferenceNonNull →
-        //   P5 RaycastFatFingerDimensionalConsistency → P5b InitializeIdempotent) — chapter 1 baseline 加载后
-        //   scene wiring + Inspector field 注入 verify；JSON evidence WriteResultJson S6-14_Result.json。
+        // S6-15 GameApp Provider Injection (2026-06-12 Session 34) 当前 active spike — Track F vs-chapter-1-006 R3 PlayMode probe
+        //   (per story-006-gameapp-provider-injection.md Phase 1 ✅ READY)。
+        //   5 R3 case (baseline → P1 StaticPuzzleConfigProvider → P2 StaticInputConfigProvider →
+        //   P3 InteractableObjectPuzzleConfigResolved → P4 CoordinatorInputConfigResolved →
+        //   P5 NoFailLoudProviderErrors) — chapter 1 baseline 加载后 provider resolved verify；
+        //   JSON evidence WriteResultJson S6-15_Result.json。
         //
-        //   V3.0.1 dp18 candidate sub-item 2 "Unity engine cross-component 互斥约束 R2 verify 漏" 实战触发 —
-        //   Phase 2 surface Unity 同 GameObject 2D/3D 互斥 → [A2] child Hitbox2D GameObject narrow scope 同存解。
-        //
-        //   V3.0.1 dp8 candidate "DevTestState [main-menu] mode 复用阈值阶进" — 加入 S6-14 后 [main-menu] mode
-        //   HasSpike list 现 7 spike，远超原阈值 4，Sprint 6 retro 强制评估 V3.1 trigger pattern。
+        //   V3.0.1 dp15 sniff sub-clause 第 3 个 production wiring 修复 case — RegisterPuzzleConfigProvider
+        //   + RegisterInputConfigProvider GameApp.Entrance production caller hit > 0。
         //
         //   manual playtest / 其他 spike 复跑入口：
-        //   注释 S614Spike + 取消 S601PlaytestSpike / S613Spike / S604Spike 等注释行即可切换。
-        GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S614Spike());
-        // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S613Spike());
+        //   注释 S615Spike + 取消 S614Spike / S613Spike / S601PlaytestSpike 等注释行即可切换。
+        GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S615Spike());
+        // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S614Spike());
         // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S601PlaytestSpike());
         // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S604Spike());
         // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S608Spike());
