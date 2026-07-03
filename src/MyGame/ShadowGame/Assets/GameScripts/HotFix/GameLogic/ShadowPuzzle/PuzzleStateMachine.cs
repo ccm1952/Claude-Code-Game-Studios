@@ -263,6 +263,8 @@ namespace GameLogic
         {
             _isFrozen = true;
             TransitionTo(PuzzleState.PerfectMatch);
+            Log.Info($"[PuzzleStateMachine] EnterPerfectMatch puzzleId={_puzzleId} matchScore={_matchScore:F3} " +
+                     $"threshold={_config.PerfectMatchThreshold:F2} → OnPerfectMatch + narrative cascade");
             GameEvent.Get<IShadowPuzzleEvent>().OnPerfectMatch(_puzzleId, _matchScore);
             DispatchPuzzleCompleteAndLock(PuzzleCompletionType.Perfect);
         }

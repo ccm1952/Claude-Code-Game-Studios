@@ -97,9 +97,13 @@ namespace GameLogic
         private PuzzleConfig _puzzleConfig;
         private Vector2 _lastDragScreenPos;
         private bool _hasFreshDrag;
-        /// <summary>拖拽起点相对指下点的世界偏移（避免 Began 帧物体跳到指心）。</summary>
+        /// <summary>吸附起点相对指下点的世界偏移（避免 Began 帧物体跳到指心）。</summary>
         private Vector3 _dragGrabOffset;
         private bool _dragGrabOffsetValid;
+        /// <summary>最近一次 StartSnap 计算的格点目标（供 OnSnapComplete 诊断日志）。</summary>
+        private Vector3 _lastSnapTargetPos;
+        private bool _lastSnapTargetValid;
+        private static bool _snapGridCatalogLogged;
         private bool _listenersRegistered;
 
         // ----------------------------------------------------------------- Snap state (S2-10)
@@ -272,7 +276,7 @@ namespace GameLogic
             _hasFreshDrag = false;
         }
 
-        /// <summary>测试专用：读取 Luban bounds ∩ 相机可见 gameplay 区域。</summary>
+        /// <summary>测试专用：读取 Luban bounds 与相机可见区域合并后的 effective bounds。</summary>
         public InteractionBounds GetEffectiveInteractionBoundsForTest() => GetEffectiveInteractionBounds();
 
         private InteractionBounds GetEffectiveInteractionBounds()
@@ -284,7 +288,7 @@ namespace GameLogic
                     _gameplayCamera, transform.position.z, VisibleBoundsInsetWorld, out var visibleBounds))
                 return configBounds;
 
-            var merged = InteractionBounds.Intersect(configBounds, visibleBounds);
+            var merged = InteractionBounds.MergeConfigWithVisibleBounds(configBounds, visibleBounds);
             return merged.IsValid ? merged : configBounds;
         }
 
@@ -409,6 +413,9 @@ namespace GameLogic
             snappedY = Mathf.Clamp(snappedY, b.MinY, b.MaxY);
 
             var snappedPos = new Vector3(snappedX, snappedY, pos.z);
+            _lastSnapTargetPos = snappedPos;
+            _lastSnapTargetValid = true;
+            LogSnapGridCatalogOnce();
 
             if (Vector3.Distance(pos, snappedPos) < SnapDistanceEpsilon)
             {
@@ -433,9 +440,85 @@ namespace GameLogic
         private void OnSnapComplete()
         {
             if (Fsm == null) return;   // OnDisable 已清；防御性
+            LogSnapCompleteDiagnostics(transform.position);
             Fsm.OnSnapCompleted();
             GameEvent.Get<IInteractionEvent>()
                 .OnObjectTransformChanged(Fsm?.ObjectId ?? _objectId, transform.position, transform.rotation);
+            _lastSnapTargetValid = false;
+        }
+
+        /// <summary>Playtest 诊断：吸附完成后打印世界坐标、格点目录对照与 chapter 1 match 目标偏差。</summary>
+        private void LogSnapCompleteDiagnostics(Vector3 worldPos)
+        {
+            if (_puzzleConfig == null) return;
+
+            var b = GetEffectiveInteractionBounds();
+            float gs = _puzzleConfig.GridSize;
+            var sb = new System.Text.StringBuilder();
+            sb.Append($"[InteractableObject#{ObjectId}] 吸附完成 world=({worldPos.x:F3},{worldPos.y:F3},{worldPos.z:F3})");
+            sb.Append($" puzzleId={_puzzleId} gridSize={gs:F2}");
+            sb.Append($" effectiveBounds X[{b.MinX:F2},{b.MaxX:F2}] Y[{b.MinY:F2},{b.MaxY:F2}]");
+
+            if (_lastSnapTargetValid)
+            {
+                sb.Append($" snapTarget=({_lastSnapTargetPos.x:F3},{_lastSnapTargetPos.y:F3},{_lastSnapTargetPos.z:F3})");
+                sb.Append($" targetDelta={Vector3.Distance(worldPos, _lastSnapTargetPos):F4}");
+            }
+
+            if (TryGetChapter1MatchTarget(ObjectId, out var matchTarget))
+            {
+                sb.Append($" matchTarget=({matchTarget.x:F2},{matchTarget.y:F2},{matchTarget.z:F2})");
+                sb.Append($" matchDist={Vector3.Distance(worldPos, matchTarget):F3}");
+            }
+
+            Log.Info(sb.ToString());
+        }
+
+        /// <summary>首次 snap 时打印当前 effectiveBounds 内全部 grid 落点（便于 playtest 对照「有哪些格点」）。</summary>
+        private void LogSnapGridCatalogOnce()
+        {
+            if (_snapGridCatalogLogged || _puzzleConfig == null) return;
+            _snapGridCatalogLogged = true;
+
+            var b = GetEffectiveInteractionBounds();
+            float gs = _puzzleConfig.GridSize;
+            if (gs <= 0.0001f) return;
+
+            int minIx = Mathf.CeilToInt(b.MinX / gs - 0.001f);
+            int maxIx = Mathf.FloorToInt(b.MaxX / gs + 0.001f);
+            int minIy = Mathf.CeilToInt(b.MinY / gs - 0.001f);
+            int maxIy = Mathf.FloorToInt(b.MaxY / gs + 0.001f);
+
+            var cells = new System.Text.StringBuilder();
+            for (int iy = minIy; iy <= maxIy; iy++)
+            {
+                for (int ix = minIx; ix <= maxIx; ix++)
+                {
+                    if (cells.Length > 0) cells.Append(", ");
+                    cells.Append($"({ix * gs:F1},{iy * gs:F1})");
+                }
+            }
+
+            Log.Info(
+                $"[InteractableObject] grid 目录 puzzleId={_puzzleId} gridSize={gs:F1} " +
+                $"effectiveBounds X[{b.MinX:F2},{b.MaxX:F2}] Y[{b.MinY:F2},{b.MaxY:F2}] " +
+                $"cells=[{cells}] | chapter1 scene初始 Object_01=(-1,0) Object_02=(1,0) match同目标");
+        }
+
+        private static bool TryGetChapter1MatchTarget(int objectId, out Vector3 target)
+        {
+            switch (objectId)
+            {
+                case 1:
+                    target = new Vector3(-1f, 0f, 0f);
+                    return true;
+                case 2:
+                    target = new Vector3(1f, 0f, 0f);
+                    return true;
+                default:
+                    target = default;
+                    return false;
+            }
         }
 
         // ----------------------------------------------------------------- Rotation (S2-11)

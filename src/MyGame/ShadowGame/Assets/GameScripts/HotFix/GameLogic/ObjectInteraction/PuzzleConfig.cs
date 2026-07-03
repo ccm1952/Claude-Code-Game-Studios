@@ -88,5 +88,18 @@ namespace GameLogic
         }
 
         public bool IsValid => MinX < MaxX && MinY < MaxY;
+
+        /// <summary>
+        /// Luban 配置边界与相机可见区域合并：X/MaxY 取交集（防拖出屏）；
+        /// MinY 取更宽松的一侧，避免 puzzle 合法低行（如 chapter 1 的 y=0 match 格）被可见区内缩裁掉。
+        /// </summary>
+        public static InteractionBounds MergeConfigWithVisibleBounds(InteractionBounds config, InteractionBounds visible)
+        {
+            return new InteractionBounds(
+                Mathf.Max(config.MinX, visible.MinX),
+                Mathf.Min(config.MaxX, visible.MaxX),
+                Mathf.Min(config.MinY, visible.MinY),
+                Mathf.Min(config.MaxY, visible.MaxY));
+        }
     }
 }

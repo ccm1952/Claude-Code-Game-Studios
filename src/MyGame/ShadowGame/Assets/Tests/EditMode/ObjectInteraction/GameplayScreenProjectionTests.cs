@@ -56,5 +56,20 @@ namespace ShadowGame.Tests.EditMode.ObjectInteraction
             Assert.That(effective.MinY, Is.GreaterThan(wideConfig.MinY));
             Assert.That(effective.MaxX, Is.LessThan(wideConfig.MaxX));
         }
+
+        [Test]
+        public void MergeConfigWithVisibleBounds_PreservesChapter1Y0Row_WhenVisibleMinYIsInset()
+        {
+            var chapter1Config = new InteractionBounds(-2.5f, 2.5f, 0f, 2.5f);
+            var visibleWithInset = new InteractionBounds(-1.58f, 1.58f, 0.12f, 2.5f);
+
+            var effective = InteractionBounds.MergeConfigWithVisibleBounds(chapter1Config, visibleWithInset);
+
+            Assert.IsTrue(effective.IsValid);
+            Assert.That(effective.MinY, Is.EqualTo(0f).Within(0.001f),
+                "chapter 1 match 格 y=0 不应被可见区内缩裁掉");
+            Assert.That(effective.MaxX, Is.EqualTo(visibleWithInset.MaxX).Within(0.001f));
+            Assert.That(effective.MinX, Is.EqualTo(visibleWithInset.MinX).Within(0.001f));
+        }
     }
 }

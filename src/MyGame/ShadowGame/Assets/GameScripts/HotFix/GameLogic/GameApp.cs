@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 using GameLogic;
@@ -31,6 +32,13 @@ public partial class GameApp
     // Sprint 6 emergent fix Track F vs-chapter-1-007 (S6-16 story-007): ShadowMatchCalculator production wire (S0-5)。
     //   OnObjectTransformChanged listener → IShadowMatchEvent.OnMatchScoreUpdated（ADR-012 MVP fixture scoring）。
     private static GameLogic.ShadowMatchCalculator _shadowMatchCalculator;
+
+    // Sprint 6 emergent fix Track F vs-chapter-1-008 (S6-01 manual playtest / S6-17 R3 precedent):
+    //   PuzzleStateMachine + NarrativeSequencePlayer production wire — 沿 S5-02/S6-17 spike InitializeProductionWiring
+    //   同路径；ChapterStateManager Sprint 7+ 接管前由 GameApp 持完整 lifecycle（Init / Tick / Shutdown）。
+    private static GameLogic.PuzzleStateMachine _puzzleStateMachine;
+    private static GameLogic.NarrativeSequencePlayer _narrativeSequencePlayer;
+    private static Action _puzzleNarrativeTickCached;
 
     /// <summary>
     /// 热更域App主入口。
@@ -79,6 +87,8 @@ public partial class GameApp
         _shadowMatchCalculator = new GameLogic.ShadowMatchCalculator();
         _shadowMatchCalculator.Init();
         Log.Info("[GameApp] ShadowMatchCalculator production wire-up done (chapter 1 fixture targets)");
+
+        WirePuzzleAndNarrativeProduction();
 
 #if UNITY_EDITOR || DEBUG
         RegisterDevSpikes();
@@ -140,6 +150,69 @@ public partial class GameApp
         return cfg;
     };
 
+    /// <summary>
+    /// chapter 1 puzzleId=1 — PuzzleStateMachine + NarrativeSequencePlayer 生产接线（S5-02/S6-17 spike 同路径）。
+    /// ShadowMatchCalculator → OnMatchScoreUpdated → PuzzleStateMachine → OnPerfectMatch → NarrativeSequencePlayer。
+    /// </summary>
+    private static void WirePuzzleAndNarrativeProduction()
+    {
+        try
+        {
+            var puzzleConfigProvider = new GameLogic.PuzzleStateConfigFromLuban();
+            puzzleConfigProvider.InitWithDefaults();
+            var puzzleConfig = puzzleConfigProvider.GetConfig(1);
+            if (puzzleConfig == null)
+            {
+                Log.Error("[GameApp] PuzzleStateConfigFromLuban.GetConfig(1) == null — puzzle/narrative wiring aborted");
+                return;
+            }
+
+            _puzzleStateMachine = new GameLogic.PuzzleStateMachine();
+            _puzzleStateMachine.Initialize(1, puzzleConfig);
+            _puzzleStateMachine.OnChapterUnlocked();
+            _puzzleStateMachine.OnPlayerInteraction();
+
+            var narrativeConfigProvider = new GameLogic.NarrativeSequenceConfigFromLuban();
+            narrativeConfigProvider.InitWithDefaults();
+            _narrativeSequencePlayer = new GameLogic.NarrativeSequencePlayer();
+            _narrativeSequencePlayer.Initialize(narrativeConfigProvider);
+
+            _puzzleNarrativeTickCached = TickPuzzleAndNarrativeProduction;
+            Utility.Unity.AddUpdateListener(_puzzleNarrativeTickCached);
+
+            Log.Info("[GameApp] PuzzleStateMachine + NarrativeSequencePlayer production wire-up done " +
+                     "(chapter 1 fixture puzzleId=1; OnPerfectMatch → MemoryReplay seq)");
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"[GameApp] WirePuzzleAndNarrativeProduction 异常: {ex}");
+            ShutdownPuzzleAndNarrativeProduction();
+        }
+    }
+
+    private static void TickPuzzleAndNarrativeProduction()
+    {
+        if (_puzzleStateMachine == null && _narrativeSequencePlayer == null) return;
+        float deltaTime = Time.deltaTime;
+        _puzzleStateMachine?.Tick(deltaTime);
+        _narrativeSequencePlayer?.Tick(deltaTime);
+    }
+
+    private static void ShutdownPuzzleAndNarrativeProduction()
+    {
+        if (_puzzleNarrativeTickCached != null)
+        {
+            Utility.Unity.RemoveUpdateListener(_puzzleNarrativeTickCached);
+            _puzzleNarrativeTickCached = null;
+        }
+
+        _puzzleStateMachine?.Shutdown();
+        _puzzleStateMachine = null;
+
+        _narrativeSequencePlayer?.Shutdown();
+        _narrativeSequencePlayer = null;
+    }
+
 #if UNITY_EDITOR || DEBUG
     // Spike / 开发测试注册入口（仅 Editor / Debug 编译）。
     // 红线：main.unity 只挂 GameEntry；所有热更域测试必须通过 DevBootstrap 注册，在 DevTestState 动态挂载。
@@ -172,7 +245,8 @@ public partial class GameApp
         //   不再每次启动并发跑。如需复跑 R3，临时注释 S601PlaytestSpike + 取消 S604Spike 注释行。
         //
         // S6-17 End-to-End Smoke Replay (2026-06-15) ✅ DONE — Track F vs-chapter-1-008 R3 6/6 PASS
-        //   manual playtest / 复跑 R3：注释 S617Spike，取消下方 S601PlaytestSpike 或 S616Spike 等注释行。
+        //   manual playtest / 复跑 R3：注释 S601PlaytestSpike，取消 S617Spike 注释行。
+        //   ⚠️ GameApp 已 WirePuzzleAndNarrativeProduction — 复跑 S6-17 前须临时注释 Wire 调用，否则 spike 会 double-init listener。
         // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S617Spike());
         GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S601PlaytestSpike());
         // GameLogic.DevTest.DevBootstrap.Register(new GameLogic.DevTest.Spikes.S604Spike());
@@ -219,6 +293,9 @@ public partial class GameApp
     
     private static void Release()
     {
+        ShutdownPuzzleAndNarrativeProduction();
+        Log.Info("[GameApp] PuzzleStateMachine + NarrativeSequencePlayer disposed");
+
         // Sprint 6 emergent fix Track F vs-chapter-1-004: InputService Dispose 必须先于 FSM Destroy
         // (Utility.Unity.RemoveUpdateListener 需要 update driver alive；listener-path driver 反向操作)。
         if (_inputService != null)

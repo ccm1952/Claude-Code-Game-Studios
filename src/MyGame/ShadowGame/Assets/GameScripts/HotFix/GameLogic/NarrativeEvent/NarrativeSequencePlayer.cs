@@ -307,6 +307,9 @@ namespace GameLogic
 
             var token = TokenPrefix + config.Id;
 
+            Log.Info($"[NarrativeSequencePlayer] StartSequence id={config.Id} type={config.Type} " +
+                     $"duration={config.TotalDuration:F1}s effects={config.Effects.Count} token={token}");
+
             // S5-05 deviation note: 仅 InputBlocker 单层锁；不调 IPuzzleLockEvent.OnPuzzleLockAll
             // (ADR-014 contract 是 parameter-less terminal-lock；不适用 sequence-scoped use case)
             GameEvent.Get<IInputBlockerEvent>().OnPushBlocker(token);

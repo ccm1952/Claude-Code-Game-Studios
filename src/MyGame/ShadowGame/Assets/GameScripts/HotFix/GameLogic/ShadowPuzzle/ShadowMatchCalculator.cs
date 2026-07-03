@@ -118,28 +118,30 @@ namespace GameLogic
             TryPublishScore(puzzleId, score);
         }
 
-        /// <summary>MVP 评分：puzzle 内各 object 的 position×rotation 分数取平均（ADR-012 占位）。</summary>
+        /// <summary>
+        /// MVP 评分：puzzle 内<strong>全部</strong> fixture target 参与分母；未上报 transform 的物体计 0 分。
+        /// <para>防 playtest 回归：仅移动单物体且落点正确时 score=1.0 → 过早 PerfectMatch（S6-01 实证）。</para>
+        /// </summary>
         internal float CalculatePuzzleScore(int puzzleId)
         {
             float sum = 0f;
-            int count = 0;
+            int targetCount = 0;
 
             foreach (var kv in _targetsByObjectId)
             {
                 if (kv.Value.PuzzleId != puzzleId) continue;
 
+                targetCount++;
                 int objectId = kv.Key;
-                if (!_latestPositionByObjectId.TryGetValue(objectId, out var pos))
-                    continue;
-                if (!_latestRotationByObjectId.TryGetValue(objectId, out var rot))
-                    continue;
-
-                sum += CalculateObjectScore(kv.Value, pos, rot);
-                count++;
+                if (_latestPositionByObjectId.TryGetValue(objectId, out var pos) &&
+                    _latestRotationByObjectId.TryGetValue(objectId, out var rot))
+                {
+                    sum += CalculateObjectScore(kv.Value, pos, rot);
+                }
             }
 
-            if (count == 0) return 0f;
-            return Mathf.Clamp01(sum / count);
+            if (targetCount == 0) return 0f;
+            return Mathf.Clamp01(sum / targetCount);
         }
 
         private static float CalculateObjectScore(ObjectMatchTarget target, Vector3 position, Quaternion rotation)
@@ -161,6 +163,19 @@ namespace GameLogic
             if (Mathf.Abs(score - last) < ScorePublishEpsilon) return;
 
             _lastPublishedScoreByPuzzleId[puzzleId] = score;
+
+            int targetCount = 0;
+            int reportedCount = 0;
+            foreach (var kv in _targetsByObjectId)
+            {
+                if (kv.Value.PuzzleId != puzzleId) continue;
+                targetCount++;
+                if (_latestPositionByObjectId.ContainsKey(kv.Key))
+                    reportedCount++;
+            }
+
+            Log.Info($"[ShadowMatchCalculator] OnMatchScoreUpdated puzzleId={puzzleId} score={score:F3} " +
+                     $"(prev={last:F3}) reported={reportedCount}/{targetCount} objects");
             GameEvent.Get<IShadowMatchEvent>().OnMatchScoreUpdated(puzzleId, score);
         }
     }
